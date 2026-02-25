@@ -210,6 +210,41 @@
             font-size: 0.8em;
             margin-top: 5px;
         }
+
+        /* end game overlay styles */
+        .end-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: #00ff88;
+        }
+
+        .end-content {
+            background: #16213e;
+            padding: 20px;
+            border: 2px solid #00ff88;
+            border-radius: 8px;
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .end-content ul {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+            text-align: left;
+        }
+
+        .end-content li {
+            margin: 5px 0;
+        }
     </style>
 </head>
 <body>
@@ -222,7 +257,9 @@
             SPACE = Fire Weapon | Get close to asteroids to mine automatically
         </div>
 
-        <canvas id="gameCanvas"></canvas>
+        <div class="game-canvas">
+            <canvas id="gameCanvas"></canvas>
+        </div>
 
         <div class="stats-panel">
             <div class="stat-box">
@@ -241,13 +278,38 @@
                 <div class="stat-label">LEVEL</div>
                 <div class="stat-value" id="level">1</div>
             </div>
+            <div class="stat-box">
+                <div class="stat-label">AREA</div>
+                <div class="stat-value" id="zone">1</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">AMMO</div>
+                <div class="stat-value" id="ammo">0 / 5</div>
+            </div>
         </div>
 
         <div class="controls">
             <button onclick="game.sellOre()">💰 SELL ORE</button>
             <button onclick="game.fireWeapon()">🔫 FIRE!</button>
-            <button onclick="game.pause()">⏸️ <span id="pauseText">PAUSE</span></button>
+            <button id="pauseBtn" onclick="game.pause()">⏸️ <span id="pauseText">PAUSE</span></button>
             <button onclick="game.reset()">🔄 RESET</button>
+        </div>
+
+        <!-- end game overlay -->
+        <div id="endScreen" class="end-screen" style="display:none;">
+            <div class="end-content">
+                <h2>💀 GAME OVER</h2>
+                <p>Your achievements:</p>
+                <ul>
+                    <li>Ore mined: <span id="statOre"></span></li>
+                    <li>Pirates destroyed: <span id="statPirates"></span></li>
+                    <li>Level reached: <span id="statLevel"></span></li>
+                    <li>Area reached: <span id="statZone"></span></li>
+                    <li>Credits earned: <span id="statCredits"></span></li>
+                    <li>Upgrades bought: <span id="statUpgrades"></span></li>
+                </ul>
+                <button onclick="game.reset()">PLAY AGAIN</button>
+            </div>
         </div>
 
         <div class="shop-section">
@@ -277,6 +339,12 @@
                     <div class="shop-item-effect">+30% Speed</div>
                     <button onclick="game.buySpeedUpgrade()">BUY</button>
                 </div>
+                <div class="shop-item">
+                    <div class="shop-item-name">🔫 Weapon Upgrade</div>
+                    <div class="shop-item-cost" id="weaponCost">Cost: 200 Credits</div>
+                    <div class="shop-item-effect">+1 Ammo</div>
+                    <button onclick="game.buyWeaponUpgrade()">BUY</button>
+                </div>
             </div>
         </div>
 
@@ -305,17 +373,28 @@
             cargoMax: 50,
             credits: 1000,
             level: 1,
+            zone: 1, // current area number
             isPaused: false,
             gameTickCount: 0,
             miningSpeed: 1,
             shipSpeed: 1,
             weapons: [],
+            // weapon / ammo
+            weaponLevel: 1,
+            ammo: 0,            // current ammo remaining
+            maxAmmo: 5,
+            reloadTimer: 0,
             upgradeCount: {
                 cargo: 0,
                 mining: 0,
                 health: 0,
-                speed: 0
+                speed: 0,
+                weapon: 0
             },
+            // achievement / end game tracking
+            oreMinedTotal: 0,
+            piratesDestroyed: 0,
+            gameOver: false,
 
             // Game objects
             asteroids: [],
@@ -326,6 +405,7 @@
             init() {
                 this.canvas = document.getElementById('gameCanvas');
                 this.ctx = this.canvas.getContext('2d');
+                // set canvas to fill visible area
                 this.canvas.width = this.canvas.offsetWidth;
                 this.canvas.height = this.canvas.offsetHeight;
 
@@ -336,19 +416,11 @@
                 document.addEventListener('keydown', (e) => this.handleKey(e, true));
                 document.addEventListener('keyup', (e) => this.handleKey(e, false));
 
-                // Generate starting asteroids
-                for (let i = 0; i < 6; i++) {
-                    this.asteroids.push({
-                        x: Math.random() * this.canvas.width,
-                        y: Math.random() * this.canvas.height,
-                        radius: 20 + Math.random() * 15,
-                        ore: 100 + Math.random() * 100,
-                        maxOre: 100 + Math.random() * 100,
-                        angle: 0,
-                        miningComplete: false,
-                        respawnTimer: 0
-                    });
-                }
+                // start with full ammo and no reload
+                this.ammo = this.maxAmmo;
+                this.reloadTimer = 0;
+                // Generate starting asteroids for first zone
+                this.generateAsteroids();
 
                 this.log('Game started! Navigate to asteroids to mine them.', 'success');
                 this.startGameLoop();
@@ -380,6 +452,15 @@
 
             update() {
                 this.gameTickCount++;
+
+                // reload countdown
+                if (this.reloadTimer > 0) {
+                    this.reloadTimer--;
+                    if (this.reloadTimer <= 0) {
+                        this.ammo = this.maxAmmo;
+                        this.log('🔄 Reload complete', 'success');
+                    }
+                }
 
                 // Handle ship input
                 if (this.keys['arrowup']) {
@@ -413,9 +494,24 @@
                 this.ship.x += this.ship.vx;
                 this.ship.y += this.ship.vy;
 
-                // Wrap around edges
-                if (this.ship.x < 0) this.ship.x = this.canvas.width;
-                if (this.ship.x > this.canvas.width) this.ship.x = 0;
+                // Wrap around edges of world
+                // Wrap around edges of world and move between zones horizontally
+                if (this.ship.x < 0) {
+                    // moved off left edge -> previous area
+                    if (this.zone > 1) {
+                        this.zone--;
+                        this.log(`⬅️ Returned to area ${this.zone}`, 'info');
+                    }
+                    this.ship.x = this.canvas.width;
+                    this.generateAsteroids();
+                }
+                if (this.ship.x > this.canvas.width) {
+                    // moved off right edge -> next area
+                    this.zone++;
+                    this.log(`➡️ Entered area ${this.zone}`, 'info');
+                    this.ship.x = 0;
+                    this.generateAsteroids();
+                }
                 if (this.ship.y < 0) this.ship.y = this.canvas.height;
                 if (this.ship.y > this.canvas.height) this.ship.y = 0;
 
@@ -426,6 +522,11 @@
                     const dist = Math.sqrt(dx * dx + dy * dy);
 
                     if (dist < ast.radius + 40 && ast.ore > 0 && this.cargo < this.cargoMax) {
+                        // level requirement
+                        if (this.level < (ast.requiredLevel || 1)) {
+                            this.log(`🔒 Need level ${ast.requiredLevel} to mine this asteroid`, 'warning');
+                            continue;
+                        }
                         // Mine!
                         const oreAmount = Math.min(0.15 * this.miningSpeed, ast.ore, this.cargoMax - this.cargo);
                         ast.ore -= oreAmount;
@@ -435,6 +536,9 @@
                             ast.miningComplete = true;
                             ast.respawnTimer = 300;
                         }
+
+                        // track mined ore
+                        this.oreMinedTotal += oreAmount;
 
                         // Particles
                         for (let i = 0; i < 2; i++) {
@@ -458,8 +562,19 @@
                     if (ast.miningComplete && ast.respawnTimer > 0) {
                         ast.respawnTimer--;
                         if (ast.respawnTimer <= 0) {
+                            // reset ore
+                            // compute new level, possibly one above current zone
+                            const newLevel = Math.random() < 0.2 ? this.zone + 1 : this.zone;
+                            ast.requiredLevel = newLevel;
+                            ast.color = this.getAsteroidColor(newLevel);
+                            // recalc ore/size based on level
+                            const extra = (newLevel - 1) * 50;
+                            ast.maxOre = 100 + Math.random() * 100 + extra;
                             ast.ore = ast.maxOre;
                             ast.miningComplete = false;
+                            if (newLevel > this.zone) {
+                                this.log('⚠️ A tougher asteroid has appeared!', 'warning');
+                            }
                             this.log('⭐ Asteroid regenerated!', 'info');
                         }
                     }
@@ -502,14 +617,13 @@
 
                     if (dist < 15) {
                         // Hit!
-                        const damage = Math.floor(Math.random() * 15 + 10);
+                        const damage = Math.floor(Math.random() * 15 + 10 + (this.zone - 1) * 5);
                         this.health -= damage;
                         this.log(`🔴 Enemy fire! -${damage} health`, 'danger');
                         
                         if (this.health <= 0) {
-                            this.log('💀 Ship destroyed!', 'danger');
-                            this.isPaused = true;
-                            document.getElementById('pauseText').textContent = 'RESUME';
+                            this.health = 0;
+                            this.endGame();
                         }
 
                         return false;
@@ -523,8 +637,10 @@
                     return p.life > 0;
                 });
 
-                // Spawn pirates occasionally
-                if (this.gameTickCount % 300 === 0 && this.pirates.length < 2) {
+                // Spawn pirates occasionally; rate slows overall but still scales with zone
+                const interval = Math.max(150, 400 - (this.zone - 1) * 15);
+                const maxPirates = 2 + Math.floor((this.zone - 1) / 2);
+                if (this.gameTickCount % interval === 0 && this.pirates.length < maxPirates) {
                     this.spawnPirate();
                 }
 
@@ -535,17 +651,19 @@
                     const dy = this.ship.y - pirate.y;
                     const dist = Math.sqrt(dx * dx + dy * dy);
 
-                    // Chase
-                    if (dist > 100) {
-                        pirate.vx += (dx / dist) * 0.05;
-                        pirate.vy += (dy / dist) * 0.05;
+                    // Chase (longer range); accelerate more in harder zones
+                    if (dist > 200) {
+                        const accel = 0.05 + (this.zone - 1) * 0.01;
+                        pirate.vx += (dx / dist) * accel;
+                        pirate.vy += (dy / dist) * accel;
                     }
 
                     // Limit speed
                     const pspeed = Math.sqrt(pirate.vx ** 2 + pirate.vy ** 2);
-                    if (pspeed > 1.5) {
-                        pirate.vx = (pirate.vx / pspeed) * 1.5;
-                        pirate.vy = (pirate.vy / pspeed) * 1.5;
+                    const maxSpeed = pirate.baseSpeed || (1.5 + (this.zone - 1) * 0.2);
+                    if (pspeed > maxSpeed) {
+                        pirate.vx = (pirate.vx / pspeed) * maxSpeed;
+                        pirate.vy = (pirate.vy / pspeed) * maxSpeed;
                     }
 
                     pirate.x += pirate.vx;
@@ -576,19 +694,20 @@
 
                     if (hit && pirate.health <= 0) {
                         this.log('💀 Pirate destroyed!', 'success');
+                        this.piratesDestroyed++;
                         this.pirates.splice(i, 1);
                         continue;
                     }
 
                     if (hit) continue;
 
-                    // Attack - Pirates shoot projectiles
-                    if (dist < 300 && this.gameTickCount % 100 === 0) {
+                    // Attack - Pirates shoot projectiles (longer firing range)
+                    if (dist < 500 && this.gameTickCount % 100 === 0) {
                         // Shoot at player
                         const dx = this.ship.x - pirate.x;
                         const dy = this.ship.y - pirate.y;
                         const projectileDist = Math.sqrt(dx * dx + dy * dy);
-                        const projectileSpeed = 3;
+                        const projectileSpeed = 3 + (this.zone - 1) * 0.5;
 
                         this.pirateProjectiles.push({
                             x: pirate.x,
@@ -601,7 +720,7 @@
                     }
 
                     // Remove if far away
-                    if (dist > 600) {
+                    if (dist > 1000) {
                         this.pirates.splice(i, 1);
                     }
                 }
@@ -626,8 +745,41 @@
                     y = this.canvas.height + 30;
                 }
 
-                this.pirates.push({ x, y, vx: 0, vy: 0, health: 50, maxHealth: 50 });
+                const baseHealth = 50 + (this.zone - 1) * 15;
+                const baseSpeed = 1.5 + (this.zone - 1) * 0.2;
+                this.pirates.push({ x, y, vx: 0, vy: 0, health: baseHealth, maxHealth: baseHealth, baseSpeed });
                 this.log('⚠️ Pirate spotted!', 'warning');
+            },
+
+            // helper to pick an HSL color based on level
+            getAsteroidColor(level) {
+                const hues = [300, 180, 60, 30, 0]; // pink, cyan, yellow, orange, red
+                const h = hues[(level - 1) % hues.length];
+                return `hsl(${h}, 100%, 50%)`;
+            },
+
+            // generate asteroids based on current zone (difficulty increases with zone number)
+            generateAsteroids() {
+                this.asteroids = [];
+                const count = 6 + (this.zone - 1) * 2;
+                for (let i = 0; i < count; i++) {
+                    const r = 20 + Math.random() * 15;
+                    const oreAmount = 100 + Math.random() * 100 + (this.zone - 1) * 50;
+                    const req = this.zone;
+                    this.asteroids.push({
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * this.canvas.height,
+                        radius: r,
+                        ore: oreAmount,
+                        maxOre: oreAmount,
+                        angle: 0,
+                        miningComplete: false,
+                        respawnTimer: 0,
+                        requiredLevel: req,
+                        color: this.getAsteroidColor(req)
+                    });
+                }
+                this.updateUI();
             },
 
             draw() {
@@ -649,6 +801,7 @@
                 for (let ast of this.asteroids) {
                     this.drawAsteroid(ast);
                 }
+
 
                 // Draw particles
                 for (let p of this.particles) {
@@ -691,14 +844,42 @@
                     this.drawPirate(pirate);
                 }
 
-                // Draw ship
+                // Draw ship (with safety clamps)
+                if (this.ship) {
+                    if (!isFinite(this.ship.x) || !isFinite(this.ship.y)) {
+                        this.ship.x = this.canvas.width / 2;
+                        this.ship.y = this.canvas.height / 2;
+                    }
+                }
                 this.drawShip();
+
+                // reload countdown indicator in corner
+                if (this.reloadTimer > 0) {
+                    this.ctx.fillStyle = '#ffffff';
+                    this.ctx.font = 'bold 14px Courier New';
+                    this.ctx.textAlign = 'right';
+                    this.ctx.textBaseline = 'bottom';
+                    const seconds = Math.ceil(this.reloadTimer / 20);
+                    this.ctx.fillText(`Reload: ${seconds}s`, this.canvas.width - 8, this.canvas.height - 8);
+                }
             },
 
             drawShip() {
-                const x = this.ship.x;
-                const y = this.ship.y;
+                if (!this.ship) return;
+                let x = this.ship.x;
+                let y = this.ship.y;
                 const angle = this.ship.angle;
+                // clamp invalid coordinates
+                if (!isFinite(x) || isNaN(x)) x = this.canvas.width / 2;
+                if (!isFinite(y) || isNaN(y)) y = this.canvas.height / 2;
+                // debug bounding circle
+                this.ctx.save();
+                this.ctx.strokeStyle = '#ffffff';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, 20, 0, Math.PI*2);
+                this.ctx.stroke();
+                this.ctx.restore();
 
                 this.ctx.save();
                 this.ctx.translate(x, y);
@@ -739,11 +920,19 @@
                     this.ctx.globalAlpha = 0.5;
                 }
 
-                // Body
-                this.ctx.fillStyle = '#888888';
+                // Body: use stored color (hue varies by requiredLevel)
+                this.ctx.fillStyle = ast.ore > 0 ? ast.color : '#888888';
                 this.ctx.beginPath();
                 this.ctx.arc(x, y, r, 0, Math.PI * 2);
                 this.ctx.fill();
+
+                // Outline shows zone color
+                const zoneColor = this.getAsteroidColor(this.zone);
+                this.ctx.strokeStyle = zoneColor;
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, r + 1, 0, Math.PI * 2);
+                this.ctx.stroke();
 
                 // Ore
                 const orePercent = ast.ore / ast.maxOre;
@@ -822,12 +1011,16 @@
             },
 
             sellOre() {
+                if (this.gameOver) {
+                    this.log('Game over; cannot sell.', 'warning');
+                    return;
+                }
                 if (this.cargo === 0) {
                     this.log('No ore to sell!', 'warning');
                     return;
                 }
 
-                const earned = Math.floor(this.cargo * (5 + this.level));
+                const earned = Math.floor(this.cargo * (5 + this.level + this.zone * 2));
                 this.credits += earned;
                 this.cargo = 0;
 
@@ -840,46 +1033,56 @@
             },
 
             fireWeapon() {
+                if (this.gameOver) {
+                    this.log('Game over; you can’t fire.', 'warning');
+                    return;
+                }
                 if (this.isPaused) {
                     this.log('Game is paused!', 'warning');
                     return;
                 }
-
-                // Find nearest pirate
-                let nearestPirate = null;
-                let nearestDist = 200;
-
-                for (let pirate of this.pirates) {
-                    const dx = pirate.x - this.ship.x;
-                    const dy = pirate.y - this.ship.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-
-                    if (dist < nearestDist) {
-                        nearestDist = dist;
-                        nearestPirate = pirate;
-                    }
+                if (this.reloadTimer > 0) {
+                    this.log('🔄 Reloading...', 'warning');
+                    return;
+                }
+                if (this.ammo <= 0) {
+                    this.reloadTimer = 80; // 80 ticks ~4 seconds
+                    this.log('🔄 Out of ammo, reloading...', 'warning');
+                    return;
                 }
 
-                if (nearestPirate) {
-                    // Fire at nearest pirate
-                    const dx = nearestPirate.x - this.ship.x;
-                    const dy = nearestPirate.y - this.ship.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    const speed = 8;
+                // fire straight ahead based on ship angle
+                const speed = 8;
+                const vx = Math.cos(this.ship.angle) * speed;
+                const vy = Math.sin(this.ship.angle) * speed;
 
-                    this.weapons.push({
-                        x: this.ship.x,
-                        y: this.ship.y,
-                        vx: (dx / dist) * speed,
-                        vy: (dy / dist) * speed,
-                        life: 60,
-                        maxLife: 60
-                    });
+                this.weapons.push({
+                    x: this.ship.x,
+                    y: this.ship.y,
+                    vx,
+                    vy,
+                    life: 60,
+                    maxLife: 60
+                });
+                this.ammo--;
+                this.log('🔫 Weapon fired!', 'success');
+            },
 
-                    this.log('🔫 Weapon fired!', 'success');
-                } else {
-                    this.log('No pirates nearby to target!', 'warning');
+            buyWeaponUpgrade() {
+                const baseCost = 200;
+                const cost = Math.floor(baseCost * Math.pow(1.5, this.upgradeCount.weapon));
+
+                if (this.credits < cost) {
+                    this.log(`Not enough credits! Need ${cost}`, 'danger');
+                    return;
                 }
+                this.credits -= cost;
+                this.weaponLevel++;
+                this.maxAmmo += 1;
+                this.upgradeCount.weapon++;
+                this.log(`🔫 Weapon upgraded! Ammo capacity: ${this.maxAmmo} (Cost: ${cost})`, 'success');
+                this.updateShopDisplay();
+                this.updateUI();
             },
 
             buyCargoUpgrade() {
@@ -948,6 +1151,7 @@
             },
 
             pause() {
+                if (this.gameOver) return; // can't resume after death
                 this.isPaused = !this.isPaused;
                 document.getElementById('pauseText').textContent = this.isPaused ? 'RESUME' : 'PAUSE';
             },
@@ -960,8 +1164,13 @@
                     this.cargoMax = 50;
                     this.credits = 1000;
                     this.level = 1;
+                    this.zone = 1;
                     this.miningSpeed = 1;
                     this.shipSpeed = 1;
+                    this.weaponLevel = 1;
+                    this.maxAmmo = 5;
+                    this.ammo = this.maxAmmo; // start full
+                    this.reloadTimer = 0;
                     this.ship.x = this.canvas.width / 2;
                     this.ship.y = this.canvas.height / 2;
                     this.ship.vx = 0;
@@ -978,20 +1187,17 @@
                         speed: 0
                     };
                     this.isPaused = false;
+                    this.gameOver = false;
                     document.getElementById('pauseText').textContent = 'PAUSE';
+                    document.getElementById('pauseBtn').disabled = false;
+                    document.getElementById('endScreen').style.display = 'none';
+                    this.oreMinedTotal = 0;
+                    this.piratesDestroyed = 0;
+                    this.ammo = this.maxAmmo;
+                    this.reloadTimer = 0;
 
-                    for (let i = 0; i < 6; i++) {
-                        this.asteroids.push({
-                            x: Math.random() * this.canvas.width,
-                            y: Math.random() * this.canvas.height,
-                            radius: 20 + Math.random() * 15,
-                            ore: 100 + Math.random() * 100,
-                            maxOre: 100 + Math.random() * 100,
-                            angle: 0,
-                            miningComplete: false,
-                            respawnTimer: 0
-                        });
-                    }
+                    // populate asteroids for first area
+                    this.generateAsteroids();
 
                     this.log('Game reset!', 'success');
                     this.updateUI();
@@ -1000,10 +1206,14 @@
             },
 
             updateUI() {
+                if (this.gameOver) return; // don't update stats when game over
                 document.getElementById('health').textContent = Math.max(0, Math.floor(this.health)) + '%';
                 document.getElementById('cargo').textContent = Math.floor(this.cargo) + ' / ' + this.cargoMax;
                 document.getElementById('credits').textContent = this.credits;
                 document.getElementById('level').textContent = this.level;
+                document.getElementById('zone').textContent = this.zone;
+                // show ammo only; reload countdown is now drawn on canvas
+                document.getElementById('ammo').textContent = `${this.ammo} / ${this.maxAmmo}`;
             },
 
             updateShopDisplay() {
@@ -1011,6 +1221,13 @@
                 const miningCost = Math.floor(150 * Math.pow(1.5, this.upgradeCount.mining));
                 const healthCost = Math.floor(200 * Math.pow(1.5, this.upgradeCount.health));
                 const speedCost = Math.floor(120 * Math.pow(1.5, this.upgradeCount.speed));
+                const weaponCost = Math.floor(200 * Math.pow(1.5, this.upgradeCount.weapon));
+
+                document.getElementById('cargoCost').textContent = `Cost: ${cargoCost} Credits`;
+                document.getElementById('miningCost').textContent = `Cost: ${miningCost} Credits`;
+                document.getElementById('healthCost').textContent = `Cost: ${healthCost} Credits`;
+                document.getElementById('speedCost').textContent = `Cost: ${speedCost} Credits`;
+                document.getElementById('weaponCost').textContent = `Cost: ${weaponCost} Credits`;
 
                 document.getElementById('cargoCost').textContent = `Cost: ${cargoCost} Credits`;
                 document.getElementById('miningCost').textContent = `Cost: ${miningCost} Credits`;
@@ -1019,6 +1236,10 @@
             },
 
             log(msg, type = 'info') {
+                if (this.gameOver && type === 'warning') {
+                    // avoid spam after game end
+                    return;
+                }
                 const panel = document.getElementById('logPanel');
                 const entry = document.createElement('div');
                 entry.className = 'log-entry ' + type;
@@ -1029,6 +1250,30 @@
                 while (panel.children.length > 15) {
                     panel.removeChild(panel.firstChild);
                 }
+            },
+
+
+            // display the end-screen overlay and fill stats
+            showEndScreen() {
+                const end = document.getElementById('endScreen');
+                document.getElementById('statOre').textContent = Math.floor(this.oreMinedTotal);
+                document.getElementById('statPirates').textContent = this.piratesDestroyed;
+                document.getElementById('statLevel').textContent = this.level;
+                document.getElementById('statZone').textContent = this.zone;
+                document.getElementById('statCredits').textContent = this.credits;
+                const totalUpgrades = this.upgradeCount.cargo + this.upgradeCount.mining + this.upgradeCount.health + this.upgradeCount.speed + this.upgradeCount.weapon;
+                document.getElementById('statUpgrades').textContent = totalUpgrades;
+
+                end.style.display = 'flex';
+                document.getElementById('pauseBtn').disabled = true;
+            },
+
+            endGame() {
+                if (this.gameOver) return;
+                this.gameOver = true;
+                this.isPaused = true;
+                this.log('💀 Ship destroyed! GAME OVER', 'danger');
+                this.showEndScreen();
             }
         };
 
