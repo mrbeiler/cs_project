@@ -1,0 +1,1038 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Mining Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: #0a0e27;
+            color: #00ff88;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            background: linear-gradient(135deg, #1a1f3a 0%, #16213e 100%);
+            border: 3px solid #00ff88;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 0 30px rgba(0, 255, 136, 0.3);
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #00ff88;
+            color: #00ff88;
+        }
+
+        .game-canvas {
+            width: 100%;
+            height: 500px;
+            background: #0a0e27;
+            border: 2px solid #00ff88;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+            background: #0a0e27;
+        }
+
+        .controls-info {
+            background: rgba(0, 255, 136, 0.1);
+            border: 1px solid #00ff88;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+
+        .stats-panel {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-box {
+            background: rgba(0, 255, 136, 0.1);
+            border: 2px solid #00ff88;
+            padding: 10px;
+            text-align: center;
+            border-radius: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.8em;
+            opacity: 0.7;
+        }
+
+        .stat-value {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #00ff88;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        button {
+            background: linear-gradient(135deg, #00ff88 0%, #00cc6e 100%);
+            border: none;
+            color: #0a0e27;
+            padding: 12px;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            transition: all 0.3s;
+            text-transform: uppercase;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(0, 255, 136, 0.5);
+        }
+
+        button:active {
+            transform: scale(0.95);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .log-panel {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #00ff88;
+            padding: 15px;
+            height: 150px;
+            overflow-y: auto;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        .log-entry {
+            padding: 5px 0;
+            font-size: 0.85em;
+        }
+
+        .log-entry.success {
+            color: #00ff88;
+        }
+
+        .log-entry.danger {
+            color: #ff0055;
+        }
+
+        .log-entry.warning {
+            color: #ffaa00;
+        }
+
+        .log-entry.info {
+            color: #00ccff;
+        }
+
+        .shop-section {
+            background: rgba(0, 255, 136, 0.05);
+            border: 2px solid #00ff88;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        .shop-title {
+            font-weight: bold;
+            color: #00ff88;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .shop-items {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 10px;
+        }
+
+        .shop-item {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid #00ff88;
+            padding: 10px;
+            border-radius: 3px;
+            font-size: 0.85em;
+        }
+
+        .shop-item-name {
+            font-weight: bold;
+            color: #00ff88;
+            margin-bottom: 5px;
+        }
+
+        .shop-item-cost {
+            color: #ffaa00;
+            margin: 5px 0;
+            font-size: 0.9em;
+        }
+
+        .shop-item-effect {
+            color: #00ccff;
+            margin: 5px 0;
+            font-size: 0.8em;
+        }
+
+        .shop-item button {
+            width: 100%;
+            padding: 6px;
+            font-size: 0.8em;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌌 SPACE MINING GAME</h1>
+
+        <div class="controls-info">
+            <strong>⌨️ CONTROLS:</strong><br>
+            ↑ = Forward | ↓ = Reverse | ← = Rotate Left | → = Rotate Right<br>
+            SPACE = Fire Weapon | Get close to asteroids to mine automatically
+        </div>
+
+        <canvas id="gameCanvas"></canvas>
+
+        <div class="stats-panel">
+            <div class="stat-box">
+                <div class="stat-label">HEALTH</div>
+                <div class="stat-value" id="health">100%</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">ORE CARGO</div>
+                <div class="stat-value" id="cargo">0 / 50</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">CREDITS</div>
+                <div class="stat-value" id="credits">1000</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">LEVEL</div>
+                <div class="stat-value" id="level">1</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button onclick="game.sellOre()">💰 SELL ORE</button>
+            <button onclick="game.fireWeapon()">🔫 FIRE!</button>
+            <button onclick="game.pause()">⏸️ <span id="pauseText">PAUSE</span></button>
+            <button onclick="game.reset()">🔄 RESET</button>
+        </div>
+
+        <div class="shop-section">
+            <div class="shop-title">🛒 UPGRADE SHOP</div>
+            <div class="shop-items">
+                <div class="shop-item">
+                    <div class="shop-item-name">📦 Cargo Hold</div>
+                    <div class="shop-item-cost" id="cargoCost">Cost: 100 Credits</div>
+                    <div class="shop-item-effect">+10 Capacity</div>
+                    <button onclick="game.buyCargoUpgrade()">BUY</button>
+                </div>
+                <div class="shop-item">
+                    <div class="shop-item-name">⚡ Mining Laser</div>
+                    <div class="shop-item-cost" id="miningCost">Cost: 150 Credits</div>
+                    <div class="shop-item-effect">+50% Speed</div>
+                    <button onclick="game.buyMiningUpgrade()">BUY</button>
+                </div>
+                <div class="shop-item">
+                    <div class="shop-item-name">🛡️ Shield</div>
+                    <div class="shop-item-cost" id="healthCost">Cost: 200 Credits</div>
+                    <div class="shop-item-effect">+20 Health</div>
+                    <button onclick="game.buyHealthUpgrade()">BUY</button>
+                </div>
+                <div class="shop-item">
+                    <div class="shop-item-name">🔧 Engine Boost</div>
+                    <div class="shop-item-cost" id="speedCost">Cost: 120 Credits</div>
+                    <div class="shop-item-effect">+30% Speed</div>
+                    <button onclick="game.buySpeedUpgrade()">BUY</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="log-panel" id="logPanel"></div>
+    </div>
+
+    <script>
+        const game = {
+            canvas: null,
+            ctx: null,
+            
+            // Ship
+            ship: {
+                x: 250,
+                y: 250,
+                vx: 0,
+                vy: 0,
+                angle: 0,
+                radius: 12
+            },
+
+            // Game state
+            health: 100,
+            maxHealth: 100,
+            cargo: 0,
+            cargoMax: 50,
+            credits: 1000,
+            level: 1,
+            isPaused: false,
+            gameTickCount: 0,
+            miningSpeed: 1,
+            shipSpeed: 1,
+            weapons: [],
+            upgradeCount: {
+                cargo: 0,
+                mining: 0,
+                health: 0,
+                speed: 0
+            },
+
+            // Game objects
+            asteroids: [],
+            pirates: [],
+            particles: [],
+            pirateProjectiles: [],
+
+            init() {
+                this.canvas = document.getElementById('gameCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.canvas.width = this.canvas.offsetWidth;
+                this.canvas.height = this.canvas.offsetHeight;
+
+                this.ship.x = this.canvas.width / 2;
+                this.ship.y = this.canvas.height / 2;
+
+                // Setup keyboard controls
+                document.addEventListener('keydown', (e) => this.handleKey(e, true));
+                document.addEventListener('keyup', (e) => this.handleKey(e, false));
+
+                // Generate starting asteroids
+                for (let i = 0; i < 6; i++) {
+                    this.asteroids.push({
+                        x: Math.random() * this.canvas.width,
+                        y: Math.random() * this.canvas.height,
+                        radius: 20 + Math.random() * 15,
+                        ore: 100 + Math.random() * 100,
+                        maxOre: 100 + Math.random() * 100,
+                        angle: 0,
+                        miningComplete: false,
+                        respawnTimer: 0
+                    });
+                }
+
+                this.log('Game started! Navigate to asteroids to mine them.', 'success');
+                this.startGameLoop();
+                this.updateShopDisplay();
+            },
+
+            keys: {},
+
+            handleKey(e, isDown) {
+                const key = e.key.toLowerCase();
+                this.keys[key] = isDown;
+
+                // Fire weapon on spacebar
+                if (key === ' ' && isDown) {
+                    this.fireWeapon();
+                }
+
+                e.preventDefault();
+            },
+
+            startGameLoop() {
+                setInterval(() => {
+                    if (!this.isPaused) {
+                        this.update();
+                        this.draw();
+                    }
+                }, 50);
+            },
+
+            update() {
+                this.gameTickCount++;
+
+                // Handle ship input
+                if (this.keys['arrowup']) {
+                    this.ship.vx += Math.cos(this.ship.angle) * 0.4 * this.shipSpeed;
+                    this.ship.vy += Math.sin(this.ship.angle) * 0.4 * this.shipSpeed;
+                }
+                if (this.keys['arrowdown']) {
+                    this.ship.vx -= Math.cos(this.ship.angle) * 0.2;
+                    this.ship.vy -= Math.sin(this.ship.angle) * 0.2;
+                }
+                if (this.keys['arrowleft']) {
+                    this.ship.angle -= 0.1;
+                }
+                if (this.keys['arrowright']) {
+                    this.ship.angle += 0.1;
+                }
+
+                // Apply friction
+                this.ship.vx *= 0.95;
+                this.ship.vy *= 0.95;
+
+                // Limit speed
+                const speed = Math.sqrt(this.ship.vx ** 2 + this.ship.vy ** 2);
+                if (speed > 5) {
+                    const scale = 5 / speed;
+                    this.ship.vx *= scale;
+                    this.ship.vy *= scale;
+                }
+
+                // Move ship
+                this.ship.x += this.ship.vx;
+                this.ship.y += this.ship.vy;
+
+                // Wrap around edges
+                if (this.ship.x < 0) this.ship.x = this.canvas.width;
+                if (this.ship.x > this.canvas.width) this.ship.x = 0;
+                if (this.ship.y < 0) this.ship.y = this.canvas.height;
+                if (this.ship.y > this.canvas.height) this.ship.y = 0;
+
+                // Check mining
+                for (let ast of this.asteroids) {
+                    const dx = ast.x - this.ship.x;
+                    const dy = ast.y - this.ship.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < ast.radius + 40 && ast.ore > 0 && this.cargo < this.cargoMax) {
+                        // Mine!
+                        const oreAmount = Math.min(0.15 * this.miningSpeed, ast.ore, this.cargoMax - this.cargo);
+                        ast.ore -= oreAmount;
+                        this.cargo += oreAmount;
+
+                        if (ast.ore <= 0) {
+                            ast.miningComplete = true;
+                            ast.respawnTimer = 300;
+                        }
+
+                        // Particles
+                        for (let i = 0; i < 2; i++) {
+                            this.particles.push({
+                                x: ast.x,
+                                y: ast.y,
+                                vx: (Math.random() - 0.5) * 4,
+                                vy: (Math.random() - 0.5) * 4,
+                                life: 20,
+                                maxLife: 20
+                            });
+                        }
+                    }
+                }
+
+                // Update asteroids
+                for (let ast of this.asteroids) {
+                    ast.angle += 0.01;
+
+                    // Handle respawning
+                    if (ast.miningComplete && ast.respawnTimer > 0) {
+                        ast.respawnTimer--;
+                        if (ast.respawnTimer <= 0) {
+                            ast.ore = ast.maxOre;
+                            ast.miningComplete = false;
+                            this.log('⭐ Asteroid regenerated!', 'info');
+                        }
+                    }
+                }
+
+                // Update particles
+                this.particles = this.particles.filter(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vx *= 0.98;
+                    p.vy *= 0.98;
+                    p.life--;
+                    return p.life > 0;
+                });
+
+                // Update weapons
+                this.weapons = this.weapons.filter(w => {
+                    w.x += w.vx;
+                    w.y += w.vy;
+                    w.life--;
+
+                    // Wrap around edges
+                    if (w.x < 0 || w.x > this.canvas.width || w.y < 0 || w.y > this.canvas.height) {
+                        return false;
+                    }
+
+                    return w.life > 0;
+                });
+
+                // Update pirate projectiles
+                this.pirateProjectiles = this.pirateProjectiles.filter(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.life--;
+
+                    // Check collision with ship
+                    const dx = p.x - this.ship.x;
+                    const dy = p.y - this.ship.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < 15) {
+                        // Hit!
+                        const damage = Math.floor(Math.random() * 15 + 10);
+                        this.health -= damage;
+                        this.log(`🔴 Enemy fire! -${damage} health`, 'danger');
+                        
+                        if (this.health <= 0) {
+                            this.log('💀 Ship destroyed!', 'danger');
+                            this.isPaused = true;
+                            document.getElementById('pauseText').textContent = 'RESUME';
+                        }
+
+                        return false;
+                    }
+
+                    // Wrap around edges
+                    if (p.x < 0 || p.x > this.canvas.width || p.y < 0 || p.y > this.canvas.height) {
+                        return false;
+                    }
+
+                    return p.life > 0;
+                });
+
+                // Spawn pirates occasionally
+                if (this.gameTickCount % 300 === 0 && this.pirates.length < 2) {
+                    this.spawnPirate();
+                }
+
+                // Update pirates
+                for (let i = this.pirates.length - 1; i >= 0; i--) {
+                    const pirate = this.pirates[i];
+                    const dx = this.ship.x - pirate.x;
+                    const dy = this.ship.y - pirate.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    // Chase
+                    if (dist > 100) {
+                        pirate.vx += (dx / dist) * 0.05;
+                        pirate.vy += (dy / dist) * 0.05;
+                    }
+
+                    // Limit speed
+                    const pspeed = Math.sqrt(pirate.vx ** 2 + pirate.vy ** 2);
+                    if (pspeed > 1.5) {
+                        pirate.vx = (pirate.vx / pspeed) * 1.5;
+                        pirate.vy = (pirate.vy / pspeed) * 1.5;
+                    }
+
+                    pirate.x += pirate.vx;
+                    pirate.y += pirate.vy;
+
+                    // Wrap
+                    if (pirate.x < 0) pirate.x = this.canvas.width;
+                    if (pirate.x > this.canvas.width) pirate.x = 0;
+                    if (pirate.y < 0) pirate.y = this.canvas.height;
+                    if (pirate.y > this.canvas.height) pirate.y = 0;
+
+                    // Check if hit by weapon
+                    let hit = false;
+                    for (let j = this.weapons.length - 1; j >= 0; j--) {
+                        const w = this.weapons[j];
+                        const wdx = w.x - pirate.x;
+                        const wdy = w.y - pirate.y;
+                        const wdist = Math.sqrt(wdx * wdx + wdy * wdy);
+
+                        if (wdist < 20) {
+                            pirate.health -= 25;
+                            this.log('💥 Hit! Pirate health: ' + Math.max(0, pirate.health), 'success');
+                            this.weapons.splice(j, 1);
+                            hit = true;
+                            break;
+                        }
+                    }
+
+                    if (hit && pirate.health <= 0) {
+                        this.log('💀 Pirate destroyed!', 'success');
+                        this.pirates.splice(i, 1);
+                        continue;
+                    }
+
+                    if (hit) continue;
+
+                    // Attack - Pirates shoot projectiles
+                    if (dist < 300 && this.gameTickCount % 100 === 0) {
+                        // Shoot at player
+                        const dx = this.ship.x - pirate.x;
+                        const dy = this.ship.y - pirate.y;
+                        const projectileDist = Math.sqrt(dx * dx + dy * dy);
+                        const projectileSpeed = 3;
+
+                        this.pirateProjectiles.push({
+                            x: pirate.x,
+                            y: pirate.y,
+                            vx: (dx / projectileDist) * projectileSpeed,
+                            vy: (dy / projectileDist) * projectileSpeed,
+                            life: 80,
+                            maxLife: 80
+                        });
+                    }
+
+                    // Remove if far away
+                    if (dist > 600) {
+                        this.pirates.splice(i, 1);
+                    }
+                }
+
+                this.updateUI();
+            },
+
+            spawnPirate() {
+                const side = Math.floor(Math.random() * 4);
+                let x, y;
+                if (side === 0) {
+                    x = -30;
+                    y = Math.random() * this.canvas.height;
+                } else if (side === 1) {
+                    x = this.canvas.width + 30;
+                    y = Math.random() * this.canvas.height;
+                } else if (side === 2) {
+                    x = Math.random() * this.canvas.width;
+                    y = -30;
+                } else {
+                    x = Math.random() * this.canvas.width;
+                    y = this.canvas.height + 30;
+                }
+
+                this.pirates.push({ x, y, vx: 0, vy: 0, health: 50, maxHealth: 50 });
+                this.log('⚠️ Pirate spotted!', 'warning');
+            },
+
+            draw() {
+                // Clear
+                this.ctx.fillStyle = '#0a0e27';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Draw stars
+                if (this.gameTickCount % 10 === 0) {
+                    for (let i = 0; i < 80; i++) {
+                        const x = Math.random() * this.canvas.width;
+                        const y = Math.random() * this.canvas.height;
+                        this.ctx.fillStyle = 'rgba(255, 255, 255, ' + Math.random() * 0.6 + ')';
+                        this.ctx.fillRect(x, y, 1, 1);
+                    }
+                }
+
+                // Draw asteroids
+                for (let ast of this.asteroids) {
+                    this.drawAsteroid(ast);
+                }
+
+                // Draw particles
+                for (let p of this.particles) {
+                    this.ctx.fillStyle = `rgba(255, 170, 0, ${p.life / p.maxLife})`;
+                    this.ctx.fillRect(p.x, p.y, 3, 3);
+                }
+
+                // Draw weapons
+                for (let w of this.weapons) {
+                    this.ctx.fillStyle = '#00ff88';
+                    this.ctx.beginPath();
+                    this.ctx.arc(w.x, w.y, 4, 0, Math.PI * 2);
+                    this.ctx.fill();
+
+                    // Glow
+                    this.ctx.strokeStyle = 'rgba(0, 255, 136, 0.6)';
+                    this.ctx.lineWidth = 1;
+                    this.ctx.beginPath();
+                    this.ctx.arc(w.x, w.y, 8, 0, Math.PI * 2);
+                    this.ctx.stroke();
+                }
+
+                // Draw pirate projectiles
+                for (let p of this.pirateProjectiles) {
+                    this.ctx.fillStyle = '#ff0055';
+                    this.ctx.beginPath();
+                    this.ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+                    this.ctx.fill();
+
+                    // Danger glow
+                    this.ctx.strokeStyle = 'rgba(255, 0, 85, 0.7)';
+                    this.ctx.lineWidth = 1;
+                    this.ctx.beginPath();
+                    this.ctx.arc(p.x, p.y, 6, 0, Math.PI * 2);
+                    this.ctx.stroke();
+                }
+
+                // Draw pirates
+                for (let pirate of this.pirates) {
+                    this.drawPirate(pirate);
+                }
+
+                // Draw ship
+                this.drawShip();
+            },
+
+            drawShip() {
+                const x = this.ship.x;
+                const y = this.ship.y;
+                const angle = this.ship.angle;
+
+                this.ctx.save();
+                this.ctx.translate(x, y);
+                this.ctx.rotate(angle);
+
+                // Main body
+                this.ctx.fillStyle = '#00ff88';
+                this.ctx.beginPath();
+                this.ctx.moveTo(15, 0);        // Front
+                this.ctx.lineTo(-8, -10);      // Upper wing
+                this.ctx.lineTo(-5, 0);        // Side
+                this.ctx.lineTo(-8, 10);       // Lower wing
+                this.ctx.closePath();
+                this.ctx.fill();
+
+                // Cockpit
+                this.ctx.fillStyle = '#00ccff';
+                this.ctx.beginPath();
+                this.ctx.arc(8, 0, 4, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                // Engine
+                this.ctx.fillStyle = '#ffaa00';
+                this.ctx.beginPath();
+                this.ctx.arc(-5, 0, 3, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                this.ctx.restore();
+            },
+
+            drawAsteroid(ast) {
+                const x = ast.x;
+                const y = ast.y;
+                const r = ast.radius;
+
+                // Dimmed if depleted
+                if (ast.miningComplete) {
+                    this.ctx.globalAlpha = 0.5;
+                }
+
+                // Body
+                this.ctx.fillStyle = '#888888';
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, r, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                // Ore
+                const orePercent = ast.ore / ast.maxOre;
+                this.ctx.fillStyle = '#ffaa00';
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, r * orePercent, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                this.ctx.globalAlpha = 1.0;
+
+                // Craters
+                this.ctx.fillStyle = '#555555';
+                for (let i = 0; i < 3; i++) {
+                    const angle = (i / 3) * Math.PI * 2;
+                    const cx = x + Math.cos(angle) * r * 0.6;
+                    const cy = y + Math.sin(angle) * r * 0.6;
+                    this.ctx.beginPath();
+                    this.ctx.arc(cx, cy, r * 0.2, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+
+                // Ore text and respawn timer
+                if (ast.ore > 0) {
+                    this.ctx.fillStyle = '#ffaa00';
+                    this.ctx.font = 'bold 12px Courier New';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    this.ctx.fillText(Math.ceil(ast.ore), x, y);
+                } else if (ast.respawnTimer > 0) {
+                    this.ctx.fillStyle = '#666666';
+                    this.ctx.font = 'bold 10px Courier New';
+                    this.ctx.textAlign = 'center';
+                    this.ctx.textBaseline = 'middle';
+                    const seconds = Math.ceil(ast.respawnTimer / 20);
+                    this.ctx.fillText('🔄 ' + seconds + 's', x, y);
+                }
+            },
+
+            drawPirate(pirate) {
+                const x = pirate.x;
+                const y = pirate.y;
+
+                this.ctx.fillStyle = '#ff0055';
+                this.ctx.beginPath();
+                this.ctx.moveTo(x - 10, y - 8);
+                this.ctx.lineTo(x + 10, y);
+                this.ctx.lineTo(x - 10, y + 8);
+                this.ctx.closePath();
+                this.ctx.fill();
+
+                // Aura
+                this.ctx.strokeStyle = 'rgba(255, 0, 85, 0.5)';
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, 25, 0, Math.PI * 2);
+                this.ctx.stroke();
+
+                // Health bar
+                const barWidth = 30;
+                const barHeight = 4;
+                const healthPercent = pirate.health / pirate.maxHealth;
+
+                // Background
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                this.ctx.fillRect(x - barWidth / 2, y - 25, barWidth, barHeight);
+
+                // Health
+                const healthColor = healthPercent > 0.5 ? '#00ff88' : healthPercent > 0.25 ? '#ffaa00' : '#ff0055';
+                this.ctx.fillStyle = healthColor;
+                this.ctx.fillRect(x - barWidth / 2, y - 25, barWidth * healthPercent, barHeight);
+
+                // Border
+                this.ctx.strokeStyle = '#ffffff';
+                this.ctx.lineWidth = 1;
+                this.ctx.strokeRect(x - barWidth / 2, y - 25, barWidth, barHeight);
+            },
+
+            sellOre() {
+                if (this.cargo === 0) {
+                    this.log('No ore to sell!', 'warning');
+                    return;
+                }
+
+                const earned = Math.floor(this.cargo * (5 + this.level));
+                this.credits += earned;
+                this.cargo = 0;
+
+                this.log(`Sold ore for ${earned} credits!`, 'success');
+
+                if (this.credits > this.level * 500) {
+                    this.level++;
+                    this.log(`⭐ Level up!`, 'success');
+                }
+            },
+
+            fireWeapon() {
+                if (this.isPaused) {
+                    this.log('Game is paused!', 'warning');
+                    return;
+                }
+
+                // Find nearest pirate
+                let nearestPirate = null;
+                let nearestDist = 200;
+
+                for (let pirate of this.pirates) {
+                    const dx = pirate.x - this.ship.x;
+                    const dy = pirate.y - this.ship.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < nearestDist) {
+                        nearestDist = dist;
+                        nearestPirate = pirate;
+                    }
+                }
+
+                if (nearestPirate) {
+                    // Fire at nearest pirate
+                    const dx = nearestPirate.x - this.ship.x;
+                    const dy = nearestPirate.y - this.ship.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    const speed = 8;
+
+                    this.weapons.push({
+                        x: this.ship.x,
+                        y: this.ship.y,
+                        vx: (dx / dist) * speed,
+                        vy: (dy / dist) * speed,
+                        life: 60,
+                        maxLife: 60
+                    });
+
+                    this.log('🔫 Weapon fired!', 'success');
+                } else {
+                    this.log('No pirates nearby to target!', 'warning');
+                }
+            },
+
+            buyCargoUpgrade() {
+                const baseCost = 100;
+                const cost = Math.floor(baseCost * Math.pow(1.5, this.upgradeCount.cargo));
+
+                if (this.credits < cost) {
+                    this.log(`Not enough credits! Need ${cost}`, 'danger');
+                    return;
+                }
+                this.credits -= cost;
+                this.cargoMax += 10;
+                this.upgradeCount.cargo++;
+                this.log(`📦 Cargo upgraded! Max: ${this.cargoMax} (Cost: ${cost})`, 'success');
+                this.updateShopDisplay();
+                this.updateUI();
+            },
+
+            buyMiningUpgrade() {
+                const baseCost = 150;
+                const cost = Math.floor(baseCost * Math.pow(1.5, this.upgradeCount.mining));
+
+                if (this.credits < cost) {
+                    this.log(`Not enough credits! Need ${cost}`, 'danger');
+                    return;
+                }
+                this.credits -= cost;
+                this.miningSpeed += 0.5;
+                this.upgradeCount.mining++;
+                this.log(`⚡ Mining upgraded! Speed: ${this.miningSpeed}x (Cost: ${cost})`, 'success');
+                this.updateShopDisplay();
+                this.updateUI();
+            },
+
+            buyHealthUpgrade() {
+                const baseCost = 200;
+                const cost = Math.floor(baseCost * Math.pow(1.5, this.upgradeCount.health));
+
+                if (this.credits < cost) {
+                    this.log(`Not enough credits! Need ${cost}`, 'danger');
+                    return;
+                }
+                this.credits -= cost;
+                this.maxHealth += 20;
+                this.health = this.maxHealth;
+                this.upgradeCount.health++;
+                this.log(`🛡️ Shield upgraded! Max health: ${this.maxHealth} (Cost: ${cost})`, 'success');
+                this.updateShopDisplay();
+                this.updateUI();
+            },
+
+            buySpeedUpgrade() {
+                const baseCost = 120;
+                const cost = Math.floor(baseCost * Math.pow(1.5, this.upgradeCount.speed));
+
+                if (this.credits < cost) {
+                    this.log(`Not enough credits! Need ${cost}`, 'danger');
+                    return;
+                }
+                this.credits -= cost;
+                this.shipSpeed += 0.3;
+                this.upgradeCount.speed++;
+                this.log(`🔧 Engine upgraded! Speed: ${this.shipSpeed.toFixed(1)}x (Cost: ${cost})`, 'success');
+                this.updateShopDisplay();
+                this.updateUI();
+            },
+
+            pause() {
+                this.isPaused = !this.isPaused;
+                document.getElementById('pauseText').textContent = this.isPaused ? 'RESUME' : 'PAUSE';
+            },
+
+            reset() {
+                if (confirm('Reset game?')) {
+                    this.health = 100;
+                    this.maxHealth = 100;
+                    this.cargo = 0;
+                    this.cargoMax = 50;
+                    this.credits = 1000;
+                    this.level = 1;
+                    this.miningSpeed = 1;
+                    this.shipSpeed = 1;
+                    this.ship.x = this.canvas.width / 2;
+                    this.ship.y = this.canvas.height / 2;
+                    this.ship.vx = 0;
+                    this.ship.vy = 0;
+                    this.asteroids = [];
+                    this.pirates = [];
+                    this.particles = [];
+                    this.weapons = [];
+                    this.pirateProjectiles = [];
+                    this.upgradeCount = {
+                        cargo: 0,
+                        mining: 0,
+                        health: 0,
+                        speed: 0
+                    };
+                    this.isPaused = false;
+                    document.getElementById('pauseText').textContent = 'PAUSE';
+
+                    for (let i = 0; i < 6; i++) {
+                        this.asteroids.push({
+                            x: Math.random() * this.canvas.width,
+                            y: Math.random() * this.canvas.height,
+                            radius: 20 + Math.random() * 15,
+                            ore: 100 + Math.random() * 100,
+                            maxOre: 100 + Math.random() * 100,
+                            angle: 0,
+                            miningComplete: false,
+                            respawnTimer: 0
+                        });
+                    }
+
+                    this.log('Game reset!', 'success');
+                    this.updateUI();
+                    this.updateShopDisplay();
+                }
+            },
+
+            updateUI() {
+                document.getElementById('health').textContent = Math.max(0, Math.floor(this.health)) + '%';
+                document.getElementById('cargo').textContent = Math.floor(this.cargo) + ' / ' + this.cargoMax;
+                document.getElementById('credits').textContent = this.credits;
+                document.getElementById('level').textContent = this.level;
+            },
+
+            updateShopDisplay() {
+                const cargoCost = Math.floor(100 * Math.pow(1.5, this.upgradeCount.cargo));
+                const miningCost = Math.floor(150 * Math.pow(1.5, this.upgradeCount.mining));
+                const healthCost = Math.floor(200 * Math.pow(1.5, this.upgradeCount.health));
+                const speedCost = Math.floor(120 * Math.pow(1.5, this.upgradeCount.speed));
+
+                document.getElementById('cargoCost').textContent = `Cost: ${cargoCost} Credits`;
+                document.getElementById('miningCost').textContent = `Cost: ${miningCost} Credits`;
+                document.getElementById('healthCost').textContent = `Cost: ${healthCost} Credits`;
+                document.getElementById('speedCost').textContent = `Cost: ${speedCost} Credits`;
+            },
+
+            log(msg, type = 'info') {
+                const panel = document.getElementById('logPanel');
+                const entry = document.createElement('div');
+                entry.className = 'log-entry ' + type;
+                entry.textContent = '> ' + msg;
+                panel.appendChild(entry);
+                panel.scrollTop = panel.scrollHeight;
+
+                while (panel.children.length > 15) {
+                    panel.removeChild(panel.firstChild);
+                }
+            }
+        };
+
+        window.addEventListener('load', () => game.init());
+    </script>
+</body>
+</html>
