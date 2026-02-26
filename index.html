@@ -1,1 +1,80 @@
-<h1>Project</h1>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Git Games</title>
+
+    <style>
+        body {
+            margin: 0;
+        }
+
+        h1 {
+            margin: 0;
+            text-align: center;
+            font-size: 70px;
+            background-color: blue;
+            color: white;
+            padding: 20px 0;
+        }
+
+        img {
+            border-radius: 15px;
+            margin: 20px;
+            transition: 0.5s;
+            border: 3px solid blue;
+        }
+
+        img:hover {
+            transform: scale(1.05);
+        }
+
+        /* Tooltip container */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        /* Tooltip text */
+        .tooltip-text {
+            visibility: hidden;
+            opacity: 0;
+            transition: 0.5s;
+
+            position: absolute;
+            bottom: 75%;
+            left: 50%;
+            transform: translateX(-50%);
+
+            background-color: rgb(255, 255, 255);
+            color: rgb(0, 0, 0);
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        /* Show tooltip on hover */
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Git Games</h1>
+
+    <a href="space_mining_v2.html">
+        <div class="tooltip">
+            <img src="spacemining.png" alt="Space Mining Game">
+            <span class="tooltip-text">Space Mining</span>
+        </div>
+    </a>
+
+</body>
+
+</html>
