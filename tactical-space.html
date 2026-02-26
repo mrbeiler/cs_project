@@ -1,0 +1,1965 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tactical Space</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Exo+2:wght@300;400;500;600&display=swap');
+
+  :root {
+    --p1: #4fc3f7;
+    --p1-glow: #0288d1;
+    --p2: #ef5350;
+    --p2-glow: #b71c1c;
+    --neutral: #78909c;
+    --bg: #050a12;
+    --panel: rgba(8,18,32,0.92);
+    --border: rgba(79,195,247,0.18);
+    --text: #cfd8dc;
+    --text-dim: #546e7a;
+    --gold: #ffd54f;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Exo 2', sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 20px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    gap: 12px;
+  }
+
+  .game-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    color: #fff;
+    text-shadow: 0 0 20px var(--p1);
+    white-space: nowrap;
+  }
+
+  .player-bar {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1;
+  }
+
+  .player-bar.p1 { justify-content: flex-start; }
+  .player-bar.p2 { justify-content: flex-end; }
+
+  .player-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid;
+    transition: all 0.3s;
+  }
+
+  .player-info.p1 { border-color: rgba(79,195,247,0.4); background: rgba(79,195,247,0.05); }
+  .player-info.p2 { border-color: rgba(239,83,80,0.4); background: rgba(239,83,80,0.05); }
+  .player-info.active { box-shadow: 0 0 15px -3px currentColor; }
+  .player-info.p1.active { box-shadow: 0 0 15px -3px var(--p1); border-color: var(--p1); }
+  .player-info.p2.active { box-shadow: 0 0 15px -3px var(--p2); border-color: var(--p2); }
+
+  .player-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+  }
+  .p1 .player-name { color: var(--p1); }
+  .p2 .player-name { color: var(--p2); }
+
+  .res {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+
+  .res span { color: var(--text); font-weight: 600; }
+
+  .turn-indicator {
+    text-align: center;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    min-width: 80px;
+  }
+
+  .turn-num {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    display: block;
+  }
+
+  #main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  #sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .panel-header {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    padding: 10px 14px 6px;
+    border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+  }
+
+  #planet-info { padding: 12px 14px; flex: 1; }
+
+  .planet-name-display {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .stat-label { color: var(--text-dim); }
+  .stat-val { font-weight: 600; }
+
+  .ship-list { margin-top: 10px; }
+
+  .ship-entry {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 12px;
+  }
+
+  .ship-icon { font-size: 14px; }
+
+  .hp-bar-wrap {
+    flex: 1;
+    height: 4px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .hp-bar {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s;
+  }
+
+  .hp-bar.healthy { background: #4caf50; }
+  .hp-bar.damaged { background: #ff9800; }
+  .hp-bar.critical { background: #f44336; }
+
+  #build-section { padding: 10px 14px; border-top: 1px solid var(--border); }
+
+  .build-btn {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 6px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Exo 2', sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .build-btn:hover:not(:disabled) {
+    background: rgba(79,195,247,0.1);
+    border-color: var(--p1);
+    color: #fff;
+  }
+
+  .build-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+
+  .cost { color: var(--text-dim); font-size: 11px; }
+
+  #canvas-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #starCanvas {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+  }
+
+  #mapCanvas {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    cursor: pointer;
+  }
+
+  #bottombar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .action-btn {
+    padding: 8px 18px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .action-btn:hover:not(:disabled) {
+    border-color: var(--p1);
+    color: var(--p1);
+    box-shadow: 0 0 10px -3px var(--p1);
+  }
+
+  .action-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .action-btn.end-turn {
+    background: rgba(79,195,247,0.08);
+    border-color: rgba(79,195,247,0.5);
+    color: var(--p1);
+    margin-left: auto;
+  }
+  .action-btn.end-turn:hover { background: rgba(79,195,247,0.2); box-shadow: 0 0 20px -5px var(--p1); }
+
+  #log {
+    flex: 1;
+    font-size: 11px;
+    color: var(--text-dim);
+    font-style: italic;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* OVERLAYS */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    backdrop-filter: blur(4px);
+  }
+
+  .modal {
+    background: linear-gradient(135deg, rgba(8,20,40,0.98), rgba(4,10,20,0.98));
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 30px;
+    min-width: 420px;
+    max-width: 600px;
+    box-shadow: 0 0 60px rgba(79,195,247,0.1), 0 0 120px rgba(0,0,0,0.8);
+    position: relative;
+  }
+
+  .modal h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 16px;
+    letter-spacing: 3px;
+    margin-bottom: 20px;
+    color: #fff;
+  }
+
+  .modal-btns {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    justify-content: center;
+  }
+
+  .modal-btn {
+    padding: 10px 24px;
+    border-radius: 6px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid;
+  }
+
+  .modal-btn.primary {
+    background: rgba(79,195,247,0.15);
+    border-color: var(--p1);
+    color: var(--p1);
+  }
+  .modal-btn.primary:hover { background: rgba(79,195,247,0.3); box-shadow: 0 0 20px -5px var(--p1); }
+
+  .modal-btn.danger {
+    background: rgba(239,83,80,0.15);
+    border-color: var(--p2);
+    color: var(--p2);
+  }
+  .modal-btn.danger:hover { background: rgba(239,83,80,0.3); box-shadow: 0 0 20px -5px var(--p2); }
+
+  .modal-btn.neutral-btn {
+    background: rgba(255,255,255,0.05);
+    border-color: var(--text-dim);
+    color: var(--text);
+  }
+  .modal-btn.neutral-btn:hover { background: rgba(255,255,255,0.1); }
+
+  /* SETUP */
+  #setupModal h2 { color: var(--gold); text-shadow: 0 0 20px var(--gold); text-align: center; }
+
+  .setup-section { margin: 16px 0; }
+  .setup-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+
+  .homeworld-picker {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .hw-btn {
+    padding: 6px 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 12px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+  }
+
+  .hw-btn:hover { border-color: rgba(255,255,255,0.4); color: #fff; }
+  .hw-btn.selected-p1 { border-color: var(--p1); color: var(--p1); background: rgba(79,195,247,0.1); }
+  .hw-btn.selected-p2 { border-color: var(--p2); color: var(--p2); background: rgba(239,83,80,0.1); }
+
+  /* COMBAT */
+  #combatModal { min-width: 560px; }
+  #combatModal h2 { text-align: center; color: var(--gold); text-shadow: 0 0 20px var(--gold); }
+
+  .combat-arena {
+    display: flex;
+    gap: 20px;
+    margin: 16px 0;
+  }
+
+  .combat-side {
+    flex: 1;
+    background: rgba(0,0,0,0.3);
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid;
+  }
+
+  .combat-side.attacker { border-color: rgba(79,195,247,0.3); }
+  .combat-side.defender { border-color: rgba(239,83,80,0.3); }
+
+  .combat-side-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+
+  .attacker .combat-side-title { color: var(--p1); }
+  .defender .combat-side-title { color: var(--p2); }
+
+  .combat-ship {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 12px;
+    transition: opacity 0.3s;
+  }
+
+  .combat-ship.dead { opacity: 0.3; text-decoration: line-through; }
+  .combat-ship.hit { animation: hitFlash 0.4s; }
+
+  @keyframes hitFlash {
+    0% { background: rgba(255,100,100,0.4); }
+    100% { background: transparent; }
+  }
+
+  .dice-display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 10px 0;
+    min-height: 30px;
+  }
+
+  .die {
+    width: 26px;
+    height: 26px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    font-family: 'Orbitron', sans-serif;
+    transition: all 0.2s;
+  }
+
+  .die.hit { border-color: #4caf50; color: #4caf50; background: rgba(76,175,80,0.15); }
+  .die.miss { border-color: #f44336; color: #546e7a; }
+
+  #combatLog {
+    max-height: 120px;
+    overflow-y: auto;
+    background: rgba(0,0,0,0.4);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 11px;
+    line-height: 1.6;
+    border: 1px solid var(--border);
+  }
+
+  #combatLog p { margin: 1px 0; }
+  .log-hit { color: #ef9a9a; }
+  .log-miss { color: var(--text-dim); }
+  .log-event { color: var(--gold); }
+  .log-p1 { color: var(--p1); }
+  .log-p2 { color: var(--p2); }
+
+  /* VICTORY */
+  #victoryModal { text-align: center; }
+  #victoryModal h2 {
+    font-size: 22px;
+    letter-spacing: 4px;
+    margin-bottom: 10px;
+  }
+
+  .victory-sub {
+    color: var(--text-dim);
+    margin-bottom: 20px;
+    font-size: 14px;
+  }
+
+  /* SHIP SELECTION MODAL */
+  #shipSelectModal { min-width: 380px; max-width: 480px; }
+  #shipSelectModal h2 { font-size: 13px; color: var(--p1); margin-bottom: 6px; }
+  .ship-select-subtitle { font-size: 11px; color: var(--text-dim); margin-bottom: 14px; }
+
+  .ship-select-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: all 0.18s;
+    user-select: none;
+  }
+  .ship-select-row:hover { border-color: rgba(79,195,247,0.5); background: rgba(79,195,247,0.05); }
+  .ship-select-row.selected {
+    border-color: var(--p1);
+    background: rgba(79,195,247,0.12);
+    box-shadow: 0 0 10px -4px var(--p1);
+  }
+  .ship-select-row.selected-p2 {
+    border-color: var(--p2);
+    background: rgba(239,83,80,0.12);
+    box-shadow: 0 0 10px -4px var(--p2);
+  }
+
+  .ship-select-check {
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .ship-select-row.selected .ship-select-check,
+  .ship-select-row.selected-p2 .ship-select-check {
+    background: var(--p1);
+    border-color: var(--p1);
+    color: #000;
+  }
+  .ship-select-row.selected-p2 .ship-select-check {
+    background: var(--p2);
+    border-color: var(--p2);
+  }
+
+  .ship-select-info { flex: 1; }
+  .ship-select-name { font-size: 12px; font-weight: 600; }
+  .ship-select-stats { font-size: 10px; color: var(--text-dim); margin-top: 1px; }
+
+  .select-all-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .select-all-btn {
+    font-size: 10px;
+    color: var(--p1);
+    cursor: pointer;
+    font-family: 'Orbitron', sans-serif;
+    letter-spacing: 1px;
+    background: none;
+    border: none;
+    padding: 0;
+  }
+  .select-all-btn:hover { text-decoration: underline; }
+
+  .selected-count {
+    font-size: 10px;
+    color: var(--text-dim);
+  }
+  .selected-count span { color: var(--p1); font-weight: 600; }
+
+  /* MOVE MODE INDICATOR */
+  #moveIndicator {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(8,18,32,0.9);
+    border: 1px solid var(--p1);
+    color: var(--p1);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    padding: 6px 16px;
+    border-radius: 4px;
+    z-index: 5;
+    display: none;
+    box-shadow: 0 0 20px -5px var(--p1);
+  }
+
+  /* PHASE BADGE */
+  #phaseBadge {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: rgba(255,255,255,0.03);
+  }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div id="topbar">
+  <div class="player-bar p1">
+    <div class="player-info p1" id="p1Info">
+      <div>
+        <div class="player-name">PLAYER 1</div>
+        <div class="res">⛏ <span id="p1metal">0</span> &nbsp; ⚡ <span id="p1energy">0</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="text-align:center">
+    <div class="game-title">TACTICAL SPACE</div>
+    <div class="turn-indicator">TURN <span class="turn-num" id="turnNum">1</span></div>
+    <div id="phaseBadge">SETUP</div>
+  </div>
+
+  <div class="player-bar p2">
+    <div class="player-info p2" id="p2Info">
+      <div>
+        <div class="player-name">PLAYER 2</div>
+        <div class="res">⛏ <span id="p2metal">0</span> &nbsp; ⚡ <span id="p2energy">0</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <!-- SIDEBAR -->
+  <div id="sidebar">
+    <div class="panel-header">Planet Info</div>
+    <div id="planet-info">
+      <div style="color:var(--text-dim); font-size:12px; margin-top:8px;">Select a planet to view details</div>
+    </div>
+    <div id="build-section">
+      <div class="panel-header" style="padding:0 0 6px; border:none; margin-bottom:6px;">Build</div>
+      <button class="build-btn" id="btnFactory" disabled>🏭 Factory <span class="cost">2M 2E</span></button>
+      <button class="build-btn" id="btnDefBase" disabled>🛡 Defense Base <span class="cost">1M 2E</span></button>
+      <button class="build-btn" id="btnFighter" disabled>🛩 Fighter <span class="cost">1M 1E</span></button>
+      <button class="build-btn" id="btnFrigate" disabled>🛡 Frigate <span class="cost">3M 2E</span></button>
+      <button class="build-btn" id="btnDestroyer" disabled>💥 Destroyer <span class="cost">4M 3E</span></button>
+    </div>
+  </div>
+
+  <!-- MAP -->
+  <div id="canvas-wrap">
+    <canvas id="starCanvas"></canvas>
+    <canvas id="mapCanvas"></canvas>
+    <div id="moveIndicator">SELECT DESTINATION PLANET</div>
+  </div>
+</div>
+
+<!-- BOTTOM BAR -->
+<div id="bottombar">
+  <div id="log">Welcome to Tactical Space. Select your homeworld to begin.</div>
+  <div id="phaseBadgeBottom"></div>
+  <button class="action-btn" id="btnMove" disabled>⟶ MOVE FLEET</button>
+  <button class="action-btn end-turn" id="btnEndTurn" disabled>END TURN ▶</button>
+</div>
+
+<!-- SETUP MODAL -->
+<div class="overlay" id="setupOverlay">
+  <div class="modal" id="setupModal">
+    <h2>⭐ TACTICAL SPACE</h2>
+    <p style="text-align:center; color:var(--text-dim); margin-bottom:20px; font-size:13px;">Each player selects their homeworld. Destroy the enemy homeworld to win.</p>
+
+    <div class="setup-section">
+      <div class="setup-label" style="color:var(--p1)">▶ PLAYER 1 — SELECT HOMEWORLD</div>
+      <div class="homeworld-picker" id="p1picker"></div>
+    </div>
+
+    <div class="setup-section" id="p2setupSection" style="display:none">
+      <div class="setup-label" style="color:var(--p2)">▶ PLAYER 2 — SELECT HOMEWORLD</div>
+      <div class="homeworld-picker" id="p2picker"></div>
+    </div>
+
+    <div class="modal-btns">
+      <button class="modal-btn primary" id="btnSetupConfirm" disabled>CONFIRM SELECTION</button>
+    </div>
+  </div>
+</div>
+
+<!-- COMBAT MODAL -->
+<div class="overlay" id="combatOverlay" style="display:none">
+  <div class="modal" id="combatModal">
+    <h2 id="combatTitle">⚔️ BATTLE</h2>
+    <div class="combat-arena">
+      <div class="combat-side attacker">
+        <div class="combat-side-title" id="attackerLabel">ATTACKER</div>
+        <div id="attackerShips"></div>
+      </div>
+      <div class="combat-side defender">
+        <div class="combat-side-title" id="defenderLabel">DEFENDER</div>
+        <div id="defenderShips"></div>
+      </div>
+    </div>
+    <div style="font-size:11px; color:var(--text-dim); margin-bottom:4px;">DICE ROLLS THIS WAVE:</div>
+    <div class="dice-display" id="diceDisplay"></div>
+    <div id="combatLog"></div>
+    <div class="modal-btns" id="combatBtns">
+      <button class="modal-btn primary" id="btnNextWave">NEXT WAVE ▶</button>
+      <button class="modal-btn neutral-btn" id="btnRetreatAttacker">RETREAT (ATTACKER)</button>
+      <button class="modal-btn primary" id="btnCombatDone" style="display:none" onclick="closeCombat()">DONE</button>
+    </div>
+    <div class="modal-btns" id="defenderRetreatBtns" style="display:none; margin-top:0;">
+      <button class="modal-btn danger" id="btnRetreatDefender">RETREAT DEFENDERS →</button>
+    </div>
+  </div>
+</div>
+
+<!-- DEFENDER RETREAT PICKER -->
+<div class="overlay" id="retreatOverlay" style="display:none">
+  <div class="modal">
+    <h2>RETREAT TO...</h2>
+    <p style="color:var(--text-dim); margin-bottom:16px; font-size:13px;">Select an adjacent planet to retreat defending ships to.</p>
+    <div class="homeworld-picker" id="retreatPicker"></div>
+    <div class="modal-btns">
+      <button class="modal-btn neutral-btn" id="btnCancelRetreat">CANCEL</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHIP SELECT MODAL -->
+<div class="overlay" id="shipSelectOverlay" style="display:none">
+  <div class="modal" id="shipSelectModal">
+    <h2>⟶ SELECT VESSELS TO MOVE</h2>
+    <p class="ship-select-subtitle" id="shipSelectSubtitle">Choose which ships to send. Unselected ships will remain.</p>
+    <div class="select-all-row">
+      <button class="select-all-btn" id="btnSelectAll">SELECT ALL</button>
+      <div class="selected-count">Selected: <span id="selectedCount">0</span></div>
+    </div>
+    <div id="shipSelectList"></div>
+    <div class="modal-btns">
+      <button class="modal-btn neutral-btn" id="btnShipSelectCancel">CANCEL</button>
+      <button class="modal-btn primary" id="btnShipSelectConfirm" disabled>CONFIRM ▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- VICTORY MODAL -->
+<div class="overlay" id="victoryOverlay" style="display:none">
+  <div class="modal" id="victoryModal">
+    <h2 id="victoryTitle">VICTORY</h2>
+    <div class="victory-sub" id="victorySub"></div>
+    <div class="modal-btns">
+      <button class="modal-btn primary" onclick="location.reload()">NEW GAME</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ======================================================
+// DATA
+// ======================================================
+const SHIP_TYPES = {
+  fighter:   { name:'Fighter',   emoji:'🛩', maxHP:3, baseAttack:4, damage:1, initiative:4, cost:{metal:1, energy:1} },
+  frigate:   { name:'Frigate',   emoji:'🛡', maxHP:6, baseAttack:3, damage:1, initiative:2, cost:{metal:3, energy:2} },
+  destroyer: { name:'Destroyer', emoji:'💥', maxHP:5, baseAttack:3, damage:2, initiative:1, cost:{metal:4, energy:3} }
+};
+
+const BUILDING_TYPES = {
+  factory:  { name:'Factory',     emoji:'🏭', cost:{metal:2, energy:2} },
+  defbase:  { name:'Def. Base',   emoji:'🛡', cost:{metal:1, energy:2} },
+};
+
+// Planet layout: symmetric 12-planet map
+const PLANET_DEFS = [
+  // ── P1 TERRITORY ─────────────────────────────────────────────────────
+  // Ironhold: P1 homeworld — strong mixed production, slight metal lean
+  { id:0,  name:'Ironhold',  x:0.07, y:0.50, pop:4, metal:3, energy:2,
+    connections:[1,2] },
+
+  // Bastion: P1 north gateway — metal-forward staging world
+  { id:1,  name:'Bastion',   x:0.22, y:0.27, pop:3, metal:3, energy:1,
+    connections:[0,3,5] },
+
+  // Crag: P1 south gateway — energy-forward staging world
+  { id:2,  name:'Crag',      x:0.22, y:0.73, pop:3, metal:1, energy:3,
+    connections:[0,6,5] },
+
+  // ── NORTH LANE ───────────────────────────────────────────────────────
+  // Reach: P1-side north front — balanced, worth grabbing early
+  { id:3,  name:'Reach',     x:0.37, y:0.19, pop:2, metal:2, energy:1,
+    connections:[1,4,5] },
+
+  // Vanguard: north center contested — slight energy lean
+  { id:4,  name:'Vanguard',  x:0.50, y:0.16, pop:2, metal:1, energy:2,
+    connections:[3,7,8] },
+
+  // ── MIDDLE BAND ──────────────────────────────────────────────────────
+  // Margin: left-center hub — balanced, high connectivity value
+  { id:5,  name:'Margin',    x:0.37, y:0.50, pop:2, metal:2, energy:2,
+    connections:[1,2,3,6,7] },
+
+  // Ashfen: P1-side south front — energy lean to offset Bastion's metal
+  { id:6,  name:'Ashfen',    x:0.37, y:0.81, pop:2, metal:1, energy:2,
+    connections:[2,5,9] },
+
+  // Crucible: dead center — perfectly balanced, the strategic prize
+  { id:7,  name:'Crucible',  x:0.50, y:0.50, pop:3, metal:2, energy:2,
+    connections:[4,5,8,9,10] },
+
+  // Pinnacle: north center P2-side — slight metal lean (mirror variance of Vanguard)
+  { id:8,  name:'Pinnacle',  x:0.63, y:0.19, pop:2, metal:2, energy:1,
+    connections:[4,7,10,11] },
+
+  // Duskfen: south center — slight energy lean
+  { id:9,  name:'Duskfen',   x:0.50, y:0.84, pop:2, metal:1, energy:2,
+    connections:[6,7,12] },
+
+  // Pallor: right-center hub — balanced, mirror of Margin
+  { id:10, name:'Pallor',    x:0.63, y:0.50, pop:2, metal:2, energy:2,
+    connections:[7,8,11,12,13,14] },
+
+  // ── NORTH LANE (P2 side) ─────────────────────────────────────────────
+  // Spire: P2-side north front — balanced, mirror of Reach
+  { id:11, name:'Spire',     x:0.63, y:0.27, pop:2, metal:2, energy:1,
+    connections:[8,10,13] },
+
+  // Emberveil: P2-side south front — energy lean, mirror of Ashfen
+  { id:12, name:'Emberveil', x:0.63, y:0.73, pop:2, metal:1, energy:2,
+    connections:[9,10,14] },
+
+  // ── P2 TERRITORY ─────────────────────────────────────────────────────
+  // Rampart: P2 north gateway — metal lean, mirror of Bastion
+  { id:13, name:'Rampart',   x:0.78, y:0.27, pop:3, metal:3, energy:1,
+    connections:[11,10,15] },
+
+  // Slagmere: P2 south gateway — energy lean, mirror of Crag
+  { id:14, name:'Slagmere',  x:0.78, y:0.73, pop:3, metal:1, energy:3,
+    connections:[12,10,15] },
+
+  // Solforge: P2 homeworld — strong mixed production, slight energy lean
+  { id:15, name:'Solforge',  x:0.93, y:0.50, pop:4, metal:2, energy:3,
+    connections:[13,14] },
+];
+
+// ======================================================
+// STATE
+// ======================================================
+let G = {
+  turn: 1,
+  currentPlayer: 'player1',
+  phase: 'setup', // setup, build, move, combat, end
+  planets: [],
+  selectedPlanet: null,
+  movingFromPlanet: null,
+  movingShips: null,
+  resources: { player1:{metal:5, energy:5}, player2:{metal:5, energy:5} },
+  homeworldSetup: { player1: null, player2: null },
+  setupStep: 1,
+  pendingCombat: null,
+  shipId: 0,
+};
+
+function initPlanets() {
+  G.planets = PLANET_DEFS.map(pd => ({
+    ...pd,
+    owner: 'neutral',
+    isHomeworld: false,
+    buildings: [],
+    ships: [],
+    currentHP: pd.pop * 3
+  }));
+}
+
+function newShip(type, owner) {
+  const t = SHIP_TYPES[type];
+  return { id: G.shipId++, type, owner, maxHP: t.maxHP, currentHP: t.maxHP, hasMoved: false };
+}
+
+// ======================================================
+// CANVAS SETUP
+// ======================================================
+const starCanvas = document.getElementById('starCanvas');
+const mapCanvas = document.getElementById('mapCanvas');
+const starCtx = starCanvas.getContext('2d');
+const ctx = mapCanvas.getContext('2d');
+let W, H;
+
+function resize() {
+  const wrap = document.getElementById('canvas-wrap');
+  W = wrap.clientWidth;
+  H = wrap.clientHeight;
+  starCanvas.width = mapCanvas.width = W;
+  starCanvas.height = mapCanvas.height = H;
+  drawStars();
+  render();
+}
+
+// Stars (static)
+let stars = [];
+function drawStars() {
+  starCtx.fillStyle = '#050a12';
+  starCtx.fillRect(0,0,W,H);
+  if (!stars.length) {
+    for (let i = 0; i < 300; i++) {
+      stars.push({ x: Math.random(), y: Math.random(), r: Math.random() * 1.2 + 0.2, a: Math.random() * 0.8 + 0.2 });
+    }
+  }
+  stars.forEach(s => {
+    starCtx.beginPath();
+    starCtx.arc(s.x * W, s.y * H, s.r, 0, Math.PI*2);
+    starCtx.fillStyle = `rgba(255,255,255,${s.a})`;
+    starCtx.fill();
+  });
+}
+
+// ======================================================
+// RENDERING
+// ======================================================
+function px(planet) { return { x: planet.x * W, y: planet.y * H }; }
+
+function playerColor(owner) {
+  if (owner === 'player1') return '#4fc3f7';
+  if (owner === 'player2') return '#ef5350';
+  return '#546e7a';
+}
+
+function render() {
+  ctx.clearRect(0, 0, W, H);
+
+  // Connections
+  G.planets.forEach(p => {
+    const a = px(p);
+    p.connections.forEach(cid => {
+      if (cid > p.id) {
+        const b = px(G.planets[cid]);
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.strokeStyle = 'rgba(79,195,247,0.12)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // highlight valid move targets
+        if (G.movingFromPlanet !== null) {
+          const src = G.planets[G.movingFromPlanet];
+          if ((p.id === G.movingFromPlanet && src.connections.includes(cid)) ||
+              (cid === G.movingFromPlanet && G.planets[cid].connections.includes(p.id))) {
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.strokeStyle = 'rgba(79,195,247,0.5)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6,4]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+          }
+        }
+      }
+    });
+  });
+
+  // Planets
+  G.planets.forEach(p => {
+    const {x, y} = px(p);
+    const r = 22 + p.pop * 3;
+    const col = playerColor(p.owner);
+    const isSelected = G.selectedPlanet === p.id;
+    const isMoveFrom = G.movingFromPlanet === p.id;
+    const isMoveTarget = G.movingFromPlanet !== null && G.planets[G.movingFromPlanet].connections.includes(p.id);
+
+    // Glow
+    if (p.owner !== 'neutral' || isSelected) {
+      const glowR = isMoveTarget ? r + 18 : r + 12;
+      const grad = ctx.createRadialGradient(x, y, r*0.4, x, y, glowR);
+      grad.addColorStop(0, col + '55');
+      grad.addColorStop(1, col + '00');
+      ctx.beginPath();
+      ctx.arc(x, y, glowR, 0, Math.PI*2);
+      ctx.fillStyle = grad;
+      ctx.fill();
+    }
+
+    // Move target pulse ring
+    if (isMoveTarget) {
+      ctx.beginPath();
+      ctx.arc(x, y, r + 8, 0, Math.PI*2);
+      ctx.strokeStyle = '#4fc3f7aa';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4,4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // Planet body
+    const bodyGrad = ctx.createRadialGradient(x - r*0.3, y - r*0.3, r*0.1, x, y, r);
+    if (p.owner === 'neutral') {
+      bodyGrad.addColorStop(0, '#7b8fa1');
+      bodyGrad.addColorStop(1, '#263238');
+    } else if (p.owner === 'player1') {
+      bodyGrad.addColorStop(0, '#81d4fa');
+      bodyGrad.addColorStop(1, '#01579b');
+    } else {
+      bodyGrad.addColorStop(0, '#ef9a9a');
+      bodyGrad.addColorStop(1, '#7f0000');
+    }
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI*2);
+    ctx.fillStyle = bodyGrad;
+    ctx.fill();
+
+    // Homeworld ring
+    if (p.isHomeworld) {
+      ctx.beginPath();
+      ctx.arc(x, y, r + 5, 0, Math.PI*2);
+      ctx.strokeStyle = '#ffd54f';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.arc(x, y, r + 8, 0, Math.PI*2);
+      ctx.strokeStyle = 'rgba(255,213,79,0.3)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    // Selection ring
+    if (isSelected || isMoveFrom) {
+      ctx.beginPath();
+      ctx.arc(x, y, r + (p.isHomeworld ? 11 : 6), 0, Math.PI*2);
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
+
+    // Planet name
+    ctx.font = 'bold 10px "Exo 2", sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.fillText(p.name, x, y + r + 14);
+
+    // Defense bases
+    const defBases = p.buildings.filter(b => b === 'defbase').length;
+
+    // Resource icons
+    ctx.font = '9px "Exo 2"';
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.fillText(`⛏${p.metal} ⚡${p.energy}`, x, y + r + 24);
+
+    // Ships count bubble
+    const ships = p.ships.length;
+    if (ships > 0) {
+      const sc = p.ships[0].owner === 'player1' ? '#4fc3f7' : '#ef5350';
+      ctx.beginPath();
+      ctx.arc(x + r - 4, y - r + 4, 10, 0, Math.PI*2);
+      ctx.fillStyle = sc;
+      ctx.fill();
+      ctx.font = 'bold 9px "Orbitron", sans-serif';
+      ctx.fillStyle = '#000';
+      ctx.fillText(ships, x + r - 4, y - r + 8);
+    }
+
+    // Defense base indicator
+    if (defBases > 0) {
+      ctx.font = '11px serif';
+      ctx.fillText('🛡'.repeat(defBases), x, y - r - 5);
+    }
+  });
+}
+
+// Animation loop (for pulsing)
+let anim;
+function startRenderLoop() {
+  cancelAnimationFrame(anim);
+  let t = 0;
+  function loop() {
+    t++;
+    render();
+    anim = requestAnimationFrame(loop);
+  }
+  loop();
+}
+
+// ======================================================
+// SETUP
+// ======================================================
+function buildSetupUI() {
+  const p1pick = document.getElementById('p1picker');
+  p1pick.innerHTML = '';
+  G.planets.forEach(p => {
+    const btn = document.createElement('button');
+    btn.className = 'hw-btn';
+    btn.textContent = p.name;
+    btn.onclick = () => selectHomeworld(p.id, 'player1');
+    btn.id = `p1hw_${p.id}`;
+    p1pick.appendChild(btn);
+  });
+  document.getElementById('btnSetupConfirm').onclick = confirmSetup;
+}
+
+function selectHomeworld(pid, player) {
+  if (player === 'player1') {
+    G.homeworldSetup.player1 = pid;
+    document.querySelectorAll('#p1picker .hw-btn').forEach(b => b.classList.remove('selected-p1'));
+    document.getElementById(`p1hw_${pid}`).classList.add('selected-p1');
+    // Show P2 section
+    document.getElementById('p2setupSection').style.display = 'block';
+    const p2pick = document.getElementById('p2picker');
+    p2pick.innerHTML = '';
+    G.planets.forEach(p => {
+      if (p.id === pid) return; // Can't share homeworld
+      const btn = document.createElement('button');
+      btn.className = 'hw-btn';
+      btn.textContent = p.name;
+      btn.onclick = () => selectHomeworld(p.id, 'player2');
+      btn.id = `p2hw_${p.id}`;
+      p2pick.appendChild(btn);
+    });
+    G.homeworldSetup.player2 = null;
+    document.getElementById('btnSetupConfirm').disabled = true;
+  } else {
+    G.homeworldSetup.player2 = pid;
+    document.querySelectorAll('#p2picker .hw-btn').forEach(b => b.classList.remove('selected-p2'));
+    document.getElementById(`p2hw_${pid}`).classList.add('selected-p2');
+    document.getElementById('btnSetupConfirm').disabled = false;
+  }
+}
+
+function confirmSetup() {
+  const hw1 = G.homeworldSetup.player1;
+  const hw2 = G.homeworldSetup.player2;
+
+  G.planets[hw1].owner = 'player1';
+  G.planets[hw1].isHomeworld = true;
+  G.planets[hw1].ships.push(newShip('fighter','player1'), newShip('fighter','player1'), newShip('frigate','player1'));
+
+  G.planets[hw2].owner = 'player2';
+  G.planets[hw2].isHomeworld = true;
+  G.planets[hw2].ships.push(newShip('fighter','player2'), newShip('fighter','player2'), newShip('frigate','player2'));
+
+  document.getElementById('setupOverlay').style.display = 'none';
+  G.phase = 'build';
+  G.currentPlayer = 'player1';
+  updateUI();
+  startRenderLoop();
+  setLog('Player 1\'s turn — Build or move your fleet.');
+}
+
+// ======================================================
+// TURN MANAGEMENT
+// ======================================================
+function startTurn(player) {
+  G.currentPlayer = player;
+  G.phase = 'build';
+  G.selectedPlanet = null;
+  G.movingFromPlanet = null;
+  G.movingShips = null;
+
+  // Reset hasMoved for this player's ships
+  G.planets.forEach(p => {
+    p.ships.forEach(s => {
+      if (s.owner === player) s.hasMoved = false;
+    });
+  });
+
+  // Heal ships
+  G.planets.forEach(p => {
+    p.ships.forEach(s => {
+      if (s.owner === player) {
+        const heal = Math.ceil(SHIP_TYPES[s.type].maxHP * 0.25);
+        s.currentHP = Math.min(s.maxHP, s.currentHP + heal);
+      }
+    });
+  });
+
+  // Produce resources
+  G.planets.forEach(p => {
+    if (p.owner === player) {
+      G.resources[player].metal += p.metal;
+      G.resources[player].energy += p.energy;
+    }
+  });
+
+  updateUI();
+  setLog(`${playerName(player)}'s turn — Build or move your fleet.`);
+}
+
+function endTurn() {
+  G.movingFromPlanet = null;
+  G.movingShips = null;
+  document.getElementById('moveIndicator').style.display = 'none';
+
+  const next = G.currentPlayer === 'player1' ? 'player2' : 'player1';
+  if (next === 'player1') G.turn++;
+  startTurn(next);
+}
+
+// ======================================================
+// PLANET SELECTION
+// ======================================================
+mapCanvas.addEventListener('click', e => {
+  if (G.phase === 'setup') return;
+  const rect = mapCanvas.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+
+  let hit = null;
+  G.planets.forEach(p => {
+    const {x, y} = px(p);
+    const r = 22 + p.pop * 3;
+    if (Math.hypot(mx - x, my - y) < r + 6) hit = p.id;
+  });
+
+  if (hit === null) {
+    if (G.movingFromPlanet !== null) {
+      // Cancel move
+      G.movingFromPlanet = null;
+      G.movingShips = null;
+      document.getElementById('moveIndicator').style.display = 'none';
+      document.getElementById('btnMove').textContent = '⟶ MOVE FLEET';
+    }
+    G.selectedPlanet = null;
+    updateSidebar();
+    return;
+  }
+
+  // If in move mode, select destination
+  if (G.movingFromPlanet !== null) {
+    const src = G.planets[G.movingFromPlanet];
+    if (hit === G.movingFromPlanet) {
+      G.movingFromPlanet = null;
+      G.movingShips = null;
+      document.getElementById('moveIndicator').style.display = 'none';
+      document.getElementById('btnMove').textContent = '⟶ MOVE FLEET';
+    } else if (src.connections.includes(hit)) {
+      executeMove(G.movingFromPlanet, hit);
+    } else {
+      setLog('That planet is not adjacent. Select an adjacent planet.');
+    }
+    return;
+  }
+
+  G.selectedPlanet = hit;
+  updateSidebar();
+  updateBuildButtons();
+});
+
+// ======================================================
+// SHIP SELECTION MODAL
+// ======================================================
+let shipSelectIds = new Set();
+
+function openShipSelectModal(planet, isFriendlyDest) {
+  const allMyShips = planet.ships.filter(s => s.owner === G.currentPlayer);
+  // Ships that can move: unmoved ones (or all if destination is friendly — handled at confirm)
+  const movableShips = isFriendlyDest
+    ? allMyShips
+    : allMyShips.filter(s => !s.hasMoved);
+  const blockedShips = isFriendlyDest ? [] : allMyShips.filter(s => s.hasMoved);
+
+  shipSelectIds = new Set(movableShips.map(s => s.id)); // default: all movable selected
+
+  const playerCol = G.currentPlayer === 'player1' ? 'var(--p1)' : 'var(--p2)';
+  const selClass = G.currentPlayer === 'player1' ? 'selected' : 'selected-p2';
+  document.getElementById('shipSelectModal').querySelector('h2').style.color = playerCol;
+  document.getElementById('shipSelectSubtitle').textContent = `Choose vessels to move from ${planet.name}. Unselected ships will remain.`;
+
+  function renderList() {
+    const list = document.getElementById('shipSelectList');
+    list.innerHTML = '';
+
+    movableShips.forEach(s => {
+      const st = SHIP_TYPES[s.type];
+      const hpPct = s.currentHP / s.maxHP;
+      const hpLabel = hpPct > 0.5 ? 'Healthy' : hpPct > 0.25 ? 'Damaged' : 'Critical';
+      const isSel = shipSelectIds.has(s.id);
+      const row = document.createElement('div');
+      row.className = `ship-select-row ${isSel ? selClass : ''}`;
+      row.innerHTML = `
+        <div class="ship-select-check">${isSel ? '✓' : ''}</div>
+        <span style="font-size:18px">${st.emoji}</span>
+        <div class="ship-select-info">
+          <div class="ship-select-name">${st.name}</div>
+          <div class="ship-select-stats">HP: ${s.currentHP}/${s.maxHP} (${hpLabel}) · ATK: ${st.baseAttack} · DMG: ${st.damage} · INI: ${st.initiative}</div>
+        </div>
+      `;
+      row.onclick = () => {
+        if (shipSelectIds.has(s.id)) shipSelectIds.delete(s.id);
+        else shipSelectIds.add(s.id);
+        renderList();
+      };
+      list.appendChild(row);
+    });
+
+    // Show already-moved ships as grayed out / locked
+    blockedShips.forEach(s => {
+      const st = SHIP_TYPES[s.type];
+      const row = document.createElement('div');
+      row.className = 'ship-select-row';
+      row.style.cssText = 'opacity:0.35; cursor:not-allowed;';
+      row.innerHTML = `
+        <div class="ship-select-check" style="color:var(--text-dim)">—</div>
+        <span style="font-size:18px">${st.emoji}</span>
+        <div class="ship-select-info">
+          <div class="ship-select-name">${st.name} <span style="font-size:10px;color:var(--text-dim);font-style:italic">already moved</span></div>
+          <div class="ship-select-stats">HP: ${s.currentHP}/${s.maxHP} · ATK: ${st.baseAttack} · DMG: ${st.damage} · INI: ${st.initiative}</div>
+        </div>
+      `;
+      list.appendChild(row);
+    });
+
+    document.getElementById('selectedCount').textContent = shipSelectIds.size;
+    document.getElementById('btnShipSelectConfirm').disabled = shipSelectIds.size === 0;
+  }
+
+  if (movableShips.length === 0) {
+    setLog('All ships on this planet have already moved this turn.');
+    return;
+  }
+
+  renderList();
+
+  document.getElementById('btnSelectAll').onclick = () => {
+    if (shipSelectIds.size === movableShips.length) shipSelectIds.clear();
+    else movableShips.forEach(s => shipSelectIds.add(s.id));
+    renderList();
+  };
+
+  document.getElementById('btnShipSelectConfirm').onclick = () => {
+    const selected = planet.ships.filter(s => shipSelectIds.has(s.id));
+    document.getElementById('shipSelectOverlay').style.display = 'none';
+    G.movingFromPlanet = planet.id;
+    G.movingShips = selected;
+    document.getElementById('moveIndicator').style.display = 'block';
+    document.getElementById('btnMove').textContent = '✕ CANCEL MOVE';
+    setLog(`Moving ${selected.length} ship(s) from ${planet.name}. Click an adjacent planet.`);
+  };
+
+  document.getElementById('btnShipSelectCancel').onclick = () => {
+    document.getElementById('shipSelectOverlay').style.display = 'none';
+  };
+
+  document.getElementById('shipSelectOverlay').style.display = 'flex';
+}
+
+// ======================================================
+// MOVE
+// ======================================================
+document.getElementById('btnMove').onclick = () => {
+  if (G.movingFromPlanet !== null) {
+    G.movingFromPlanet = null;
+    G.movingShips = null;
+    document.getElementById('moveIndicator').style.display = 'none';
+    document.getElementById('btnMove').textContent = '⟶ MOVE FLEET';
+    return;
+  }
+  if (G.selectedPlanet === null) { setLog('Select one of your planets first.'); return; }
+  const p = G.planets[G.selectedPlanet];
+  if (p.owner !== G.currentPlayer) { setLog("You can only move your own ships."); return; }
+  const myShips = p.ships.filter(s => s.owner === G.currentPlayer);
+  if (myShips.length === 0) { setLog("No ships to move."); return; }
+
+  // Check if any unmoved ships exist
+  const unmovedShips = myShips.filter(s => !s.hasMoved);
+  if (unmovedShips.length === 0) { setLog("All ships here have already moved this turn."); return; }
+
+  openShipSelectModal(p, false);
+};
+
+function executeMove(fromId, toId) {
+  const src = G.planets[fromId];
+  const dst = G.planets[toId];
+  const isFriendlyDest = dst.owner === G.currentPlayer;
+
+  // Only move the ships the player selected
+  const movingIds = new Set(G.movingShips.map(s => s.id));
+  const movingShips = src.ships.filter(s => movingIds.has(s.id));
+
+  // Mark ships as moved (only costs a move if going to non-friendly planet)
+  if (!isFriendlyDest) {
+    movingShips.forEach(s => s.hasMoved = true);
+  }
+
+  // Remove selected ships from source
+  src.ships = src.ships.filter(s => !movingIds.has(s.id));
+  movingShips.forEach(s => dst.ships.push(s));
+
+  G.movingFromPlanet = null;
+  G.movingShips = null;
+  document.getElementById('moveIndicator').style.display = 'none';
+  document.getElementById('btnMove').textContent = '⟶ MOVE FLEET';
+
+  // Check for combat
+  const enemies = dst.ships.filter(s => s.owner !== G.currentPlayer);
+  if (enemies.length > 0) {
+    setLog(`Fleet moves to ${dst.name}. Combat begins!`);
+    G.selectedPlanet = toId;
+    updateSidebar();
+    startCombat(fromId, toId, movingShips, enemies, dst);
+  } else {
+    // Capture neutral/empty planet
+    if (dst.owner !== G.currentPlayer) {
+      capturePlanet(toId, G.currentPlayer);
+    }
+    setLog(`${movingShips.length} ship(s) move to ${dst.name}.`);
+    G.selectedPlanet = toId;
+    updateSidebar();
+    updateBuildButtons();
+  }
+}
+
+function capturePlanet(pid, newOwner) {
+  const p = G.planets[pid];
+  const wasHomeworld = p.isHomeworld;
+  const prevOwner = p.owner;
+  p.owner = newOwner;
+
+  if (wasHomeworld && prevOwner !== 'neutral' && prevOwner !== newOwner) {
+    // Homeworld captured = game over
+    setTimeout(() => showVictory(newOwner), 100);
+  }
+}
+
+// ======================================================
+// COMBAT ENGINE
+// ======================================================
+let combatState = null;
+
+function getModifiedStats(ship, defBasesBonus) {
+  const base = SHIP_TYPES[ship.type];
+  const hpPct = ship.currentHP / ship.maxHP;
+  let attackMod = 0, initMod = 0;
+  if (hpPct < 0.25) { attackMod = -2; initMod = -2; }
+  else if (hpPct < 0.5) { attackMod = -1; initMod = -1; }
+
+  return {
+    attack: Math.max(1, base.baseAttack + attackMod + defBasesBonus),
+    initiative: Math.max(0, base.initiative + initMod + defBasesBonus),
+    damage: base.damage
+  };
+}
+
+function startCombat(fromId, planetId, attackerShips, defenderShips, planet) {
+  const defBases = planet.buildings.filter(b => b === 'defbase').length;
+  combatState = {
+    planetId,
+    fromId,
+    attackerOwner: G.currentPlayer,
+    defenderOwner: planet.ships.find(s => s.owner !== G.currentPlayer)?.owner || (planet.owner !== G.currentPlayer ? planet.owner : null),
+    attackerShips: [...attackerShips],
+    defenderShips: defenderShips.filter(s => s.owner !== G.currentPlayer),
+    defBases,
+    planet,
+    phase: 'ships', // ships or bombard
+    log: []
+  };
+
+  renderCombatModal();
+  document.getElementById('combatOverlay').style.display = 'flex';
+}
+
+function setCombatOver() {
+  document.getElementById('btnNextWave').style.display = 'none';
+  document.getElementById('btnRetreatAttacker').style.display = 'none';
+  document.getElementById('btnCombatDone').style.display = '';
+  document.getElementById('defenderRetreatBtns').style.display = 'none';
+}
+
+function resetCombatButtons() {
+  document.getElementById('btnNextWave').style.display = '';
+  document.getElementById('btnNextWave').textContent = 'NEXT WAVE ▶';
+  document.getElementById('btnRetreatAttacker').style.display = '';
+  document.getElementById('btnCombatDone').style.display = 'none';
+}
+
+function renderCombatModal() {
+  const cs = combatState;
+  const aOwner = cs.attackerOwner;
+  const dOwner = cs.defenderOwner;
+
+  document.getElementById('combatTitle').textContent = `⚔️ BATTLE FOR ${cs.planet.name.toUpperCase()}`;
+  document.getElementById('attackerLabel').textContent = `${playerName(aOwner)} [ATTACKER]`;
+  document.getElementById('defenderLabel').textContent = dOwner ? `${playerName(dOwner)} [DEFENDER]` : 'PLANET';
+  document.getElementById('attackerLabel').style.color = aOwner === 'player1' ? 'var(--p1)' : 'var(--p2)';
+  document.getElementById('defenderLabel').style.color = dOwner === 'player1' ? 'var(--p1)' : 'var(--p2)';
+
+  resetCombatButtons();
+  renderCombatShips();
+  document.getElementById('combatLog').innerHTML = cs.log.map(l => `<p>${l}</p>`).join('');
+  document.getElementById('combatLog').scrollTop = 999;
+  document.getElementById('diceDisplay').innerHTML = '';
+
+  document.getElementById('combatBtns').style.display = 'flex';
+  document.getElementById('defenderRetreatBtns').style.display = cs.defenderShips.length > 0 ? 'flex' : 'none';
+}
+
+function renderCombatShips() {
+  const cs = combatState;
+  const defBases = cs.defBases;
+
+  function shipHTML(ship, isDefender) {
+    const st = SHIP_TYPES[ship.type];
+    const mod = getModifiedStats(ship, isDefender ? defBases : 0);
+    const hpPct = ship.currentHP / ship.maxHP;
+    const hpClass = hpPct > 0.5 ? 'healthy' : hpPct > 0.25 ? 'damaged' : 'critical';
+    const isDead = ship.currentHP <= 0;
+    return `<div class="combat-ship ${isDead ? 'dead' : ''}" id="cs_${ship.id}">
+      ${st.emoji}
+      <span style="flex:1">${st.name}</span>
+      <span style="font-size:10px;color:var(--text-dim)">${ship.currentHP}/${ship.maxHP}HP ATK:${mod.attack}</span>
+      <div class="hp-bar-wrap"><div class="hp-bar ${hpClass}" style="width:${Math.max(0,hpPct*100)}%"></div></div>
+    </div>`;
+  }
+
+  document.getElementById('attackerShips').innerHTML = cs.attackerShips.map(s => shipHTML(s, false)).join('') || '<div style="color:var(--text-dim);font-size:12px">No ships</div>';
+  document.getElementById('defenderShips').innerHTML = cs.defenderShips.map(s => shipHTML(s, true)).join('') || '<div style="color:var(--text-dim);font-size:12px">No ships (bombard planet)</div>';
+
+  if (cs.defBases > 0 && cs.defenderShips.length > 0) {
+    document.getElementById('defenderShips').innerHTML += `<div style="font-size:11px;color:var(--gold);margin-top:6px">🛡×${cs.defBases} Defense Base: +${cs.defBases} ATK/INI</div>`;
+  }
+}
+
+function resolveWave() {
+  const cs = combatState;
+  const defBases = cs.defBases;
+  const logLines = [];
+  const diceEls = [];
+
+  // Collect all combatants with modified stats, sorted by initiative
+  let fighters = [];
+  cs.attackerShips.filter(s => s.currentHP > 0).forEach(s => {
+    const m = getModifiedStats(s, 0);
+    fighters.push({ ship: s, side: 'attacker', ...m });
+  });
+  cs.defenderShips.filter(s => s.currentHP > 0).forEach(s => {
+    const m = getModifiedStats(s, defBases);
+    fighters.push({ ship: s, side: 'defender', ...m });
+  });
+  fighters.sort((a, b) => b.initiative - a.initiative);
+
+  // Collect all hits per side first, then distribute evenly
+  let attackerHits = 0, attackerDmg = 0;
+  let defenderHits = 0, defenderDmg = 0;
+
+  fighters.forEach(f => {
+    const roll = Math.ceil(Math.random() * 6);
+    const isHit = roll <= f.attack;
+    diceEls.push(`<div class="die ${isHit ? 'hit' : 'miss'}">${roll}</div>`);
+    const st = SHIP_TYPES[f.ship.type];
+    const pclass = f.side === 'attacker' ? 'log-p1' : 'log-p2';
+
+    if (isHit) {
+      if (f.side === 'attacker') { attackerHits++; attackerDmg += f.damage; }
+      else { defenderHits++; defenderDmg += f.damage; }
+      logLines.push(`<span class="${pclass}">${st.name}(${roll}✓)</span> <span class="log-hit">+${f.damage} dmg</span>`);
+    } else {
+      logLines.push(`<span class="${pclass}">${st.name}(${roll}✗)</span> <span class="log-miss">miss</span>`);
+    }
+  });
+
+  // Distribute attacker damage evenly across defender ships (round-robin)
+  function distributeEven(damage, ships) {
+    if (!ships.length || damage <= 0) return;
+    const living = ships.filter(s => s.currentHP > 0);
+    if (!living.length) return;
+    let remaining = damage;
+    let idx = 0;
+    while (remaining > 0 && living.some(s => s.currentHP > 0)) {
+      const target = living[idx % living.length];
+      if (target.currentHP > 0) {
+        target.currentHP--;
+        remaining--;
+      }
+      idx++;
+      // Safety: if all dead, break
+      if (living.every(s => s.currentHP <= 0)) break;
+    }
+  }
+
+  if (attackerDmg > 0 && cs.defenderShips.some(s => s.currentHP > 0)) {
+    logLines.push(`<span class="log-event">Attacker deals ${attackerDmg} damage spread across defenders.</span>`);
+    distributeEven(attackerDmg, cs.defenderShips);
+  }
+  if (defenderDmg > 0 && cs.attackerShips.some(s => s.currentHP > 0)) {
+    logLines.push(`<span class="log-event">Defender deals ${defenderDmg} damage spread across attackers.</span>`);
+    distributeEven(defenderDmg, cs.attackerShips);
+  }
+
+  // Remove dead ships
+  cs.attackerShips = cs.attackerShips.filter(s => s.currentHP > 0);
+  cs.defenderShips = cs.defenderShips.filter(s => s.currentHP > 0);
+
+  cs.log.push(...logLines);
+
+  document.getElementById('diceDisplay').innerHTML = diceEls.join('');
+  renderCombatShips();
+  document.getElementById('combatLog').innerHTML = cs.log.map(l => `<p>${l}</p>`).join('');
+  document.getElementById('combatLog').scrollTop = 999;
+
+  // Check victory states
+  if (cs.attackerShips.length === 0 && cs.defenderShips.length === 0) {
+    combatDraw();
+  } else if (cs.attackerShips.length === 0) {
+    combatDefenderWins();
+  } else if (cs.defenderShips.length === 0) {
+    // Check if planet HP phase
+    startBombardment();
+  } else {
+    // Show retreat buttons
+    document.getElementById('defenderRetreatBtns').style.display = 'flex';
+  }
+}
+
+function startBombardment() {
+  const cs = combatState;
+  const p = cs.planet;
+  cs.phase = 'bombard';
+  const log = `<span class="log-event">All defenders destroyed — BOMBARDMENT BEGINS! Planet HP: ${p.currentHP}</span>`;
+  cs.log.push(log);
+  document.getElementById('combatLog').innerHTML = cs.log.map(l => `<p>${l}</p>`).join('');
+  document.getElementById('defenderRetreatBtns').style.display = 'none';
+  document.getElementById('btnNextWave').textContent = 'BOMBARD ▶';
+  document.getElementById('btnRetreatAttacker').style.display = 'none';
+}
+
+function resolveBombardment() {
+  const cs = combatState;
+  const p = cs.planet;
+  let totalDmg = 0;
+  const diceEls = [];
+  const logLines = [];
+
+  cs.attackerShips.forEach(s => {
+    const m = getModifiedStats(s, 0);
+    const roll = Math.ceil(Math.random() * 6);
+    const isHit = roll <= m.attack;
+    diceEls.push(`<div class="die ${isHit ? 'hit' : 'miss'}">${roll}</div>`);
+    if (isHit) {
+      totalDmg += m.damage;
+      logLines.push(`<span class="log-hit">${SHIP_TYPES[s.type].name} hits planet for ${m.damage} damage!</span>`);
+    } else {
+      logLines.push(`<span class="log-miss">${SHIP_TYPES[s.type].name} misses.</span>`);
+    }
+  });
+
+  p.currentHP -= totalDmg;
+  cs.log.push(...logLines);
+  cs.log.push(`<span class="log-event">Planet HP: ${Math.max(0,p.currentHP)}</span>`);
+
+  document.getElementById('diceDisplay').innerHTML = diceEls.join('');
+  document.getElementById('combatLog').innerHTML = cs.log.map(l => `<p>${l}</p>`).join('');
+  document.getElementById('combatLog').scrollTop = 999;
+
+  if (p.currentHP <= 0) {
+    capturePlanet(cs.planetId, cs.attackerOwner);
+    const planet = G.planets[cs.planetId];
+    planet.ships = cs.attackerShips.slice();
+    cs.log.push(`<span class="log-event">🏳 ${cs.planet.name} CAPTURED by ${playerName(cs.attackerOwner)}!</span>`);
+    document.getElementById('combatLog').innerHTML = cs.log.map(l => `<p>${l}</p>`).join('');
+    setCombatOver();
+    if (planet.isHomeworld && planet.owner === cs.attackerOwner) {
+      setTimeout(() => showVictory(cs.attackerOwner), 200);
+    }
+  }
+}
+
+function combatDefenderWins() {
+  const cs = combatState;
+  cs.log.push(`<span class="log-event">⚔️ Attackers eliminated! ${cs.planet.name} holds!</span>`);
+  document.getElementById('combatLog').innerHTML = cs.log.map(l => `<p>${l}</p>`).join('');
+  setCombatOver();
+  const planet = G.planets[cs.planetId];
+  planet.ships = planet.ships.filter(s => s.owner !== cs.attackerOwner);
+}
+
+function combatDraw() {
+  const cs = combatState;
+  cs.log.push(`<span class="log-event">⚔️ Mutual destruction! Both fleets eliminated.</span>`);
+  document.getElementById('combatLog').innerHTML = cs.log.map(l => `<p>${l}</p>`).join('');
+  setCombatOver();
+  G.planets[cs.planetId].ships = G.planets[cs.planetId].ships.filter(
+    s => s.owner !== cs.attackerOwner && s.owner !== cs.defenderOwner
+  );
+}
+
+document.getElementById('btnNextWave').onclick = () => {
+  if (combatState.phase === 'bombard') {
+    resolveBombardment();
+  } else {
+    resolveWave();
+  }
+};
+
+document.getElementById('btnRetreatAttacker').onclick = () => {
+  const cs = combatState;
+  // Take 1 free defensive volley
+  cs.log.push(`<span class="log-event">Attacker retreating — Defenders fire parting shot!</span>`);
+  cs.defenderShips.filter(s => s.currentHP > 0).forEach(s => {
+    const m = getModifiedStats(s, cs.defBases);
+    const roll = Math.ceil(Math.random() * 6);
+    if (roll <= m.attack && cs.attackerShips.length > 0) {
+      cs.attackerShips.sort((a,b) => a.currentHP - b.currentHP);
+      const target = cs.attackerShips[0];
+      target.currentHP -= m.damage;
+      cs.log.push(`<span class="log-hit">${SHIP_TYPES[s.type].name} hits retreating ${SHIP_TYPES[target.type].name} for ${m.damage}!</span>`);
+    }
+  });
+  cs.attackerShips = cs.attackerShips.filter(s => s.currentHP > 0);
+
+  // Return surviving ships to origin
+  const srcPlanet = G.planets[cs.fromId];
+  const dstPlanet = G.planets[cs.planetId];
+  cs.attackerShips.forEach(s => {
+    if (!srcPlanet.ships.includes(s)) srcPlanet.ships.push(s);
+  });
+  dstPlanet.ships = dstPlanet.ships.filter(s => s.owner !== cs.attackerOwner);
+
+  cs.log.push(`<span class="log-event">🛸 Attackers retreat to ${srcPlanet.name} with ${cs.attackerShips.length} ship(s).</span>`);
+  document.getElementById('combatLog').innerHTML = cs.log.map(l => `<p>${l}</p>`).join('');
+  setCombatOver();
+};
+
+document.getElementById('btnRetreatDefender').onclick = () => {
+  // Show retreat picker
+  const cs = combatState;
+  const planet = G.planets[cs.planetId];
+  const picker = document.getElementById('retreatPicker');
+  picker.innerHTML = '';
+  const validTargets = planet.connections
+    .map(id => G.planets[id])
+    .filter(p => p.owner !== cs.attackerOwner);
+
+  if (validTargets.length === 0) {
+    alert('No valid retreat planets! Must fight.');
+    return;
+  }
+
+  validTargets.forEach(tp => {
+    const btn = document.createElement('button');
+    btn.className = 'hw-btn';
+    btn.textContent = tp.name;
+    btn.onclick = () => {
+      // Move defender ships there
+      cs.defenderShips.forEach(s => tp.ships.push(s));
+      planet.ships = planet.ships.filter(s => !cs.defenderShips.includes(s));
+
+      // Attacker captures planet
+      capturePlanet(cs.planetId, cs.attackerOwner);
+      planet.ships.push(...cs.attackerShips);
+      cs.attackerShips.forEach(s => { if (!planet.ships.includes(s)) planet.ships.push(s); });
+
+      cs.log.push(`<span class="log-event">🛸 Defenders retreat to ${tp.name}. ${planet.name} captured!</span>`);
+      document.getElementById('retreatOverlay').style.display = 'none';
+      document.getElementById('combatLog').innerHTML = cs.log.map(l => `<p>${l}</p>`).join('');
+      setCombatOver();
+
+      if (planet.isHomeworld) {
+        setTimeout(() => showVictory(cs.attackerOwner), 200);
+      }
+    };
+    picker.appendChild(btn);
+  });
+
+  document.getElementById('retreatOverlay').style.display = 'flex';
+};
+
+document.getElementById('btnCancelRetreat').onclick = () => {
+  document.getElementById('retreatOverlay').style.display = 'none';
+};
+
+function closeCombat() {
+  document.getElementById('combatOverlay').style.display = 'none';
+  G.selectedPlanet = combatState.planetId;
+  updateSidebar();
+  updateBuildButtons();
+  combatState = null;
+  setLog('Combat resolved.');
+}
+
+// ======================================================
+// BUILDING
+// ======================================================
+document.getElementById('btnFactory').onclick = () => build('factory');
+document.getElementById('btnDefBase').onclick = () => build('defbase');
+document.getElementById('btnFighter').onclick = () => buildShip('fighter');
+document.getElementById('btnFrigate').onclick = () => buildShip('frigate');
+document.getElementById('btnDestroyer').onclick = () => buildShip('destroyer');
+
+function build(type) {
+  if (G.selectedPlanet === null) return;
+  const p = G.planets[G.selectedPlanet];
+  if (p.owner !== G.currentPlayer) return;
+  const bt = BUILDING_TYPES[type];
+  const res = G.resources[G.currentPlayer];
+  if (res.metal < bt.cost.metal || res.energy < bt.cost.energy) {
+    setLog('Not enough resources!'); return;
+  }
+  if (type === 'factory' && p.buildings.includes('factory')) {
+    setLog('Already has a Factory.'); return;
+  }
+  res.metal -= bt.cost.metal;
+  res.energy -= bt.cost.energy;
+  p.buildings.push(type);
+  setLog(`Built ${bt.name} on ${p.name}.`);
+  updateUI();
+}
+
+function buildShip(type) {
+  if (G.selectedPlanet === null) return;
+  const p = G.planets[G.selectedPlanet];
+  if (p.owner !== G.currentPlayer) return;
+  if (!p.buildings.includes('factory')) {
+    setLog('Need a Factory to build ships.'); return;
+  }
+  const st = SHIP_TYPES[type];
+  const res = G.resources[G.currentPlayer];
+  if (res.metal < st.cost.metal || res.energy < st.cost.energy) {
+    setLog('Not enough resources!'); return;
+  }
+  res.metal -= st.cost.metal;
+  res.energy -= st.cost.energy;
+  p.ships.push(newShip(type, G.currentPlayer));
+  setLog(`Built ${st.name} on ${p.name}.`);
+  updateUI();
+}
+
+// ======================================================
+// UI
+// ======================================================
+function updateUI() {
+  document.getElementById('p1metal').textContent = G.resources.player1.metal;
+  document.getElementById('p1energy').textContent = G.resources.player1.energy;
+  document.getElementById('p2metal').textContent = G.resources.player2.metal;
+  document.getElementById('p2energy').textContent = G.resources.player2.energy;
+  document.getElementById('turnNum').textContent = G.turn;
+
+  document.getElementById('p1Info').classList.toggle('active', G.currentPlayer === 'player1');
+  document.getElementById('p2Info').classList.toggle('active', G.currentPlayer === 'player2');
+
+  const phaseLabel = G.phase === 'setup' ? 'SETUP' : G.currentPlayer.replace('player','PLAYER ').toUpperCase() + ' — ACTIVE';
+  document.getElementById('phaseBadge').textContent = phaseLabel;
+
+  document.getElementById('btnEndTurn').disabled = G.phase === 'setup';
+  document.getElementById('btnMove').disabled = G.phase === 'setup';
+
+  updateSidebar();
+  updateBuildButtons();
+}
+
+function updateSidebar() {
+  const pi = document.getElementById('planet-info');
+  if (G.selectedPlanet === null) {
+    pi.innerHTML = '<div style="color:var(--text-dim); font-size:12px; margin-top:8px;">Select a planet to view details</div>';
+    return;
+  }
+  const p = G.planets[G.selectedPlanet];
+  const ownerColor = playerColor(p.owner);
+  const defBases = p.buildings.filter(b => b === 'defbase').length;
+  const hasFactory = p.buildings.includes('factory');
+
+  let html = `<div class="planet-name-display" style="color:${ownerColor}">${p.name}</div>`;
+  html += `<div class="stat-row"><span class="stat-label">Owner</span><span class="stat-val" style="color:${ownerColor}">${p.owner === 'neutral' ? 'Neutral' : playerName(p.owner)}</span></div>`;
+  if (p.isHomeworld) html += `<div class="stat-row"><span class="stat-label">Status</span><span class="stat-val" style="color:var(--gold)">⭐ Homeworld</span></div>`;
+  html += `<div class="stat-row"><span class="stat-label">Population</span><span class="stat-val">${p.pop}</span></div>`;
+  html += `<div class="stat-row"><span class="stat-label">Planet HP</span><span class="stat-val">${p.currentHP}/${p.pop*3}</span></div>`;
+  html += `<div class="stat-row"><span class="stat-label">Metal/turn</span><span class="stat-val">⛏ ${p.metal}</span></div>`;
+  html += `<div class="stat-row"><span class="stat-label">Energy/turn</span><span class="stat-val">⚡ ${p.energy}</span></div>`;
+  html += `<div class="stat-row"><span class="stat-label">Factory</span><span class="stat-val">${hasFactory ? '🏭 Yes' : '—'}</span></div>`;
+  html += `<div class="stat-row"><span class="stat-label">Def. Bases</span><span class="stat-val">${defBases > 0 ? '🛡 ×' + defBases : '—'}</span></div>`;
+  if (defBases > 0 && p.ships.length > 0) {
+    html += `<div class="stat-row"><span class="stat-label">Def bonus</span><span class="stat-val" style="color:var(--gold)">+${defBases} ATK/INI</span></div>`;
+  }
+
+  // Ships
+  if (p.ships.length > 0) {
+    html += `<div class="ship-list"><div style="font-size:11px;color:var(--text-dim);margin:8px 0 4px;letter-spacing:1px;">FLEET</div>`;
+    p.ships.forEach(s => {
+      const st = SHIP_TYPES[s.type];
+      const hpPct = s.currentHP / s.maxHP;
+      const hpClass = hpPct > 0.5 ? 'healthy' : hpPct > 0.25 ? 'damaged' : 'critical';
+      const sc = s.owner === 'player1' ? 'var(--p1)' : 'var(--p2)';
+      const movedTag = (s.owner === G.currentPlayer && s.hasMoved) ? ' <span style="font-size:9px;color:var(--text-dim);font-style:italic">moved</span>' : '';
+      html += `<div class="ship-entry">
+        <span class="ship-icon">${st.emoji}</span>
+        <span style="flex:1;font-size:11px;color:${sc}">${st.name}${movedTag}</span>
+        <span style="font-size:10px;color:var(--text-dim)">${s.currentHP}/${s.maxHP}</span>
+        <div class="hp-bar-wrap" style="width:40px"><div class="hp-bar ${hpClass}" style="width:${hpPct*100}%"></div></div>
+      </div>`;
+    });
+    html += '</div>';
+  }
+
+  pi.innerHTML = html;
+}
+
+function updateBuildButtons() {
+  const sel = G.selectedPlanet;
+  const isMyPlanet = sel !== null && G.planets[sel].owner === G.currentPlayer;
+  const p = sel !== null ? G.planets[sel] : null;
+  const res = G.resources[G.currentPlayer];
+  const hasFactory = p && p.buildings.includes('factory');
+  const alreadyHasFactory = p && p.buildings.includes('factory');
+
+  function canAfford(cost) {
+    return res.metal >= cost.metal && res.energy >= cost.energy;
+  }
+
+  document.getElementById('btnFactory').disabled = !isMyPlanet || !canAfford(BUILDING_TYPES.factory.cost) || alreadyHasFactory || G.phase === 'setup';
+  document.getElementById('btnDefBase').disabled = !isMyPlanet || !canAfford(BUILDING_TYPES.defbase.cost) || G.phase === 'setup';
+  document.getElementById('btnFighter').disabled = !isMyPlanet || !hasFactory || !canAfford(SHIP_TYPES.fighter.cost) || G.phase === 'setup';
+  document.getElementById('btnFrigate').disabled = !isMyPlanet || !hasFactory || !canAfford(SHIP_TYPES.frigate.cost) || G.phase === 'setup';
+  document.getElementById('btnDestroyer').disabled = !isMyPlanet || !hasFactory || !canAfford(SHIP_TYPES.destroyer.cost) || G.phase === 'setup';
+}
+
+document.getElementById('btnEndTurn').onclick = endTurn;
+
+function playerName(p) {
+  return p === 'player1' ? 'Player 1' : 'Player 2';
+}
+
+function setLog(msg) {
+  document.getElementById('log').textContent = msg;
+}
+
+// ======================================================
+// VICTORY
+// ======================================================
+function showVictory(winner) {
+  const vo = document.getElementById('victoryOverlay');
+  const vt = document.getElementById('victoryTitle');
+  const vs = document.getElementById('victorySub');
+  vt.textContent = `${playerName(winner).toUpperCase()} WINS!`;
+  vt.style.color = winner === 'player1' ? 'var(--p1)' : 'var(--p2)';
+  vt.style.textShadow = winner === 'player1' ? '0 0 30px var(--p1)' : '0 0 30px var(--p2)';
+  vs.textContent = `The enemy homeworld has fallen. The galaxy bows to ${playerName(winner)}.`;
+  vo.style.display = 'flex';
+  cancelAnimationFrame(anim);
+}
+
+// ======================================================
+// INIT
+// ======================================================
+window.addEventListener('resize', resize);
+initPlanets();
+buildSetupUI();
+resize();
+startRenderLoop();
+</script>
+</body>
+</html>
