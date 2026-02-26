@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Jetpack Joyride Mini</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #111;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+      color: #fff;
+      user-select: none;
+      overflow: hidden;
+    }
+
+    #game {
+      position: relative;
+      width: 800px;
+      height: 400px;
+      background: linear-gradient(#222, #111);
+      border: 3px solid #555;
+      overflow: hidden;
+    }
+
+    #ground {
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      height: 40px;
+      background: #333;
+    }
+
+    #player {
+      position: absolute;
+      left: 80px;
+      top: 150px;
+      width: 40px;
+      height: 40px;
+      background: #f4b400;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(255, 200, 0, 0.8);
+    }
+
+    /* Jetpack flame */
+    #flame {
+      position: absolute;
+      left: 10px;
+      top: 40px;
+      width: 20px;
+      height: 30px;
+      background: radial-gradient(circle at 50% 0%, #ff0, #f00);
+      border-radius: 50%;
+      opacity: 0;
+      filter: blur(1px);
+    }
+
+    .obstacle {
+      position: absolute;
+      width: 30px;
+      height: 80px;
+      background: #e53935;
+      border-radius: 6px;
+      box-shadow: 0 0 10px rgba(229, 57, 53, 0.8);
+    }
+
+    .coin {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      background: radial-gradient(circle at 30% 30%, #fff, #ffd600);
+      border-radius: 50%;
+      box-shadow: 0 0 8px rgba(255, 214, 0, 0.8);
+    }
+
+    #hud {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 16px;
+      text-shadow: 0 0 4px #000;
+    }
+
+    #hud span {
+      margin-right: 20px;
+    }
+
+    #message {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      font-size: 24px;
+      text-shadow: 0 0 6px #000;
+      display: none;
+    }
+
+    #message small {
+      display: block;
+      font-size: 14px;
+      margin-top: 10px;
+      opacity: 0.8;
+    }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <div id="hud">
+      <span id="scoreLabel">Score: 0</span>
+      <span id="coinsLabel">Coins: 0</span>
+    </div>
+    <div id="player">
+      <div id="flame"></div>
+    </div>
+    <div id="ground"></div>
+    <div id="message">
+      <div id="messageText"></div>
+      <small>Press SPACE or click to start / restart</small>
+    </div>
+  </div>
+
+  <script>
+    const game = document.getElementById("game");
+    const player = document.getElementById("player");
+    const flame = document.getElementById("flame");
+    const ground = document.getElementById("ground");
+    const scoreLabel = document.getElementById("scoreLabel");
+    const coinsLabel = document.getElementById("coinsLabel");
+    const message = document.getElementById("message");
+    const messageText = document.getElementById("messageText");
+
+    const gameWidth = 800;
+    const gameHeight = 400;
+    const groundHeight = 40;
+
+    let running = false;
+    let gameOver = false;
+
+    let playerY = 150;
+    let playerVy = 0;
+    const gravity = 0.5;
+    const thrust = -0.9;
+    const maxVy = 8;
+
+    let score = 0;
+    let coins = 0;
+    let lastTime = 0;
+
+    let obstacleTimer = 0;
+    let coinTimer = 0;
+    const obstacleInterval = 1400; // ms
+    const coinInterval = 900; // ms
+    const speed = 4;
+
+    const obstacles = [];
+    const coinElems = [];
+
+    let jetpackOn = false;
+
+    function resetGame() {
+      // Reset state
+      running = false;
+      gameOver = false;
+      score = 0;
+      coins = 0;
+      playerY = 150;
+      playerVy = 0;
+      obstacleTimer = 0;
+      coinTimer = 0;
+      lastTime = performance.now();
+
+      // Clear obstacles and coins
+      obstacles.forEach(o => o.elem.remove());
+      coinElems.forEach(c => c.elem.remove());
+      obstacles.length = 0;
+      coinElems.length = 0;
+
+      // Reset UI
+      scoreLabel.textContent = "Score: 0";
+      coinsLabel.textContent = "Coins: 0";
+      player.style.top = playerY + "px";
+      flame.style.opacity = 0;
+
+      message.style.display = "block";
+      messageText.textContent = "Jetpack Joyride Mini";
+    }
+
+    function startGame() {
+      if (running) return;
+      running = true;
+      gameOver = false;
+      message.style.display = "none";
+      lastTime = performance.now();
+      requestAnimationFrame(loop);
+    }
+
+    function endGame() {
+      gameOver = true;
+      running = false;
+      message.style.display = "block";
+      messageText.textContent = `Game Over! Score: ${Math.floor(score)}  Coins: ${coins}`;
+    }
+
+    function spawnObstacle() {
+      const elem = document.createElement("div");
+      elem.className = "obstacle";
+      const height = 60 + Math.random() * 120;
+      const y = Math.random() < 0.5
+        ? gameHeight - groundHeight - height // from ground up
+        : 0; // from ceiling down
+
+      elem.style.height = height + "px";
+      elem.style.left = gameWidth + "px";
+      elem.style.top = y + "px";
+
+      game.appendChild(elem);
+      obstacles.push({ elem, x: gameWidth, y, width: 30, height });
+    }
+
+    function spawnCoin() {
+      const elem = document.createElement("div");
+      elem.className = "coin";
+      const y = 40 + Math.random() * (gameHeight - groundHeight - 80);
+      elem.style.left = gameWidth + "px";
+      elem.style.top = y + "px";
+
+      game.appendChild(elem);
+      coinElems.push({ elem, x: gameWidth, y, size: 20 });
+    }
+
+    function rectsOverlap(a, b) {
+      return !(
+        a.x + a.w < b.x ||
+        a.x > b.x + b.w ||
+        a.y + a.h < b.y ||
+        a.y > b.y + b.h
+      );
+    }
+
+    function loop(timestamp) {
+      if (!running) return;
+
+      const dt = timestamp - lastTime;
+      lastTime = timestamp;
+
+      // Physics
+      if (jetpackOn) {
+        playerVy += thrust;
+      } else {
+        playerVy += gravity;
+      }
+      if (playerVy > maxVy) playerVy = maxVy;
+      if (playerVy < -maxVy) playerVy = -maxVy;
+
+      playerY += playerVy;
+
+      const minY = 0;
+      const maxY = gameHeight - groundHeight - player.offsetHeight;
+      if (playerY < minY) {
+        playerY = minY;
+        playerVy = 0;
+      }
+      if (playerY > maxY) {
+        playerY = maxY;
+        playerVy = 0;
+      }
+
+      player.style.top = playerY + "px";
+
+      // Flame visibility
+      flame.style.opacity = jetpackOn ? 1 : 0;
+
+      // Timers for spawning
+      obstacleTimer += dt;
+      coinTimer += dt;
+
+      if (obstacleTimer > obstacleInterval) {
+        obstacleTimer = 0;
+        spawnObstacle();
+      }
+
+      if (coinTimer > coinInterval) {
+        coinTimer = 0;
+        spawnCoin();
+      }
+
+      // Move obstacles and coins
+      const playerRect = {
+        x: 80,
+        y: playerY,
+        w: player.offsetWidth,
+        h: player.offsetHeight
+      };
+
+      for (let i = obstacles.length - 1; i >= 0; i--) {
+        const o = obstacles[i];
+        o.x -= speed;
+        o.elem.style.left = o.x + "px";
+
+        const oRect = { x: o.x, y: o.y, w: o.width, h: o.height };
+        if (rectsOverlap(playerRect, oRect)) {
+          endGame();
+        }
+
+        if (o.x + o.width < 0) {
+          o.elem.remove();
+          obstacles.splice(i, 1);
+        }
+      }
+
+      for (let i = coinElems.length - 1; i >= 0; i--) {
+        const c = coinElems[i];
+        c.x -= speed;
+        c.elem.style.left = c.x + "px";
+
+        const cRect = { x: c.x, y: c.y, w: c.size, h: c.size };
+        if (rectsOverlap(playerRect, cRect)) {
+          coins++;
+          coinsLabel.textContent = "Coins: " + coins;
+          c.elem.remove();
+          coinElems.splice(i, 1);
+          continue;
+        }
+
+        if (c.x + c.size < 0) {
+          c.elem.remove();
+          coinElems.splice(i, 1);
+        }
+      }
+
+      // Score increases with time
+      score += dt * 0.01;
+      scoreLabel.textContent = "Score: " + Math.floor(score);
+
+      if (!gameOver) {
+        requestAnimationFrame(loop);
+      }
+    }
+
+    // Controls: space / mouse / touch
+    function setJetpack(on) {
+      jetpackOn = on;
+    }
+
+    window.addEventListener("keydown", e => {
+      if (e.code === "Space") {
+        e.preventDefault();
+        if (!running && !gameOver) {
+          startGame();
+        } else if (gameOver) {
+          resetGame();
+          startGame();
+        }
+        setJetpack(true);
+      }
+    });
+
+    window.addEventListener("keyup", e => {
+      if (e.code === "Space") {
+        e.preventDefault();
+        setJetpack(false);
+      }
+    });
+
+    game.addEventListener("mousedown", () => {
+      if (!running && !gameOver) {
+        startGame();
+      } else if (gameOver) {
+        resetGame();
+        startGame();
+      }
+      setJetpack(true);
+    });
+
+    window.addEventListener("mouseup", () => {
+      setJetpack(false);
+    });
+
+    game.addEventListener("touchstart", e => {
+      e.preventDefault();
+      if (!running && !gameOver) {
+        startGame();
+      } else if (gameOver) {
+        resetGame();
+        startGame();
+      }
+      setJetpack(true);
+    }, { passive: false });
+
+    window.addEventListener("touchend", e => {
+      e.preventDefault();
+      setJetpack(false);
+    }, { passive: false });
+
+    // Initial state
+    resetGame();
+  </script>
+</body>
+</html>
