@@ -20,49 +20,81 @@
             padding: 20px 0;
         }
 
-        img {
-            border-radius: 15px;
+        /* Game Card Container */
+        .game-card {
+            position: relative;
+            display: inline-block;
             margin: 20px;
-            transition: 0.5s;
+            transition: transform 0.3s ease;
+        }
+
+        /* Expand entire card on hover */
+        .game-card:hover {
+            transform: scale(1.07);
+        }
+
+        /* Game Images */
+        .game-card img {
+            border-radius: 15px;
             border: 3px solid blue;
             width: 250px;
             height: 200px;
+            display: block;
         }
 
-        img:hover {
-            transform: scale(1.05);
-        }
-
-        /* Tooltip container */
-        .tooltip {
-            position: relative;
-            display: inline-block;
-        }
-
-        /* Tooltip text */
+        /* Tooltip */
         .tooltip-text {
             visibility: hidden;
             opacity: 0;
-            transition: 0.5s;
-
+            transition: 0.3s ease;
             position: absolute;
             bottom: 75%;
             left: 50%;
             transform: translateX(-50%);
-
-            background-color: rgb(255, 255, 255);
-            color: rgb(0, 0, 0);
+            background-color: white;
+            color: black;
             padding: 6px 10px;
             border-radius: 6px;
             font-size: 14px;
             white-space: nowrap;
+            z-index: 3;
         }
 
-        /* Show tooltip on hover */
-        .tooltip:hover .tooltip-text {
+        .game-card:hover .tooltip-text {
             visibility: visible;
             opacity: 1;
+        }
+
+        /* Centered Play Icon */
+        .play-button {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            font-size: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s ease, background-color 0.3s ease;
             z-index: 2;
+        }
+
+        /* Fade in on hover */
+        .game-card:hover .play-button {
+            opacity: 1;
+        }
+
+        /* Slight brighten on hover */
+        .play-button:hover {
+            background-color: rgba(0, 0, 0, 0.8);
         }
     </style>
 </head>
@@ -72,49 +104,60 @@
     <h1>Git Games</h1>
 
     <a href="space_mining_v2.html">
-        <div class="tooltip">
+        <div class="game-card">
             <img src="spacemining.png" alt="Space Mining Game">
             <span class="tooltip-text">Space Mining</span>
+            <div class="play-button">▶</div>
         </div>
     </a>
 
     <a href="LogansPage.html">
-        <div class="tooltip">
+        <div class="game-card">
             <img src="ChatGPT Image Feb 26, 2026, 02_44_54 PM.png" alt="Logan's Game">
-            <span class="tooltip-text">Basketball manager</span>
+            <span class="tooltip-text">Basketball Manager</span>
+            <div class="play-button">▶</div>
         </div>
     </a>
+
     <a href="mrbeilerpage.html">
-        <div class="tooltip">
+        <div class="game-card">
             <img src="Screenshot 2026-02-26 145059.png" alt="Mr. Beiler's Game">
             <span class="tooltip-text">FROGGO</span>
+            <div class="play-button">▶</div>
         </div>
     </a>
 
     <a href="tactical-space.html">
-        <div class="tooltip">
+        <div class="game-card">
             <img src="ChatGPT Image Feb 26, 2026, 03_16_40 PM.png" alt="Tactical Space">
             <span class="tooltip-text">Tactical Space</span>
+            <div class="play-button">▶</div>
         </div>
     </a>
+
     <a href="Harvest Valley.html">
-        <div class="tooltip">
+        <div class="game-card">
             <img src="Harvest Valley.png" alt="Harvest Valley">
             <span class="tooltip-text">Harvest Valley</span>
+            <div class="play-button">▶</div>
         </div>
     </a>
+
     <a href="Mr.Salvador page.html">
-        <div class="tooltip">
+        <div class="game-card">
             <img src="Wild Hunt.png" alt="Wild Hunt">
             <span class="tooltip-text">Wild Hunt</span>
+            <div class="play-button">▶</div>
         </div>
-
     </a>
+
     <a href="HOME.html">
-        <div class="tooltip">
+        <div class="game-card">
             <img src="ChatGPT Image Feb 27, 2026, 02_46_32 PM.png" alt="Tractor Farming">
             <span class="tooltip-text">Farm Dynasty</span>
+            <div class="play-button">▶</div>
         </div>
     </a>
+
 </body>
 </html>
