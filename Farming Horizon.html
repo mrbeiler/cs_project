@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Harvest Valley</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Nunito:wght@600;700;800&display=swap');
+:root{
+  --bg:#120e06;--panel:#1e160a;--panel2:#2a1e0e;
+  --bdr:#7a5a28;--bdr2:#a07838;
+  --gold:#f5c542;--gold2:#e8a800;
+  --green:#5abf3a;--red:#e04040;
+  --text:#f0ddb0;--muted:#9a8050;
+  --fp:'Silkscreen',monospace;--fu:'Nunito',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{
+  width:100%;height:100%;
+  background:var(--bg);
+  display:flex;align-items:flex-start;justify-content:center;
+  font-family:var(--fu);color:var(--text);
+  overflow-x:hidden;overflow-y:auto;user-select:none;
+}
+#wrap{
+  display:flex;flex-direction:column;align-items:center;
+  padding:10px 0 18px;gap:0;width:900px;
+}
+
+/* TOP BAR */
+#topbar{
+  width:900px;background:var(--panel);
+  border:2px solid var(--bdr);border-bottom:none;
+  border-radius:8px 8px 0 0;
+  display:flex;align-items:stretch;overflow:hidden;
+}
+.seg{display:flex;align-items:center;gap:8px;padding:9px 14px;border-right:1px solid rgba(122,90,40,.4);flex:1}
+.seg:last-child{border-right:none}
+.seg-ico{font-size:18px}
+.seg-inf{display:flex;flex-direction:column;gap:2px}
+.seg-lbl{font-family:var(--fp);font-size:7px;color:var(--muted);line-height:1;letter-spacing:.5px}
+.seg-val{font-family:var(--fp);font-size:13px;color:var(--gold);line-height:1}
+.seg-val.w{color:var(--text)}
+#sw{width:80px;height:7px;background:#0e0806;border:1px solid var(--bdr);border-radius:4px;overflow:hidden;margin-top:3px}
+#sf{height:100%;background:linear-gradient(90deg,#c8a000,#ffe060);border-radius:4px;transition:width .2s}
+
+/* CANVAS */
+#cw{
+  position:relative;width:900px;height:560px;
+  border-left:2px solid var(--bdr);border-right:2px solid var(--bdr);
+  overflow:hidden;cursor:crosshair;flex-shrink:0;
+  /* background fills any theoretical gap while canvas loads */
+  background:#3a6a2a;
+}
+#gc{display:block;image-rendering:pixelated;position:absolute;top:0;left:0;width:900px;height:560px}
+#nov{position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,10,40,0) 0%,rgba(5,10,55,.88) 100%);pointer-events:none;opacity:0;transition:opacity 2s}
+#rcv{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity 1s}
+#ap{
+  position:absolute;bottom:55px;left:50%;transform:translateX(-50%);
+  background:rgba(15,10,4,.95);border:2px solid var(--gold);
+  border-radius:6px;padding:7px 18px;
+  font-family:var(--fp);font-size:11px;color:var(--gold);
+  pointer-events:none;opacity:0;transition:opacity .2s;white-space:nowrap;
+  box-shadow:0 0 20px rgba(245,197,66,.2);
+}
+#ap.show{opacity:1}
+
+/* TOOLBAR */
+#toolbar{
+  width:900px;background:var(--panel);
+  border-left:2px solid var(--bdr);border-right:2px solid var(--bdr);
+  border-top:1px solid rgba(122,90,40,.3);
+  display:flex;align-items:center;padding:7px 10px;gap:5px;
+}
+.tbtn{
+  position:relative;width:64px;height:64px;
+  background:linear-gradient(160deg,#2d2010,#1a1208);
+  border:2px solid var(--bdr);border-radius:6px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;transition:border-color .15s,background .15s,transform .1s;
+  gap:3px;flex-shrink:0;
+}
+.tbtn:hover{border-color:var(--gold);background:linear-gradient(160deg,#3d2e14,#231808)}
+.tbtn.active{border-color:var(--gold);background:linear-gradient(160deg,#4a3010,#2d1c08);box-shadow:0 0 12px rgba(245,197,66,.3)}
+.tbtn:active{transform:scale(.93)}
+.tbtn.locked{opacity:.35}
+.ti{font-size:24px;line-height:1}
+.tn{font-family:var(--fp);font-size:6px;color:var(--muted)}
+.tk{position:absolute;top:4px;left:5px;font-family:var(--fp);font-size:7px;color:rgba(245,197,66,.55)}
+.dv{width:1px;height:56px;background:rgba(122,90,40,.5);margin:0 3px;flex-shrink:0}
+.sbtn{
+  position:relative;width:56px;height:64px;
+  background:linear-gradient(160deg,#1e1a08,#121008);
+  border:2px solid #3a2a0e;border-radius:6px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;transition:border-color .15s;gap:3px;flex-shrink:0;
+}
+.sbtn:hover{border-color:var(--green)}
+.sbtn.active{border-color:var(--green);background:linear-gradient(160deg,#1a2e0a,#0e1a06);box-shadow:0 0 10px rgba(90,191,58,.2)}
+.si{font-size:20px;line-height:1}
+.sn2{font-family:var(--fp);font-size:5px;color:var(--muted)}
+.sc{position:absolute;top:3px;right:4px;font-family:var(--fp);font-size:7px;color:var(--green)}
+.islot{
+  width:64px;height:64px;background:#16100a;
+  border:2px solid #3a2a0e;border-radius:6px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;transition:border-color .15s;
+  position:relative;overflow:hidden;gap:2px;flex-shrink:0;
+}
+.islot:hover{border-color:var(--gold)}
+.ii2{font-size:20px;line-height:1}
+.ic2{font-family:var(--fp);font-size:12px;color:var(--gold)}
+.ipr{font-family:var(--fp);font-size:6px;color:var(--green)}
+.isell{
+  position:absolute;bottom:0;left:0;right:0;height:13px;
+  background:rgba(90,191,58,0);font-family:var(--fp);font-size:5px;
+  color:transparent;text-align:center;line-height:13px;transition:all .15s;
+}
+.islot:hover .isell{background:rgba(90,191,58,.9);color:#fff}
+.abtn{
+  background:linear-gradient(160deg,#3d2a10,#2a1a08);
+  border:2px solid var(--bdr);border-radius:6px;color:var(--gold);
+  font-family:var(--fp);font-size:8px;padding:7px 12px;cursor:pointer;
+  transition:all .15s;white-space:nowrap;flex-shrink:0;height:40px;
+}
+.abtn:hover{background:linear-gradient(160deg,#5a3e18,#3a2210);border-color:var(--gold)}
+#cpw{flex:1;min-width:55px;max-width:85px}
+#cpl{font-family:var(--fp);font-size:6px;color:var(--muted);margin-bottom:3px}
+#cpt2{height:9px;background:#0e0806;border:1px solid var(--bdr);border-radius:4px;overflow:hidden}
+#cpf{height:100%;background:linear-gradient(90deg,#c8a000,#ffe060);border-radius:4px;transition:width .3s}
+#cptx{font-family:var(--fp);font-size:6px;color:var(--muted);margin-top:2px;text-align:center}
+
+/* INFO BAR */
+#infobar{
+  width:900px;background:var(--panel);
+  border:2px solid var(--bdr);border-top:none;
+  border-radius:0 0 8px 8px;
+  display:flex;overflow:hidden;
+}
+.isec{flex:1;padding:10px 13px;border-right:1px solid rgba(122,90,40,.3)}
+.isec:last-child{border-right:none}
+.itl{font-family:var(--fp);font-size:8px;color:var(--gold);margin-bottom:7px;letter-spacing:.5px}
+.srow{display:flex;justify-content:space-between;align-items:center;padding:3px 0;border-bottom:1px solid rgba(122,90,40,.2);font-size:11px}
+.srow:last-child{border-bottom:none}
+.sk{color:var(--muted);font-size:10px}
+.sv{font-weight:800;color:var(--text)}
+.sv.gold{color:var(--gold)}.sv.green{color:var(--green)}
+.mkrow{display:flex;align-items:center;gap:7px;padding:3px 0;border-bottom:1px solid rgba(122,90,40,.2)}
+.mkrow:last-child{border-bottom:none}
+.mki{font-size:16px}
+.mkn{font-family:var(--fp);font-size:8px;color:var(--text);flex:1}
+.mkp{font-family:var(--fp);font-size:10px}
+.mkb{height:3px;background:#0e0806;border-radius:2px;margin-top:2px}
+.mkf{height:100%;border-radius:2px;transition:width .5s}
+.pu{color:#7fff7f!important}.pd{color:#ff8080!important}
+.airow{padding:3px 0;border-bottom:1px solid rgba(122,90,40,.2)}
+.airow:last-child{border-bottom:none}
+.ain{font-weight:700;font-size:11px}
+.aic{font-size:10px;color:var(--muted);margin-top:1px}
+#tipbox{font-size:11px;line-height:1.5;color:var(--text)}
+.tpic{font-size:20px;display:block;margin-bottom:4px}
+.tptl{font-family:var(--fp);font-size:8px;color:var(--gold);margin-bottom:4px}
+#tkw{overflow:hidden;white-space:nowrap;font-family:var(--fp);font-size:8px;color:var(--muted);position:relative;padding:5px 0;border-top:1px solid rgba(122,90,40,.3)}
+#tkw::before,#tkw::after{content:'';position:absolute;top:0;bottom:0;width:20px;z-index:2}
+#tkw::before{left:0;background:linear-gradient(90deg,var(--panel),transparent)}
+#tkw::after{right:0;background:linear-gradient(-90deg,var(--panel),transparent)}
+#tk{display:inline-block;animation:tkr 30s linear infinite}
+@keyframes tkr{from{transform:translateX(900px)}to{transform:translateX(-100%)}}
+
+/* NOTIFS */
+#ns{position:fixed;top:16px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:5px;z-index:600;pointer-events:none;align-items:center}
+.nf{background:var(--panel2);border:2px solid var(--bdr2);border-radius:6px;padding:7px 16px;font-family:var(--fp);font-size:10px;color:var(--gold);animation:nfi .25s ease-out,nfo .4s ease-in 2.1s forwards;white-space:nowrap;box-shadow:0 4px 20px rgba(0,0,0,.7)}
+@keyframes nfi{from{opacity:0;transform:translateY(-10px) scale(.88)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes nfo{from{opacity:1}to{opacity:0;transform:scale(.9)}}
+
+/* TOOLTIP */
+#tt{position:fixed;background:var(--panel2);border:2px solid var(--bdr2);border-radius:6px;padding:9px 13px;font-size:12px;max-width:210px;z-index:500;pointer-events:none;opacity:0;transition:opacity .15s;line-height:1.5}
+#tt.show{opacity:1}
+#tttl{font-family:var(--fp);font-size:9px;color:var(--gold);margin-bottom:4px}
+
+/* MODAL */
+#mov{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:400;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+#mov.show{display:flex}
+.modal{background:var(--panel);border:2px solid var(--bdr2);border-radius:8px;width:520px;max-height:80vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 70px rgba(0,0,0,.85)}
+.mhdr{padding:15px 20px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between}
+.mhdr h2{font-family:var(--fp);font-size:12px;color:var(--gold)}
+.mclose{background:none;border:none;cursor:pointer;color:var(--muted);font-size:20px;transition:color .15s}
+.mclose:hover{color:var(--red)}
+.mbody{padding:15px 20px;overflow-y:auto;flex:1}
+.mtabs{display:flex;border-bottom:1px solid var(--bdr);padding:0 20px}
+.tab{font-family:var(--fp);font-size:8px;padding:9px 13px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s}
+.tab.active{color:var(--gold);border-color:var(--gold)}
+.shr{display:flex;align-items:center;padding:11px 0;border-bottom:1px solid rgba(122,90,40,.25);gap:11px}
+.shr:last-child{border-bottom:none}
+.shico{font-size:26px}
+.shinf{flex:1}
+.shname{font-weight:800;font-size:14px;margin-bottom:2px}
+.shdesc{font-size:11px;color:var(--muted)}
+.shprice{font-family:var(--fp);font-size:9px;color:var(--gold);margin-top:2px}
+.shacts{display:flex;flex-direction:column;gap:4px}
+.shbtn{background:linear-gradient(160deg,#2a3810,#181e08);border:1px solid #3a6a20;border-radius:4px;color:var(--green);font-family:var(--fp);font-size:7px;padding:5px 9px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.shbtn:hover{background:linear-gradient(160deg,#3a4e18,#242c0a);border-color:var(--green)}
+.shbtn:disabled{opacity:.35;cursor:not-allowed}
+.owned{font-family:var(--fp);font-size:9px;color:var(--green)}
+
+/* TUTORIAL */
+#tov{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:700;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+#tbox{background:var(--panel);border:2px solid var(--gold);border-radius:10px;width:540px;padding:28px;box-shadow:0 0 80px rgba(245,197,66,.15)}
+#tbox h1{font-family:var(--fp);font-size:16px;color:var(--gold);text-align:center;margin-bottom:5px}
+.tsub{text-align:center;color:var(--muted);font-size:13px;margin-bottom:18px}
+.tgrid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px}
+.tstep{background:var(--panel2);border:1px solid var(--bdr);border-radius:6px;padding:11px}
+.tsico{font-size:22px;margin-bottom:4px}
+.tstl{font-family:var(--fp);font-size:8px;color:var(--gold);margin-bottom:4px}
+.tsde{font-size:11px;color:var(--muted);line-height:1.4}
+.tctrl{background:var(--panel2);border:1px solid var(--bdr);border-radius:6px;padding:11px 15px;margin-bottom:16px}
+.tctt{font-family:var(--fp);font-size:8px;color:var(--gold);margin-bottom:9px}
+.tcg{display:grid;grid-template-columns:1fr 1fr;gap:5px 18px}
+.tcr{display:flex;gap:7px;align-items:center;font-size:11px;color:var(--muted)}
+.kbd{background:#3a2a10;border:1px solid var(--bdr2);border-radius:4px;padding:2px 6px;font-family:var(--fp);font-size:7px;color:var(--gold);white-space:nowrap}
+.tstart{width:100%;background:linear-gradient(160deg,#4a3010,#2d1c08);border:2px solid var(--gold);border-radius:6px;color:var(--gold);font-family:var(--fp);font-size:12px;padding:13px;cursor:pointer;letter-spacing:1px;transition:all .2s;box-shadow:0 0 24px rgba(245,197,66,.12)}
+.tstart:hover{background:linear-gradient(160deg,#6a4818,#3d2810);box-shadow:0 0 36px rgba(245,197,66,.25)}
+
+/* WIN */
+#wscr{display:none;position:fixed;inset:0;background:rgba(0,0,0,.93);z-index:800;align-items:center;justify-content:center;flex-direction:column;gap:14px;text-align:center}
+#wscr.show{display:flex}
+#wscr h1{font-family:var(--fp);font-size:20px;color:var(--gold);text-shadow:0 0 40px rgba(245,197,66,.5)}
+#wscr p{font-size:13px;color:var(--muted)}
+.wbtn{background:linear-gradient(160deg,#1a2e10,#0e1a08);border:2px solid var(--green);border-radius:6px;color:var(--green);font-family:var(--fp);font-size:10px;padding:13px 28px;cursor:pointer;margin-top:8px;transition:all .2s}
+</style>
+</head>
+<body>
+
+<!-- TUTORIAL -->
+<div id="tov">
+  <div id="tbox">
+    <h1>🌾 HARVEST VALLEY</h1>
+    <p class="tsub">Grow crops, beat the market, become a Harvest Master!</p>
+    <div class="tgrid">
+      <div class="tstep"><div class="tsico">🪓</div><div class="tstl">1. TILL THE SOIL</div><div class="tsde">Equip the Hoe (1) and click any green grass tile to prepare it.</div></div>
+      <div class="tstep"><div class="tsico">🌱</div><div class="tstl">2. PLANT SEEDS</div><div class="tsde">Pick a seed type below, equip Seeds (3), click tilled brown soil.</div></div>
+      <div class="tstep"><div class="tsico">💧</div><div class="tstl">3. WATER CROPS</div><div class="tsde">Crops die if dry for 60s. Water with tool 2 every day!</div></div>
+      <div class="tstep"><div class="tsico">💰</div><div class="tstl">4. HARVEST & SELL</div><div class="tsde">Scythe ripe crops, then click harvest icons to sell instantly!</div></div>
+    </div>
+    <div class="tctrl">
+      <div class="tctt">⌨️ CONTROLS</div>
+      <div class="tcg">
+        <div class="tcr"><span class="kbd">WASD</span> Move farmer</div>
+        <div class="tcr"><span class="kbd">SPACE</span> Use current tool</div>
+        <div class="tcr"><span class="kbd">1–5</span> Switch tools</div>
+        <div class="tcr"><span class="kbd">Q C R P</span> Switch seed</div>
+        <div class="tcr"><span class="kbd">E</span> Open shop</div>
+        <div class="tcr"><span class="kbd">Click</span> Use tool on tile</div>
+      </div>
+    </div>
+    <button class="tstart" onclick="startGame()">▶ START FARMING</button>
+  </div>
+</div>
+
+<div id="wrap">
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <div class="seg"><span class="seg-ico">💰</span><div class="seg-inf"><span class="seg-lbl">MONEY</span><span class="seg-val" id="hm">$100</span></div></div>
+    <div class="seg"><div class="seg-inf"><span class="seg-lbl">STAMINA</span><div id="sw"><div id="sf" style="width:100%"></div></div></div><span class="seg-val" id="hst">100</span></div>
+    <div class="seg"><span class="seg-ico">🛠</span><div class="seg-inf"><span class="seg-lbl">TOOL</span><span class="seg-val w" id="htool">Hoe</span></div></div>
+    <div class="seg"><span class="seg-ico">🕐</span><div class="seg-inf"><span class="seg-lbl">TIME</span><span class="seg-val w" id="htime">Morning</span></div></div>
+    <div class="seg"><span class="seg-ico">📅</span><div class="seg-inf"><span class="seg-lbl">DAY</span><span class="seg-val" id="hday">1</span></div></div>
+    <div class="seg"><span class="seg-ico">🌤</span><div class="seg-inf"><span class="seg-lbl">WEATHER</span><span class="seg-val w" id="hwx">Sunny</span></div></div>
+  </div>
+
+  <!-- CANVAS -->
+  <div id="cw">
+    <canvas id="gc"></canvas>
+    <div id="nov"></div>
+    <canvas id="rcv"></canvas>
+    <div id="ap">Press E — Open Shop</div>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div id="toolbar">
+    <div class="tbtn active" id="tb0" onclick="selTool(0)"><span class="tk">1</span><span class="ti">🪓</span><span class="tn">HOE</span></div>
+    <div class="tbtn" id="tb1" onclick="selTool(1)"><span class="tk">2</span><span class="ti">🪣</span><span class="tn">WATER</span></div>
+    <div class="tbtn" id="tb2" onclick="selTool(2)"><span class="tk">3</span><span class="ti">🎒</span><span class="tn">SEEDS</span></div>
+    <div class="tbtn" id="tb3" onclick="selTool(3)"><span class="tk">4</span><span class="ti">⚔️</span><span class="tn">SCYTHE</span></div>
+    <div class="tbtn locked" id="tb4" onclick="selTool(4)"><span class="tk">5</span><span class="ti">🚜</span><span class="tn">TRACTOR</span></div>
+    <div class="dv"></div>
+    <div class="sbtn active" id="sb0" onclick="selSeed(0)"><span class="sc" id="sc0">0</span><span class="si">🌾</span><span class="sn2">WHEAT</span></div>
+    <div class="sbtn" id="sb1" onclick="selSeed(1)"><span class="sc" id="sc1">0</span><span class="si">🌽</span><span class="sn2">CORN</span></div>
+    <div class="sbtn" id="sb2" onclick="selSeed(2)"><span class="sc" id="sc2">0</span><span class="si">🥕</span><span class="sn2">CARROT</span></div>
+    <div class="sbtn" id="sb3" onclick="selSeed(3)"><span class="sc" id="sc3">0</span><span class="si">🎃</span><span class="sn2">PUMPKIN</span></div>
+    <div class="dv"></div>
+    <div class="islot" onclick="qSell('wheat')"><span class="ii2">🌾</span><span class="ic2" id="icw">0</span><span class="ipr" id="ipw">$15</span><div class="isell">SELL ALL</div></div>
+    <div class="islot" onclick="qSell('corn')"><span class="ii2">🌽</span><span class="ic2" id="icc">0</span><span class="ipr" id="ipc">$40</span><div class="isell">SELL ALL</div></div>
+    <div class="islot" onclick="qSell('carrot')"><span class="ii2">🥕</span><span class="ic2" id="icr">0</span><span class="ipr" id="ipr2">$25</span><div class="isell">SELL ALL</div></div>
+    <div class="islot" onclick="qSell('pumpkin')"><span class="ii2">🎃</span><span class="ic2" id="icp">0</span><span class="ipr" id="ipp">$90</span><div class="isell">SELL ALL</div></div>
+    <div class="dv"></div>
+    <div id="cpw"><div id="cpl">CAPACITY</div><div id="cpt2"><div id="cpf" style="width:0%"></div></div><div id="cptx">0/20</div></div>
+    <div class="dv"></div>
+    <div style="display:flex;flex-direction:column;gap:5px">
+      <button class="abtn" onclick="openShop()">🏪 SHOP (E)</button>
+      <button class="abtn" onclick="openUpgrades()">⬆️ UPGRADES</button>
+    </div>
+  </div>
+
+  <!-- INFO BAR -->
+  <div id="infobar">
+    <div class="isec" style="flex:1.1">
+      <div class="itl">📊 FARM STATS</div>
+      <div class="srow"><span class="sk">💰 Money</span><span class="sv gold" id="sm">$100</span></div>
+      <div class="srow"><span class="sk">💸 Earned</span><span class="sv" id="se">$0</span></div>
+      <div class="srow"><span class="sk">🌾 Crops</span><span class="sv green" id="sc4">0</span></div>
+      <div class="srow"><span class="sk">📅 Day</span><span class="sv" id="sd">1</span></div>
+      <div class="srow"><span class="sk">🏆 Goal</span><span class="sv green" id="sg">$0/$10k</span></div>
+      <div style="margin-top:7px"><div style="height:5px;background:#0e0806;border:1px solid var(--bdr);border-radius:3px;overflow:hidden"><div id="wpb" style="height:100%;background:linear-gradient(90deg,var(--gold2),var(--gold));transition:width .5s;width:0%"></div></div></div>
+      <div style="display:flex;gap:5px;margin-top:7px">
+        <button class="abtn" style="height:32px;font-size:7px;padding:3px 9px;flex:1" onclick="saveGame()">💾 Save</button>
+        <button class="abtn" style="height:32px;font-size:7px;padding:3px 9px;flex:1;border-color:#6a2020;color:#ff8080;background:linear-gradient(160deg,#2e1010,#1a0808)" onclick="if(confirm('Reset all progress?'))resetGame()">🗑 Reset</button>
+      </div>
+    </div>
+    <div class="isec" style="flex:1.4">
+      <div class="itl">📈 LIVE MARKET</div>
+      <div id="mkl"></div>
+      <div id="tkw"><span id="tk">Loading...</span></div>
+    </div>
+    <div class="isec" style="flex:1.1">
+      <div class="itl">🤖 COMPETITORS</div>
+      <div id="ail"></div>
+      <div style="margin-top:7px;font-size:10px;color:var(--muted);line-height:1.4">AI updates every 55s — watch prices!</div>
+    </div>
+    <div class="isec" style="flex:1.4">
+      <div class="itl">💡 FARM TIPS</div>
+      <div id="tipbox">
+        <span class="tpic">👋</span>
+        <div class="tptl">WELCOME!</div>
+        <div style="font-size:11px;line-height:1.5;color:var(--muted)">Press <b style="color:var(--text)">1</b> to equip the Hoe, then click grass tiles to till them. Then plant with <b style="color:var(--text)">3</b>!</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="ns"></div>
+<div id="tt"><div id="tttl"></div><div id="ttbd"></div></div>
+<div id="mov">
+  <div class="modal">
+    <div class="mhdr"><h2 id="mtit">Shop</h2><button class="mclose" onclick="cMod()">×</button></div>
+    <div class="mtabs" id="mtabs"></div>
+    <div class="mbody" id="mbody"></div>
+  </div>
+</div>
+<div id="wscr">
+  <h1>🏆 HARVEST MASTER! 🏆</h1>
+  <p style="font-size:15px;color:var(--text);margin-top:5px" id="wst"></p>
+  <p>You have mastered Harvest Valley!</p>
+  <button class="wbtn" onclick="unlockInd()">🏭 UNLOCK INDUSTRIAL MODE</button>
+</div>
+
+<script>
+// ── CORE CONSTANTS ──────────────────────────────────────────
+// Grid is 30 wide × 20 tall at 30px tiles = 900×600
+// Canvas viewport is 900×560 — camera clamp ensures grid always fills it
+const TILE = 30;
+const GW   = 30;   // grid columns  → 30×30 = 900px wide  (exactly viewport width)
+const GH   = 22;   // grid rows     → 22×30 = 660px tall  (> 560 viewport height)
+const VW   = 900;
+const VH   = 560;
+
+// Because GW*TILE == VW exactly, camera.x is always 0 — no horizontal gap possible.
+// GH*TILE (660) > VH (560), so vertical camera scrolling works without gaps.
+
+const CROPS = {
+  wheat:  {e:'🌾',gt:35, sp:15,sc:5, c:'#d4a830'},
+  corn:   {e:'🌽',gt:65, sp:40,sc:15,c:'#e8b830'},
+  carrot: {e:'🥕',gt:50, sp:25,sc:10,c:'#e07828'},
+  pumpkin:{e:'🎃',gt:100,sp:90,sc:30,c:'#d05818'},
+};
+const SEEDS = ['wheat','corn','carrot','pumpkin'];
+const TOOLS = ['Hoe','Watering Can','Seed Bag','Scythe','Tractor'];
+const T = {G:'grass',TL:'tilled',CR:'crop',W:'water',BA:'barn',HO:'house',SH:'shop',PA:'path'};
+
+// ── STATE ───────────────────────────────────────────────────
+let G = {
+  money:100,earned:0,day:1,tod:0.25,dl:240,
+  stam:100,mxst:100,tool:0,seed:0,
+  inv:{wheat:0,corn:0,carrot:0,pumpkin:0},
+  seeds:{wheat:5,corn:0,carrot:0,pumpkin:0},
+  mxinv:20,farma:120,
+  weather:'sunny',wt:90,
+  msup:{wheat:15,corn:15,carrot:15,pumpkin:15},
+  upg:{fw:false,dh:false,rs:false,le1:false,le2:false,bu1:false,bu2:false},
+  trac:false,svt:60,ait:55,mkt:100,tipt:0,won:false
+};
+let grid = [];
+// Player position in TILE units. Keep strictly within [0, GW-1] × [0, GH-1]
+let pl = {x:15, y:12, fx:15, fy:12, dir:'down', mov:false};
+let cam = {x:0, y:0};
+let keys = {}, mc = {x:-1,y:-1}, tcd = 0;
+let ptcl = [], raindrops = [], tipIdx = 0, started = false, last = 0;
+let prevP = {wheat:15,corn:40,carrot:25,pumpkin:90};
+
+const AI = [{n:'Farmer Joe 🧑‍🌾',fav:'wheat'},{n:'Old Mae 👵',fav:'corn'},{n:'Karl Jr. 👦',fav:'pumpkin'}];
+let aiC = [{wheat:4,corn:2},{corn:5,wheat:1},{pumpkin:2,carrot:3}];
+
+// Set canvas size to exactly VW×VH
+const gc  = document.getElementById('gc');
+gc.width  = VW;
+gc.height = VH;
+const ctx = gc.getContext('2d');
+
+const rcv  = document.getElementById('rcv');
+rcv.width  = VW;
+rcv.height = VH;
+const rctx = rcv.getContext('2d');
+
+// ── GRID INIT ───────────────────────────────────────────────
+function initGrid() {
+  grid = [];
+  for (let y = 0; y < GH; y++) {
+    grid[y] = [];
+    for (let x = 0; x < GW; x++) {
+      let type = T.G;
+
+      // Left river
+      if (x <= 1) type = T.W;
+      // Right pond
+      if (x >= GW-3 && y >= GH-4) type = T.W;
+      // Top path
+      if (y === 4 && x > 1) type = T.PA;
+      // Buildings row (y=2)
+      if (y === 2) {
+        if (x===3||x===4)  type = T.BA;
+        if (x===7||x===8)  type = T.HO;
+        if (x===11||x===12) type = T.SH;
+      }
+      // Bottom decorative trees (water tiles as forest edge)
+      if (y === GH-1 && x > 1 && x < GW-3) type = T.G;
+
+      grid[y][x] = {type, crop:null, water:false, wt:0, ds:Math.random()};
+    }
+  }
+  // Pre-tilled starter rows
+  for (let x = 5; x < 14; x++) {
+    if (grid[6][x]) grid[6][x].type = T.TL;
+    if (grid[7][x]) grid[7][x].type = T.TL;
+    if (grid[8][x]) grid[8][x].type = T.TL;
+  }
+}
+
+// ── SAVE / LOAD ─────────────────────────────────────────────
+function saveGame() {
+  localStorage.setItem('hv4', JSON.stringify({G,grid,pl}));
+  notify('💾 Saved!','#f5c542');
+}
+function loadGame() {
+  const r = localStorage.getItem('hv4');
+  if (!r) return false;
+  try {
+    const s = JSON.parse(r);
+    Object.assign(G, s.G);
+    grid = s.grid;
+    Object.assign(pl, s.pl);
+    // Ensure loaded player is in bounds
+    pl.x = Math.max(0, Math.min(GW-1, pl.x));
+    pl.y = Math.max(0, Math.min(GH-1, pl.y));
+    pl.fx = pl.x; pl.fy = pl.y;
+    notify('📂 Farm loaded!');
+    return true;
+  } catch(e) { return false; }
+}
+function resetGame() { localStorage.removeItem('hv4'); location.reload(); }
+
+// ── MARKET ──────────────────────────────────────────────────
+function getP(c) { return Math.max(2, Math.round(CROPS[c].sp * (1 - (G.msup[c]||0)/180))); }
+
+function updateMarket() {
+  const str = SEEDS.map(s=>`${CROPS[s].e} ${s[0].toUpperCase()+s.slice(1)} $${getP(s)}`).join('   ·   ');
+  document.getElementById('tk').textContent = '  📈 MARKET:   '+str+'   ·   ';
+  document.getElementById('mkl').innerHTML = SEEDS.map(s=>{
+    const p=getP(s),max=CROPS[s].sp,pct=Math.round(p/max*100);
+    const dir=p>prevP[s]?'▲':p<prevP[s]?'▼':'—';
+    const cls=p>prevP[s]?'pu':p<prevP[s]?'pd':'';
+    return `<div class="mkrow">
+      <span class="mki">${CROPS[s].e}</span>
+      <div style="flex:1"><div class="mkn">${s[0].toUpperCase()+s.slice(1)}</div>
+      <div class="mkb"><div class="mkf" style="width:${pct}%;background:${CROPS[s].c}"></div></div></div>
+      <div class="mkp ${cls}">$${p} ${dir}</div>
+    </div>`;
+  }).join('');
+  prevP = {wheat:getP('wheat'),corn:getP('corn'),carrot:getP('carrot'),pumpkin:getP('pumpkin')};
+}
+
+function updateAI(dt) {
+  G.ait -= dt;
+  if (G.ait > 0) return;
+  G.ait = 55;
+  AI.forEach((ai,i) => {
+    const c = SEEDS[Math.floor(Math.random()*SEEDS.length)];
+    aiC[i][c] = (aiC[i][c]||0) + Math.floor(Math.random()*4+1);
+    const sl = Math.floor((aiC[i][c]||0)*0.7);
+    G.msup[c] = Math.min(180, (G.msup[c]||0)+sl*2);
+    aiC[i][c] -= sl;
+  });
+  renderAI();
+}
+function renderAI() {
+  document.getElementById('ail').innerHTML = AI.map((ai,i)=>`
+    <div class="airow">
+      <div class="ain">${ai.n}</div>
+      <div class="aic">${Object.entries(aiC[i]).filter(([,v])=>v>0).map(([k,v])=>`${CROPS[k].e}×${v}`).join(' ')||'No crops'}</div>
+    </div>`).join('');
+}
+
+// ── TIPS ────────────────────────────────────────────────────
+const TIPS = [
+  {ic:'🪓',tl:'TILLING',     tx:'Equip <b>Hoe (1)</b> and click any green grass tile, or face it and press SPACE.'},
+  {ic:'🌱',tl:'PLANTING',    tx:'Pick seed type with Q/C/R/P, equip <b>Seeds (3)</b>, click tilled soil.'},
+  {ic:'💧',tl:'WATERING',    tx:'Water with <b>tool 2</b> each day. Dry crops die after 60s!'},
+  {ic:'💰',tl:'SELLING',     tx:'Click any harvest icon in the toolbar to sell all of that crop instantly!'},
+  {ic:'📈',tl:'MARKET',      tx:'AI farmers flood supply every 55s. Sell pumpkins when supply is low for max profit!'},
+  {ic:'🌧',tl:'RAIN BONUS',  tx:'Rain auto-waters all crops for free! Use rainy days to expand your farm.'},
+  {ic:'⬆️',tl:'UPGRADES',   tx:'Buy <b>Wide Watering</b> first — waters 5 tiles at once, huge time saver!'},
+  {ic:'🚜',tl:'TRACTOR',     tx:'The Tractor (5) tills a 3×3 area instantly. Great for rapid expansion!'},
+  {ic:'🏆',tl:'WIN GOAL',    tx:'Earn $10,000 total, own all upgrades, survive 30 days → Industrial Mode!'},
+];
+function rotateTip() { tipIdx=(tipIdx+1)%TIPS.length; showTip(tipIdx); }
+function showTip(i) {
+  const t=TIPS[i];
+  document.getElementById('tipbox').innerHTML=
+    `<span class="tpic">${t.ic}</span><div class="tptl">${t.tl}</div>`+
+    `<div style="font-size:11px;line-height:1.5;color:var(--muted)">${t.tx}</div>`+
+    `<div style="margin-top:5px;font-size:8px;color:rgba(154,128,80,.45)">${i+1}/${TIPS.length}</div>`;
+}
+function ctxTip(k) {
+  const m={
+    ns: {ic:'⚡',tl:'LOW STAMINA',  tx:'Stamina regens at 3/sec. Wait a moment — it recovers quickly!'},
+    fi: {ic:'🗃',tl:'BAG FULL',     tx:'Click any harvest icon in the toolbar to sell all of that crop!'},
+    dd: {ic:'💀',tl:'CROP DIED',    tx:'Crops need water every 60s. Water right after planting!'},
+    ns2:{ic:'🌾',tl:'NO SEEDS',     tx:'Press E or click SHOP to buy seeds. Start with cheap Wheat ($5)!'},
+  };
+  const t=m[k]; if(!t) return;
+  document.getElementById('tipbox').innerHTML=
+    `<span class="tpic">${t.ic}</span><div class="tptl">${t.tl}</div>`+
+    `<div style="font-size:11px;line-height:1.5;color:var(--muted)">${t.tx}</div>`;
+  G.tipt=9;
+}
+
+// ── TOOL ACTIONS ────────────────────────────────────────────
+function selTool(i) {
+  if(i===4&&!G.trac){notify('🔒 Buy the Tractor upgrade first!');return;}
+  G.tool=i;
+  document.querySelectorAll('.tbtn').forEach((el,j)=>el.classList.toggle('active',j===i));
+  document.getElementById('htool').textContent=TOOLS[i];
+}
+function selSeed(i) {
+  G.seed=i;
+  document.querySelectorAll('.sbtn').forEach((el,j)=>el.classList.toggle('active',j===i));
+}
+function sc() { return G.upg.rs ? 1.5 : 3; }
+
+function actOn(tx,ty) {
+  tx=Math.max(0,Math.min(GW-1,tx));
+  ty=Math.max(0,Math.min(GH-1,ty));
+  const tile=grid[ty][tx];
+  if(G.stam<sc()){ctxTip('ns');return;}
+  switch(G.tool){
+    case 0:
+      if(tile.type===T.G){
+        const cnt=grid.flat().filter(t=>t.type===T.TL||t.type===T.CR).length;
+        if(cnt>=G.farma){notify('🚧 Buy Land Expansion to farm more!');return;}
+        tile.type=T.TL;G.stam-=sc();tcd=0.22;
+        spawnP(tx*TILE+TILE/2,ty*TILE+TILE/2,'#8b6030',4);
+      }
+      break;
+    case 1:
+      if(tile.type===T.TL||tile.type===T.CR){
+        const range=G.upg.fw?[[-1,0],[1,0],[0,-1],[0,1],[0,0]]:[[0,0]];
+        range.forEach(([dx,dy])=>{
+          const t=grid[ty+dy]?.[tx+dx];
+          if(t&&(t.type===T.TL||t.type===T.CR)){t.water=true;t.wt=0;}
+        });
+        G.stam-=sc();tcd=0.25;spawnP(tx*TILE+TILE/2,ty*TILE+TILE/2,'#4090e0',6);
+      }
+      break;
+    case 2:
+      if(tile.type===T.TL&&!tile.crop){
+        const st=SEEDS[G.seed];
+        if(!(G.seeds[st]>0)){ctxTip('ns2');return;}
+        tile.crop={type:st,stage:0,timer:0,dry:0};
+        tile.type=T.CR;G.seeds[st]--;G.stam-=sc();tcd=0.22;
+        spawnP(tx*TILE+TILE/2,ty*TILE+TILE/2,'#60c040',3);
+      }
+      break;
+    case 3:
+      if(tile.crop&&tile.crop.stage===3){
+        const tot=Object.values(G.inv).reduce((a,b)=>a+b,0);
+        if(tot>=G.mxinv){ctxTip('fi');return;}
+        const ct=tile.crop.type;
+        const amt=(G.upg.dh&&Math.random()<0.3)?2:1;
+        G.inv[ct]=(G.inv[ct]||0)+amt;tile.crop=null;tile.type=T.TL;
+        G.stam-=sc();tcd=0.22;
+        spawnP(tx*TILE+TILE/2,ty*TILE+TILE/2,CROPS[ct].c,8);
+        notify(`✂️ Harvested ${amt}× ${CROPS[ct].e}!`);
+      } else if(tile.crop&&tile.crop.stage===4){
+        tile.crop=null;tile.type=T.TL;
+      }
+      break;
+    case 4:
+      if(G.trac){
+        let c=0;
+        for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+          const t=grid[ty+dy]?.[tx+dx];
+          const cnt=grid.flat().filter(t=>t.type===T.TL||t.type===T.CR).length;
+          if(t&&t.type===T.G&&cnt<G.farma){t.type=T.TL;c++;}
+        }
+        G.stam-=sc()*2;tcd=0.65;if(c)notify(`🚜 Tilled ${c} tiles!`);
+      }
+      break;
+  }
+}
+
+function qSell(crop) {
+  const n=G.inv[crop]||0;
+  if(!n){notify(`No ${crop} to sell!`);return;}
+  const p=getP(crop),tot=p*n;
+  G.money+=tot;G.earned+=tot;G.inv[crop]=0;
+  G.msup[crop]=Math.min(180,(G.msup[crop]||0)+n*3);
+  notify(`💰 Sold ${n}× ${CROPS[crop].e} for $${tot}!`,'#5abf3a');
+  updateMarket();checkWin();
+}
+
+// ── PARTICLES ───────────────────────────────────────────────
+function spawnP(x,y,color,n) {
+  for(let i=0;i<n;i++)
+    ptcl.push({x:x+cam.x,y:y+cam.y,vx:(Math.random()-.5)*65,vy:-Math.random()*55-20,color,life:.7,maxL:.8,sz:2+Math.random()*3.5});
+}
+
+// ── RENDER ──────────────────────────────────────────────────
+function render(dt) {
+  ctx.clearRect(0,0,VW,VH);
+  // Fill with grass green as fallback — prevents any black edges from rounding
+  ctx.fillStyle = '#4a7a3a';
+  ctx.fillRect(0, 0, VW, VH);
+  ctx.save();
+  ctx.translate(-cam.x,-cam.y);
+
+  // Visible tile range — draw 1 extra tile in each direction to cover sub-pixel gaps
+  const sx=Math.max(0, Math.floor(cam.x/TILE) - 1);
+  const sy=Math.max(0, Math.floor(cam.y/TILE) - 1);
+  const ex=Math.min(GW, sx + Math.ceil(VW/TILE) + 3);
+  const ey=Math.min(GH, sy + Math.ceil(VH/TILE) + 3);
+
+  for(let y=sy;y<ey;y++) for(let x=sx;x<ex;x++) drawTile(x,y,grid[y][x]);
+
+  // Hover highlight
+  if(mc.x>=0&&mc.x<GW&&mc.y>=0&&mc.y<GH) {
+    const ca=canAct(grid[mc.y][mc.x]);
+    ctx.strokeStyle=ca?'rgba(245,197,66,.8)':'rgba(255,255,255,.15)';
+    ctx.lineWidth=2;
+    ctx.strokeRect(mc.x*TILE+1,mc.y*TILE+1,TILE-2,TILE-2);
+    if(ca){ctx.fillStyle='rgba(245,197,66,.08)';ctx.fillRect(mc.x*TILE,mc.y*TILE,TILE,TILE);}
+  }
+
+  drawPlayer();
+  ctx.restore();
+
+  // Particles (screen space)
+  ptcl=ptcl.filter(p=>{
+    p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=165*dt;p.life-=dt;
+    if(p.life<=0)return false;
+    ctx.globalAlpha=p.life/p.maxL;
+    ctx.fillStyle=p.color;
+    ctx.fillRect(p.x-p.sz/2-cam.x,p.y-p.sz/2-cam.y,p.sz,p.sz);
+    ctx.globalAlpha=1;
+    return true;
+  });
+
+  // Rain overlay
+  if(G.weather==='rainy'){
+    rctx.clearRect(0,0,VW,VH);
+    raindrops.forEach(d=>{
+      d.y+=d.s*dt;d.x+=d.dr*dt;
+      if(d.y>VH){d.y=-10;d.x=Math.random()*VW;}
+      rctx.strokeStyle=`rgba(150,180,255,${d.a})`;rctx.lineWidth=1;
+      rctx.beginPath();rctx.moveTo(d.x,d.y);rctx.lineTo(d.x+d.dr*.3,d.y+d.l);rctx.stroke();
+    });
+  }
+}
+
+function canAct(t){
+  switch(G.tool){
+    case 0:return t.type===T.G;
+    case 1:return t.type===T.TL||t.type===T.CR;
+    case 2:return t.type===T.TL&&!t.crop;
+    case 3:return t.crop&&(t.crop.stage===3||t.crop.stage===4);
+    case 4:return t.type===T.G;
+    default:return false;
+  }
+}
+
+function drawTile(x,y,t){
+  const px=x*TILE, py=y*TILE, d=t.ds;
+
+  // Base color / background
+  switch(t.type){
+    case T.G:{
+      // Rich grass with variation
+      const shade = (Math.sin(d*17.3)*0.5+0.5);
+      const g1 = Math.round(74 + shade*12);
+      ctx.fillStyle=`rgb(${Math.round(58+shade*8)},${g1},${Math.round(46+shade*6)})`;
+      ctx.fillRect(px,py,TILE,TILE);
+      // grass blades
+      ctx.fillStyle=`rgba(40,${Math.round(90+shade*20)},30,.6)`;
+      for(let i=0;i<4;i++){
+        const bx=px+(d*13+i*7)%24+3, by=py+(d*11+i*9)%22+3;
+        ctx.fillRect(bx,by,1,2+i%3);
+      }
+      // occasional flowers
+      if(d>0.88){ctx.fillStyle='#ffe090';ctx.fillRect(px+(d*19%22)+4,py+(d*23%20)+4,2,2);}
+      if(d>0.94){ctx.fillStyle='#ff9090';ctx.fillRect(px+(d*31%18)+5,py+(d*7%18)+5,2,2);}
+      break;
+    }
+    case T.PA:{
+      // Dirt path with stones
+      ctx.fillStyle='#b8956a';ctx.fillRect(px,py,TILE,TILE);
+      ctx.fillStyle='#a8845a';ctx.fillRect(px,py+8,TILE,3);ctx.fillRect(px,py+19,TILE,3);
+      if(d>0.6){ctx.fillStyle='#c8a87a';ctx.fillRect(px+(d*11%18)+4,py+(d*7%16)+6,4,3);}
+      break;
+    }
+    case T.TL:{
+      ctx.fillStyle='#6b4220';ctx.fillRect(px,py,TILE,TILE);
+      ctx.fillStyle='#5a3818';
+      for(let i=0;i<3;i++) ctx.fillRect(px+2,py+4+i*9,TILE-4,3);
+      if(t.water){ctx.fillStyle='rgba(60,100,255,.15)';ctx.fillRect(px,py,TILE,TILE);}
+      break;
+    }
+    case T.W:{
+      // Animated water
+      const wv=Math.sin(Date.now()/900+x*.7+y*.5)*2;
+      ctx.fillStyle='#2860b8';ctx.fillRect(px,py,TILE,TILE);
+      ctx.fillStyle='#3878d0';
+      ctx.fillRect(px+2,py+6+wv,TILE-8,3);
+      ctx.fillRect(px+7,py+17-wv,TILE-10,3);
+      ctx.fillStyle='rgba(255,255,255,.12)';ctx.fillRect(px+3,py+12,TILE-14,2);
+      // sparkle
+      if(d>0.8){const sp=Math.sin(Date.now()/500+d*10);if(sp>0.7){ctx.fillStyle='rgba(255,255,255,.4)';ctx.fillRect(px+(d*17%20)+3,py+(d*13%16)+4,2,2);}}
+      break;
+    }
+    case T.BA:{
+      ctx.fillStyle='#7a3010';ctx.fillRect(px,py,TILE,TILE);
+      ctx.fillStyle='#9a4018';ctx.fillRect(px+2,py+9,TILE-4,TILE-11);
+      // Roof
+      ctx.fillStyle='#c06030';
+      ctx.beginPath();ctx.moveTo(px,py+9);ctx.lineTo(px+TILE/2,py);ctx.lineTo(px+TILE,py+9);ctx.fill();
+      // Door
+      ctx.fillStyle='#402008';ctx.fillRect(px+11,py+17,8,TILE-17);
+      // Window
+      ctx.fillStyle='rgba(255,220,100,.3)';ctx.fillRect(px+3,py+12,5,5);
+      break;
+    }
+    case T.HO:{
+      ctx.fillStyle='#c09060';ctx.fillRect(px,py,TILE,TILE);
+      ctx.fillStyle='#d0a878';ctx.fillRect(px+2,py+10,TILE-4,TILE-12);
+      ctx.fillStyle='#8b4513';
+      ctx.beginPath();ctx.moveTo(px-1,py+11);ctx.lineTo(px+TILE/2,py+2);ctx.lineTo(px+TILE+1,py+11);ctx.fill();
+      ctx.fillStyle='rgba(180,220,255,.55)';ctx.fillRect(px+4,py+13,7,7);ctx.fillRect(px+19,py+13,7,7);
+      break;
+    }
+    case T.SH:{
+      ctx.fillStyle='#d4a060';ctx.fillRect(px,py,TILE,TILE);
+      ctx.fillStyle='#e8b878';ctx.fillRect(px+2,py+9,TILE-4,TILE-11);
+      // Awning
+      ctx.fillStyle='#c07820';ctx.fillRect(px,py+8,TILE,4);
+      // Sign
+      ctx.fillStyle='#fff8e0';ctx.fillRect(px+5,py+14,TILE-10,10);
+      ctx.fillStyle='#805010';ctx.font='5px monospace';ctx.fillText('SHOP',px+7,py+22);
+      break;
+    }
+    case T.CR:{
+      ctx.fillStyle=t.water?'#4a2810':'#6b4220';
+      ctx.fillRect(px,py,TILE,TILE);
+      ctx.fillStyle=t.water?'#3a2008':'#5a3818';
+      for(let i=0;i<3;i++) ctx.fillRect(px+2,py+4+i*9,TILE-4,3);
+      if(t.crop) drawCrop(px,py,t);
+      break;
+    }
+  }
+
+  // Subtle grid line
+  ctx.strokeStyle='rgba(0,0,0,.09)';ctx.lineWidth=.5;
+  ctx.strokeRect(px+.5,py+.5,TILE-1,TILE-1);
+}
+
+function drawCrop(px,py,t){
+  if(!t.crop) return;
+  const s=t.crop.stage;
+  const sw=Math.sin(Date.now()/550+px*.04)*1.2;
+
+  if(s===4){
+    ctx.fillStyle='#4a3020';ctx.fillRect(px+9,py+18,10,10);
+    ctx.fillStyle='#3a2010';ctx.fillRect(px+8,py+15,3,7);ctx.fillRect(px+18,py+17,3,6);
+    return;
+  }
+  if(s===0){
+    ctx.fillStyle='#a07030';ctx.beginPath();ctx.ellipse(px+TILE/2,py+TILE-6,3,2.5,0,0,Math.PI*2);ctx.fill();
+  } else if(s===1){
+    ctx.fillStyle='#60c040';ctx.fillRect(px+TILE/2-1,py+16,2,10);
+    ctx.beginPath();ctx.ellipse(px+TILE/2+sw,py+15,3.5,4.5,0,0,Math.PI*2);ctx.fill();
+  } else if(s===2){
+    ctx.fillStyle='#509030';ctx.fillRect(px+TILE/2-1,py+9,3,17);
+    ctx.fillStyle='#70b040';
+    ctx.beginPath();ctx.ellipse(px+TILE/2+sw,py+9,6,7,.2,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(px+TILE/2-4+sw,py+14,3,4,-.3,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.ellipse(px+TILE/2+4+sw,py+15,3,4,.3,0,Math.PI*2);ctx.fill();
+  } else if(s===3){
+    const pulse=1+Math.sin(Date.now()/380)*.03;
+    ctx.fillStyle='#509030';ctx.fillRect(px+TILE/2-1,py+7,3,18);
+    ctx.save();ctx.translate(px+TILE/2+sw,py+7);ctx.scale(pulse,pulse);
+    switch(t.crop.type){
+      case 'wheat':
+        ctx.fillStyle='#d4a830';
+        for(let i=-2;i<=2;i++) ctx.fillRect(i*3,0,3,11);
+        ctx.fillStyle='#f0c840';ctx.fillRect(-5,-9,12,9);
+        break;
+      case 'corn':
+        ctx.fillStyle='#e8b830';ctx.fillRect(-4,-13,9,13);
+        ctx.fillStyle='#f8d040';
+        for(let i=0;i<4;i++) for(let j=0;j<3;j++) ctx.fillRect(-3+j*3,-11+i*3,2,2);
+        break;
+      case 'carrot':
+        ctx.fillStyle='#e07828';
+        ctx.beginPath();ctx.moveTo(0,9);ctx.lineTo(-5,-7);ctx.lineTo(5,-7);ctx.fill();
+        ctx.fillStyle='#50a030';ctx.fillRect(-2,-12,5,6);
+        break;
+      case 'pumpkin':
+        ctx.fillStyle='#d05818';ctx.beginPath();ctx.ellipse(0,0,8,7,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle='#e87030';ctx.fillRect(-3,-7,3,7);ctx.fillRect(2,-7,3,7);
+        ctx.fillStyle='#4a8020';ctx.fillRect(-1,-12,3,6);
+        break;
+    }
+    ctx.restore();
+    // Glow
+    ctx.fillStyle=CROPS[t.crop.type].c+'33';
+    ctx.beginPath();ctx.ellipse(px+TILE/2+sw,py+7,10,10,0,0,Math.PI*2);ctx.fill();
+  }
+
+  // Growth bar
+  if(s>0&&s<3){
+    const prog=Math.min(1,t.crop.timer/(CROPS[t.crop.type].gt/3));
+    ctx.fillStyle='rgba(0,0,0,.5)';ctx.fillRect(px+3,py+TILE-5,TILE-6,4);
+    ctx.fillStyle='#7fff7f';ctx.fillRect(px+3,py+TILE-5,(TILE-6)*prog,4);
+  }
+}
+
+function drawPlayer(){
+  const px=pl.fx*TILE, py=pl.fy*TILE;
+  const bob=pl.mov?Math.sin(Date.now()/120)*2:0;
+
+  // Shadow
+  ctx.fillStyle='rgba(0,0,0,.3)';
+  ctx.beginPath();ctx.ellipse(px+TILE/2,py+TILE-3,8,3.5,0,0,Math.PI*2);ctx.fill();
+
+  // Boots
+  ctx.fillStyle='#3a2808';
+  if(pl.mov){const lk=Math.sin(Date.now()/120)*4;ctx.fillRect(px+8,py+24+bob-lk,5,6+lk);ctx.fillRect(px+16,py+24+bob+lk,5,6-lk);}
+  else{ctx.fillRect(px+8,py+24+bob,5,6);ctx.fillRect(px+16,py+24+bob,5,6);}
+
+  // Overalls
+  ctx.fillStyle='#2d5c9e';ctx.fillRect(px+7,py+14+bob,15,11);
+  ctx.fillStyle='#3a70b8';ctx.fillRect(px+9,py+11+bob,3,5);ctx.fillRect(px+17,py+11+bob,3,5);
+
+  // Shirt
+  ctx.fillStyle='#c85028';ctx.fillRect(px+7,py+11+bob,15,5);
+
+  // Arms + hands
+  ctx.fillStyle='#c85028';ctx.fillRect(px+3,py+13+bob,5,7);ctx.fillRect(px+21,py+13+bob,5,7);
+  ctx.fillStyle='#f5c878';ctx.fillRect(px+3,py+19+bob,5,4);ctx.fillRect(px+21,py+19+bob,5,4);
+
+  // Neck + head
+  ctx.fillStyle='#f5c878';ctx.fillRect(px+12,py+8+bob,6,4);
+  ctx.fillRect(px+8,py+2+bob,13,9);
+
+  // Eyes
+  ctx.fillStyle='#2a1808';
+  if(pl.dir!=='up'){
+    ctx.fillRect(px+10,py+4+bob,2,2.5);ctx.fillRect(px+17,py+4+bob,2,2.5);
+    ctx.fillStyle='#fff';ctx.fillRect(px+11,py+4+bob,1,1);ctx.fillRect(px+18,py+4+bob,1,1);
+  }
+  ctx.fillStyle='#c07050';
+  if(pl.dir==='down') ctx.fillRect(px+11,py+8+bob,7,1);
+
+  // Hat
+  ctx.fillStyle='#5a3010';ctx.fillRect(px+6,py+bob,16,4);ctx.fillRect(px+9,py-3+bob,10,4);
+  ctx.fillStyle='#8b5020';ctx.fillRect(px+9,py+bob,10,2);
+
+  // Tool visual
+  if(G.tool===0){ctx.fillStyle='#8b6030';ctx.fillRect(px+26,py+4+bob,2,20);}
+  else if(G.tool===1){ctx.fillStyle='#3870b0';ctx.fillRect(px+26,py+5+bob,5,12);ctx.fillStyle='#a0c0e0';ctx.fillRect(px+25,py+16+bob,7,5);}
+  else if(G.tool===3){ctx.fillStyle='#b0b0b0';ctx.fillRect(px+26,py+2+bob,2,18);ctx.fillStyle='#e0e0e0';ctx.fillRect(px+23,py+2+bob,8,3);}
+  else if(G.tool===4){ctx.fillStyle='#e8b030';ctx.fillRect(px+2,py+26+bob,TILE+6,5);}
+}
+
+// ── UPDATE ──────────────────────────────────────────────────
+function update(dt){
+  handleMov(dt);
+  updateCrops(dt);
+  G.stam=Math.min(G.mxst,G.stam+dt*3);
+  if(tcd>0)tcd-=dt;
+
+  // Day/night cycle
+  G.tod+=dt/G.dl;
+  if(G.tod>=1){G.tod=0;G.day++;notify(`🌅 Day ${G.day} begins!`,'#f5c542');checkWin();}
+  document.getElementById('nov').style.opacity=nightAlpha().toFixed(2);
+
+  // Weather
+  G.wt-=dt;
+  if(G.wt<=0){
+    const r=Math.random(),old=G.weather;
+    G.weather=r<.55?'sunny':r<.78?'cloudy':'rainy';
+    G.wt=60+Math.random()*110;
+    if(G.weather!==old){
+      if(G.weather==='rainy')notify('🌧 Rain! Crops auto-watered!');
+      else if(G.weather==='sunny')notify('☀️ Clear skies!');
+    }
+    document.getElementById('rcv').style.opacity=G.weather==='rainy'?'1':'0';
+  }
+
+  // Market decay
+  G.mkt-=dt;
+  if(G.mkt<=0){G.mkt=110;SEEDS.forEach(s=>G.msup[s]=Math.max(0,(G.msup[s]||0)-8));updateMarket();}
+
+  updateAI(dt);
+
+  // Tips
+  G.tipt-=dt;if(G.tipt<=0){G.tipt=12;rotateTip();}
+
+  // Auto-save
+  G.svt-=dt;if(G.svt<=0){G.svt=60;saveGame();}
+
+  // ── CAMERA ──
+  // Horizontal: grid width == viewport width exactly, so no horizontal scroll needed
+  cam.x = 0;
+  // Vertical: follow player, clamped so grid always fills canvas top-to-bottom
+  const maxCamY = GH * TILE - VH;   // 22*30 - 560 = 100
+  const targetY = Math.round(pl.fy * TILE - VH / 2 + TILE / 2);
+  cam.y = Math.max(0, Math.min(maxCamY, targetY));
+
+  // Action prompt near shop
+  const gx=Math.round(pl.x),gy=Math.round(pl.y);
+  const nearShop=Math.abs(gx-11.5)<=2.5&&Math.abs(gy-2)<=2.5;
+  document.getElementById('ap').classList.toggle('show',nearShop);
+
+  updateHUD();
+}
+
+function nightAlpha(){
+  const t=G.tod;
+  if(t<.2)return .45*(1-t/.2);
+  if(t<.7)return 0;
+  if(t<.8)return .6*((t-.7)/.1);
+  return .6;
+}
+
+function handleMov(dt){
+  const spd=4.5;let dx=0,dy=0;
+  if(keys['ArrowLeft']||keys['a']||keys['A'])dx=-1;
+  if(keys['ArrowRight']||keys['d']||keys['D'])dx=1;
+  if(keys['ArrowUp']||keys['w']||keys['W'])dy=-1;
+  if(keys['ArrowDown']||keys['s']||keys['S'])dy=1;
+
+  if(dx||dy){
+    if(dx&&dy){dx*=.707;dy*=.707;}
+    let nx=pl.x+dx*spd*dt;
+    let ny=pl.y+dy*spd*dt;
+
+    // Hard clamp: keep player sprite fully inside the grid at all times
+    // Player sprite is ~30px wide; keep at least 1 full tile from each edge
+    nx=Math.max(1, Math.min(GW-2, nx));
+    ny=Math.max(1, Math.min(GH-2, ny));
+
+    const blk=[T.BA,T.HO,T.W];
+    const ngx=Math.round(nx), ngy=Math.round(ny);
+    const safe=ngx>=0&&ngx<GW&&ngy>=0&&ngy<GH;
+    if(safe&&!blk.includes(grid[ngy][ngx].type)){pl.x=nx;pl.y=ny;}
+
+    if(dx<0)pl.dir='left';if(dx>0)pl.dir='right';
+    if(dy<0)pl.dir='up';if(dy>0)pl.dir='down';
+    pl.mov=true;
+  } else pl.mov=false;
+
+  pl.fx+=(pl.x-pl.fx)*.22;
+  pl.fy+=(pl.y-pl.fy)*.22;
+}
+
+function updateCrops(dt){
+  const dm=(G.tod>.2&&G.tod<.7)?1.5:.5;
+  const rb=G.weather==='rainy'?1.4:1;
+  let died=false;
+  for(let y=0;y<GH;y++) for(let x=0;x<GW;x++){
+    const t=grid[y][x];
+    if(!t.crop||t.crop.stage>=4)continue;
+    if(t.water||G.weather==='rainy'){
+      t.crop.timer+=dt*dm*rb;t.crop.dry=0;
+      const step=CROPS[t.crop.type].gt/3;
+      if(t.crop.timer>=step){
+        t.crop.timer=0;t.crop.stage++;
+        if(t.crop.stage===3)spawnP(x*TILE+TILE/2,y*TILE+TILE/2,CROPS[t.crop.type].c,5);
+      }
+    } else {
+      t.crop.dry=(t.crop.dry||0)+dt;
+      if(t.crop.dry>65){t.crop.stage=4;died=true;}
+    }
+    if(t.water){t.wt=(t.wt||0)+dt;if(t.wt>110){t.water=false;t.wt=0;}}
+  }
+  if(died)ctxTip('dd');
+}
+
+function updateHUD(){
+  document.getElementById('hm').textContent=`$${G.money}`;
+  document.getElementById('hst').textContent=Math.floor(G.stam);
+  document.getElementById('sf').style.width=(G.stam/G.mxst*100)+'%';
+  document.getElementById('sf').style.background=G.stam<30?'linear-gradient(90deg,#c03030,#e05050)':'linear-gradient(90deg,#c8a000,#ffe060)';
+  document.getElementById('hday').textContent=G.day;
+  const h=Math.floor(G.tod*24);
+  const tod=h<5?'🌑 Night':h<8?'🌅 Dawn':h<12?'☀️ Morn':h<14?'🌞 Noon':h<18?'⛅ Aftn':h<21?'🌇 Dusk':'🌙 Night';
+  document.getElementById('htime').textContent=tod;
+  document.getElementById('hwx').textContent={sunny:'☀️ Sunny',cloudy:'⛅ Cloudy',rainy:'🌧 Rainy'}[G.weather];
+
+  document.getElementById('sm').textContent=`$${G.money}`;
+  document.getElementById('se').textContent=`$${G.earned}`;
+  document.getElementById('sc4').textContent=grid.flat().filter(t=>t.crop&&t.crop.stage<4).length;
+  document.getElementById('sd').textContent=G.day;
+  document.getElementById('sg').textContent=`$${G.earned}/$10k`;
+  document.getElementById('wpb').style.width=Math.min(100,G.earned/100)+'%';
+
+  document.getElementById('icw').textContent=G.inv.wheat||0;
+  document.getElementById('icc').textContent=G.inv.corn||0;
+  document.getElementById('icr').textContent=G.inv.carrot||0;
+  document.getElementById('icp').textContent=G.inv.pumpkin||0;
+  document.getElementById('ipw').textContent='$'+getP('wheat');
+  document.getElementById('ipc').textContent='$'+getP('corn');
+  document.getElementById('ipr2').textContent='$'+getP('carrot');
+  document.getElementById('ipp').textContent='$'+getP('pumpkin');
+  SEEDS.forEach((s,i)=>document.getElementById(`sc${i}`).textContent=G.seeds[s]||0);
+
+  const tot=Object.values(G.inv).reduce((a,b)=>a+b,0);
+  document.getElementById('cpf').style.width=(tot/G.mxinv*100)+'%';
+  document.getElementById('cptx').textContent=`${tot}/${G.mxinv}`;
+  document.getElementById('cpf').style.background=tot>=G.mxinv?'linear-gradient(90deg,#c03030,#e05050)':'linear-gradient(90deg,#c8a000,#ffe060)';
+}
+
+// ── MODALS ──────────────────────────────────────────────────
+function oMod(title,body,tabs=''){
+  document.getElementById('mtit').textContent=title;
+  document.getElementById('mbody').innerHTML=body;
+  document.getElementById('mtabs').innerHTML=tabs;
+  document.getElementById('mov').classList.add('show');
+}
+function cMod(){document.getElementById('mov').classList.remove('show');}
+
+function openShop(){
+  const srows=SEEDS.map(s=>{
+    const c=CROPS[s];
+    return `<div class="shr"><span class="shico">${c.e}</span>
+    <div class="shinf"><div class="shname">${s[0].toUpperCase()+s.slice(1)} Seeds</div>
+    <div class="shdesc">Grows in ${c.gt}s · Base sell $${c.sp} · Have: ${G.seeds[s]||0}</div>
+    <div class="shprice">$${c.sc} each</div></div>
+    <div class="shacts">
+      <button class="shbtn" ${G.money<c.sc?'disabled':''} onclick="buySd('${s}',1);openShop()">×1 ($${c.sc})</button>
+      <button class="shbtn" ${G.money<c.sc*5?'disabled':''} onclick="buySd('${s}',5);openShop()">×5 ($${c.sc*5})</button>
+      <button class="shbtn" ${G.money<c.sc*10?'disabled':''} onclick="buySd('${s}',10);openShop()">×10 ($${c.sc*10})</button>
+    </div></div>`;
+  }).join('');
+  const sellr=SEEDS.map(s=>{
+    const n=G.inv[s]||0,p=getP(s);
+    return `<div class="shr"><span class="shico">${CROPS[s].e}</span>
+    <div class="shinf"><div class="shname">${s[0].toUpperCase()+s.slice(1)} — ${n} in bag</div>
+    <div class="shdesc">Market: $${p}/ea · Total: $${p*n}</div></div>
+    <button class="shbtn" ${!n?'disabled':''} onclick="qSell('${s}');openShop()">Sell All ($${p*n})</button></div>`;
+  }).join('');
+  oMod(`🏪 Shop — $${G.money}`,
+    `<div id="sp1">${srows}<div style="margin-top:11px;padding:10px;background:rgba(0,0,0,.3);border-radius:5px;font-size:11px;color:var(--muted)">💡 Wheat (35s) is safest. Pumpkins ($90) earn most but take 100s!</div></div><div id="sp2" style="display:none">${sellr}</div>`,
+    `<div class="tab active" onclick="stab('seed',this)">🌱 Buy Seeds</div><div class="tab" onclick="stab('sell',this)">💰 Sell Crops</div>`);
+}
+function stab(tab,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active');
+  document.getElementById('sp1').style.display=tab==='seed'?'block':'none';
+  document.getElementById('sp2').style.display=tab==='sell'?'block':'none';
+}
+function buySd(type,qty){
+  const cost=CROPS[type].sc*qty;
+  if(G.money<cost){notify('💸 Not enough money!');return;}
+  G.money-=cost;G.seeds[type]=(G.seeds[type]||0)+qty;
+  notify(`🌱 Bought ${qty}× ${type} seeds!`,'#5abf3a');
+}
+
+function openUpgrades(){
+  const upgs=[
+    {k:'fw', n:'💧 Wide Watering', d:'Waters 5 tiles at once (cross pattern).',cost:250,req:null},
+    {k:'dh', n:'⚔️ Sharp Scythe',  d:'30% chance to double harvest yield.',    cost:350,req:null},
+    {k:'rs', n:'⚡ Endurance',      d:'All stamina costs reduced by 50%.',      cost:200,req:null},
+    {k:'le1',n:'🌾 Land Exp. I',   d:'Unlock 80 more tillable tiles.',         cost:600,req:null},
+    {k:'le2',n:'🌾 Land Exp. II',  d:'Unlock 150 more tillable tiles.',        cost:1400,req:'le1'},
+    {k:'bu1',n:'🏠 Bigger Barn I', d:'Inventory capacity +25.',               cost:450,req:null},
+    {k:'bu2',n:'🏠 Bigger Barn II',d:'Inventory capacity +50.',               cost:900,req:'bu1'},
+    {k:'trac',n:'🚜 Tractor',      d:'Unlock Tool 5 — tills 3×3 instantly!', cost:1600,req:'le1',spec:true},
+  ];
+  const rows=upgs.map(u=>{
+    const owned=u.spec?G.trac:G.upg[u.k];
+    const reqMet=!u.req||G.upg[u.req];
+    const canBuy=G.money>=u.cost&&reqMet&&!owned;
+    return `<div class="shr">
+      <span class="shico">${owned?'✅':reqMet?'🔓':'🔒'}</span>
+      <div class="shinf">
+        <div class="shname" style="${owned?'color:var(--green)':''}">${u.n}</div>
+        <div class="shdesc">${u.d}</div>
+        ${u.req&&!reqMet?`<div style="font-size:10px;color:var(--red);margin-top:2px">Requires: ${u.req} first</div>`:''}
+      </div>
+      ${owned?`<span class="owned">✓ OWNED</span>`:`<button class="shbtn" ${canBuy?'':'disabled'} onclick="buyUpg('${u.k}',${u.cost},${!!u.spec});openUpgrades()">$${u.cost}</button>`}
+    </div>`;
+  }).join('');
+  oMod('⬆️ Upgrades',rows+`<div style="margin-top:11px;padding:10px;background:rgba(0,0,0,.3);border-radius:5px;font-size:11px;color:var(--muted)">🏆 Win: Earn $10,000 · All upgrades · Survive 30 days</div>`);
+}
+function buyUpg(k,cost,spec){
+  if(G.money<cost){notify('💸 Not enough money!');return;}
+  G.money-=cost;
+  if(spec){G.trac=true;document.getElementById('tb4').classList.remove('locked');notify('🚜 Tractor unlocked! Press 5.');}
+  else{
+    G.upg[k]=true;
+    if(k==='le1')G.farma+=80;if(k==='le2')G.farma+=150;
+    if(k==='bu1')G.mxinv+=25;if(k==='bu2')G.mxinv+=50;
+    notify('✅ Upgrade purchased!','#5abf3a');
+  }
+  openUpgrades();
+}
+
+function checkWin(){
+  if(G.won)return;
+  const all=Object.values(G.upg).every(v=>v)&&G.trac;
+  if(G.earned>=10000&&all&&G.day>=30){
+    G.won=true;
+    document.getElementById('wscr').classList.add('show');
+    document.getElementById('wst').textContent=`Day ${G.day} · $${G.earned} earned · All upgrades`;
+  }
+}
+function unlockInd(){
+  G.farma=500;G.mxinv=300;G.dl=400;
+  document.getElementById('wscr').classList.remove('show');
+  notify('🏭 Industrial Mode! Massive farm unlocked!','#f5c542');
+}
+
+function notify(msg,color='#f5c542'){
+  const ns=document.getElementById('ns');
+  const el=document.createElement('div');
+  el.className='nf';el.textContent=msg;el.style.color=color;
+  ns.appendChild(el);
+  setTimeout(()=>{el.style.transition='opacity .4s';el.style.opacity='0';setTimeout(()=>el.remove(),400);},2200);
+}
+
+// ── INPUT ───────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  keys[e.key]=true;
+  if(['1','2','3','4','5'].includes(e.key))selTool(parseInt(e.key)-1);
+  if(e.key==='q'||e.key==='Q')selSeed(0);
+  if(e.key==='c'||e.key==='C')selSeed(1);
+  if(e.key==='r'||e.key==='R')selSeed(2);
+  if(e.key==='p'||e.key==='P')selSeed(3);
+  if(e.key===' '||e.key==='Enter'){
+    e.preventDefault();
+    const tx=Math.round(pl.x),ty=Math.round(pl.y);
+    let ax=tx,ay=ty;
+    if(pl.dir==='up')ay--;if(pl.dir==='down')ay++;
+    if(pl.dir==='left')ax--;if(pl.dir==='right')ax++;
+    actOn(ax,ay);
+  }
+  if(e.key==='e'||e.key==='E'){e.preventDefault();openShop();}
+  if(e.key==='Escape')cMod();
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key))e.preventDefault();
+});
+document.addEventListener('keyup',e=>{keys[e.key]=false;});
+
+gc.addEventListener('mousemove',e=>{
+  const r=gc.getBoundingClientRect();
+  mc.x=Math.floor(((e.clientX-r.left)+cam.x)/TILE);
+  mc.y=Math.floor(((e.clientY-r.top)+cam.y)/TILE);
+  const tt=document.getElementById('tt');
+  if(mc.x>=0&&mc.x<GW&&mc.y>=0&&mc.y<GH){
+    const t=grid[mc.y][mc.x];
+    if(t.crop){
+      const stages=['Seed 🌱','Sprout 🌿','Growing 🌿','✅ Ripe — harvest!','💀 Dead — scythe to clear'];
+      document.getElementById('tttl').textContent=`${CROPS[t.crop.type].e} ${t.crop.type[0].toUpperCase()+t.crop.type.slice(1)}`;
+      document.getElementById('ttbd').innerHTML=`Stage: ${stages[t.crop.stage]}<br>${t.water?'💧 Watered':'🏜 Needs water!'}<br>Value: $${getP(t.crop.type)}/ea`;
+      tt.style.left=(e.clientX+15)+'px';tt.style.top=(e.clientY-12)+'px';
+      tt.classList.add('show');
+    } else tt.classList.remove('show');
+  } else tt.classList.remove('show');
+});
+
+gc.addEventListener('click',e=>{
+  if(tcd>0)return;
+  const r=gc.getBoundingClientRect();
+  const tx=Math.floor(((e.clientX-r.left)+cam.x)/TILE);
+  const ty=Math.floor(((e.clientY-r.top)+cam.y)/TILE);
+  actOn(tx,ty);tcd=0.22;
+});
+gc.addEventListener('mouseleave',()=>document.getElementById('tt').classList.remove('show'));
+
+// ── GAME LOOP ───────────────────────────────────────────────
+function loop(ts){
+  if(!started){requestAnimationFrame(loop);return;}
+  const dt=Math.min((ts-last)/1000,.08);
+  last=ts;update(dt);render(dt);
+  requestAnimationFrame(loop);
+}
+function startGame(){
+  document.getElementById('tov').style.display='none';
+  started=true;last=performance.now();
+}
+
+// ── BOOT ────────────────────────────────────────────────────
+initGrid();
+raindrops=Array.from({length:130},()=>({
+  x:Math.random()*VW,y:Math.random()*VH,
+  s:200+Math.random()*200,dr:30+Math.random()*20,
+  l:8+Math.random()*12,a:.2+Math.random()*.4
+}));
+const loaded=loadGame();
+if(!loaded) G.seeds={wheat:5,corn:0,carrot:0,pumpkin:0};
+updateMarket();renderAI();selSeed(0);showTip(0);
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
