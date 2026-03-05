@@ -1,797 +1,485 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>WildHunt 3D — Ultimate Edition</title>
-<style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#000;overflow:hidden;font-family:'Georgia',serif}
-canvas{display:block}
-#ui{position:fixed;inset:0;pointer-events:none;z-index:10}
-#crosshair{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:24px;height:24px}
-#crosshair::before,#crosshair::after{content:'';position:absolute;background:rgba(255,255,255,.88);border-radius:2px}
-#crosshair::before{width:2px;height:100%;left:50%;transform:translateX(-50%)}
-#crosshair::after{width:100%;height:2px;top:50%;transform:translateY(-50%)}
-#crosshair .dot{position:absolute;width:4px;height:4px;background:#ffe050;border-radius:50%;top:50%;left:50%;transform:translate(-50%,-50%)}
-#crosshair.bow-mode::before,#crosshair.bow-mode::after{background:rgba(255,180,50,.9)}
-#bow-charge{position:absolute;top:53%;left:50%;transform:translateX(-50%);width:130px;height:6px;background:rgba(0,0,0,.4);border-radius:3px;border:1px solid rgba(255,180,50,.4);display:none}
-#bow-fill{height:100%;width:0%;background:linear-gradient(90deg,#e08020,#ff4400);border-radius:3px;transition:width .04s}
-#bow-charge.show{display:block}
-#hud{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);display:flex;gap:14px;align-items:flex-end}
-.hp{background:rgba(8,16,8,.82);border:1px solid rgba(100,170,60,.38);border-radius:5px;padding:9px 16px;color:#b8e090;text-align:center;backdrop-filter:blur(8px)}
-.hp-label{font-size:9px;letter-spacing:2.5px;text-transform:uppercase;opacity:.5;margin-bottom:3px}
-.hp-value{font-size:20px;font-weight:bold;color:#ddf0b8}
-#ammo-bar{display:flex;gap:3px;align-items:center;margin-top:4px;min-height:20px}
-.bullet{width:5px;height:15px;background:#c09038;border-radius:2px 2px 1px 1px;transition:opacity .2s}
-.bullet.spent{opacity:.12;background:#444}
-#weapon-bar{position:absolute;bottom:104px;left:50%;transform:translateX(-50%);display:flex;gap:9px}
-.wep-slot{background:rgba(8,16,8,.75);border:2px solid rgba(100,170,60,.22);border-radius:5px;padding:7px 12px;color:#7ab060;font-size:10px;letter-spacing:1px;text-align:center;min-width:76px;transition:all .2s}
-.wep-slot.active{border-color:#a0e060;color:#ddf0b8;background:rgba(30,60,10,.82);box-shadow:0 0 12px rgba(120,220,60,.22)}
-.wep-slot .wkey{font-size:8px;opacity:.5;margin-bottom:1px}
-.wep-slot .wname{font-size:11px;font-weight:bold}
-.wep-slot .wammo{font-size:10px;opacity:.65;margin-top:1px}
-#score-feed{position:absolute;top:16px;right:16px;display:flex;flex-direction:column;gap:4px;align-items:flex-end}
-.sf{background:rgba(8,16,8,.88);border-left:3px solid #7ab030;padding:5px 13px;color:#c0e090;font-size:12px;border-radius:0 4px 4px 0;animation:sIn .25s ease}
-@keyframes sIn{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
-#info{position:absolute;top:16px;left:16px;background:rgba(8,16,8,.78);border:1px solid rgba(100,170,60,.3);border-radius:5px;padding:12px 16px;color:#90b860;font-size:11px;line-height:2;backdrop-filter:blur(8px)}
-#info strong{color:#c8e890;font-size:13px;letter-spacing:1px;display:block;margin-bottom:2px}
-#guide{position:absolute;bottom:150px;right:16px;background:rgba(8,16,8,.78);border:1px solid rgba(100,170,60,.22);border-radius:5px;padding:8px 13px;color:#80a850;font-size:10px;line-height:2;backdrop-filter:blur(8px)}
-#guide div{display:flex;justify-content:space-between;gap:18px}
-.gpts{color:#ddf0b8;font-weight:bold}
-#reload-msg{position:absolute;top:57%;left:50%;transform:translateX(-50%);color:#ffcc44;font-size:14px;letter-spacing:3px;text-transform:uppercase;opacity:0;transition:opacity .25s;text-shadow:0 0 14px #ffcc4480;pointer-events:none}
-#reload-msg.show{opacity:1}
-#danger-msg{position:absolute;top:43%;left:50%;transform:translateX(-50%);color:#ff3311;font-size:20px;letter-spacing:3px;text-transform:uppercase;opacity:0;transition:opacity .2s;text-shadow:0 0 22px #ff331190;font-weight:bold;pointer-events:none}
-#danger-msg.show{opacity:1}
-#hit-flash,#kill-flash,#bear-flash,#dmg-flash{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .1s}
-#hit-flash{background:rgba(255,80,40,.15)}
-#kill-flash{background:rgba(100,255,60,.1);transition:opacity .15s}
-#bear-flash{background:rgba(255,0,0,.35);transition:opacity .08s}
-#dmg-flash{background:rgba(200,0,0,.28)}
-#scope-overlay{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .12s}
-#scope-overlay.active{opacity:1}
-#scope-canvas{width:100%;height:100%}
-#hpbar-wrap{position:absolute;bottom:80px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;color:#ff6644;font-size:10px;letter-spacing:2px}
-#hpbar{width:140px;height:7px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden}
-#hpfill{height:100%;width:100%;background:#28a030;border-radius:4px;transition:width .3s,background .3s}
-#start{position:fixed;inset:0;background:radial-gradient(ellipse at center,rgba(10,30,10,.97),rgba(0,0,0,.99));display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100}
-#start h1{font-size:62px;letter-spacing:8px;color:#d8f098;text-shadow:0 0 40px rgba(120,220,50,.6);margin-bottom:6px}
-#start .sub{color:#5a9030;letter-spacing:4px;font-size:12px;margin-bottom:26px}
-.animal-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:22px}
-.ag{background:rgba(20,40,10,.6);border:1px solid rgba(80,150,40,.28);border-radius:6px;padding:8px 12px;text-align:center;color:#7aaa50;font-size:10px;line-height:1.7}
-.ag .icon{font-size:24px;display:block;margin-bottom:1px}
-.ag .p{color:#c8e890;font-weight:bold}
-.weapon-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px}
-.wg{background:rgba(20,40,10,.6);border:1px solid rgba(80,150,40,.25);border-radius:6px;padding:9px 12px;text-align:center;color:#7aaa50;font-size:10px;line-height:1.7}
-.wg .wicon{font-size:20px;display:block;margin-bottom:1px}
-.wg .wn{color:#c8e890;font-weight:bold;font-size:11px}
-#start-btn{background:rgba(80,140,30,.2);border:2px solid #7ab030;color:#c0e890;padding:12px 54px;font-size:16px;letter-spacing:4px;cursor:pointer;border-radius:4px;text-transform:uppercase;transition:all .2s;pointer-events:all;font-family:'Georgia',serif}
-#start-btn:hover{background:rgba(80,140,30,.42);transform:scale(1.04)}
-.ctrl{margin-top:20px;text-align:center;color:#3a7020;font-size:11px;line-height:2.2;letter-spacing:1px}
-.ctrl span{color:#5a9040}
-#gameover{position:fixed;inset:0;background:rgba(0,0,0,.92);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:200;color:#c0e890}
-#gameover h2{font-size:54px;letter-spacing:6px;color:#ff4422;text-shadow:0 0 30px #ff442280;margin-bottom:12px}
-#gameover .go-score{font-size:26px;color:#ddf0b8;margin-bottom:28px}
-#gameover button{background:rgba(80,140,30,.2);border:2px solid #7ab030;color:#c0e890;padding:11px 46px;font-size:15px;letter-spacing:3px;cursor:pointer;border-radius:4px;text-transform:uppercase;font-family:'Georgia',serif;pointer-events:all}
-#gameover button:hover{background:rgba(80,140,30,.42)}
-</style>
-</head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gunspin - Play Free Unblocked Shooter Game Online | Cool Games</title>
+    <meta name="description" content="A unique physics-based shooter where you use the recoil of your gun to move. Master the art of the gunspin to defeat your opponents in stylish duels. Cool games and github games collection. Play Gunspin unblocked at school! Works on Google Classroom.">
+    <meta name="keywords" content="Gunspin, shooter games, unblocked games, free games, online games, browser games, play gunspin online, unblocked games g, freezenova, unbanned g, games unblocked, free unblocked games, unblocked games for school, google classroom unblocked games, cool unblocked games, best unblocked games, Gunspin unblocked, play Gunspin free, Gunspin online game">
+    <meta name="author" content="Cool Unblocked Games">
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+    <meta name="googlebot" content="index, follow">
+    <meta name="bingbot" content="index, follow">
+    
+    <!-- Search Engine Verification -->
+    
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://coolbrnd.com/games/gunspin.html">
+    
+    <!-- Additional SEO Meta Tags -->
+    <meta name="theme-color" content="#ff8c00">
+    <meta name="msapplication-TileColor" content="#ff8c00">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Cool Unblocked Games">
+    
+    <!-- Language and content targeting -->
+    <meta name="language" content="English">
+    <meta name="content-language" content="en-US">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://coolbrnd.com/games/gunspin.html">
+    <meta property="og:title" content="Gunspin - Play Free Unblocked Shooter Game Online | Cool Games">
+    <meta property="og:description" content="A unique physics-based shooter where you use the recoil of your gun to move. Master the art of the gunspin to defeat your opponents in stylish duels. Cool games and github games collection. Play Gunspin unblocked at school! Works on Google Classroom.">
+    <meta property="og:image" content="https://coolbrnd.com/game-images/Gunspin.jpeg">
+    <meta property="og:site_name" content="Cool Unblocked Games">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://coolbrnd.com/games/gunspin.html">
+    <meta property="twitter:title" content="Gunspin - Play Free Unblocked Shooter Game Online | Cool Games">
+    <meta property="twitter:description" content="A unique physics-based shooter where you use the recoil of your gun to move. Master the art of the gunspin to defeat your opponents in stylish duels. Cool games and github games collection. Play Gunspin unblocked at school! Works on Google Classroom.">
+    <meta property="twitter:image" content="https://coolbrnd.com/game-images/Gunspin.jpeg">
+    
+    <!-- Preload critical resources -->
+    <link rel="preload" href="../style.css" as="style">
+    <link rel="preload" href="../games.json" as="fetch" crossorigin>
+    
+    <!-- DNS prefetch for external resources -->
+    <link rel="dns-prefetch" href="//cdn.statically.io">
+    <link rel="dns-prefetch" href="//files.catbox.moe">    <!-- Font Preloading for Performance -->
+    <link rel="preload" href="../fonts/Rubik-Regular.ttf" as="font" type="font/ttf" crossorigin>
+    <link rel="preload" href="../fonts/Rubik-Medium.ttf" as="font" type="font/ttf" crossorigin>
+    <link rel="preload" href="../fonts/Rubik-Bold.ttf" as="font" type="font/ttf" crossorigin>
+    
+
+    
+    <link rel="stylesheet" href="../style.css?v=15">
+    <link rel="icon" href="../icons/fav.png" type="image/png">
+    
+    <!-- Game Schema Markup -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "VideoGame",
+        "name": "Gunspin",
+        "description": "A unique physics-based shooter where you use the recoil of your gun to move. Master the art of the gunspin to defeat your opponents in stylish duels.",
+        "genre": "Shooter",
+        "url": "https://coolbrnd.com/games/gunspin.html",
+        "image": "https://coolbrnd.com/game-images/Gunspin.jpeg",
+        "applicationCategory": "Game",
+        "operatingSystem": "Web Browser",
+        "offers": {
+            "@type": "Offer",
+            "price": "0",
+            "priceCurrency": "USD"
+        },
+        "publisher": {
+            "@type": "Organization",
+            "name": "Cool Unblocked Games",
+            "url": "https://coolbrnd.com/"
+        }
+    }
+    </script>
+    
+    <!-- Game FAQ Schema Markup -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+            {
+                "@type": "Question",
+                "name": "How do I play Gunspin?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Gunspin is easy to play! Simply click on the game above and it will load in your browser. Use your mouse and keyboard to control the game."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Is Gunspin free to play?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Yes, Gunspin is completely free to play on Cool Unblocked Games. No downloads, registrations, or payments required."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Can I play Gunspin on my mobile device?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "Many of our games, including Gunspin, are mobile-friendly and can be played on smartphones and tablets."
+                }
+            },
+            {
+                "@type": "Question",
+                "name": "Why won't Gunspin load?",
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": "If Gunspin isn't loading, try refreshing the page, checking your internet connection, or trying a different browser."
+                }
+            }
+        ]
+    }
+    </script>
+    <script src="../tracking.js?v=3"></script></head>
 <body>
-<div id="start">
-  <h1>WILDHUNT</h1>
-  <div class="sub">ULTIMATE FOREST EDITION</div>
-  <div class="animal-grid">
-    <div class="ag"><span class="icon">🦌</span>Deer<br><span class="p">100 pts</span></div>
-    <div class="ag"><span class="icon">🫎</span>Elk<br><span class="p">180 pts</span></div>
-    <div class="ag"><span class="icon">🐗</span>Boar<br><span class="p">150 pts</span></div>
-    <div class="ag"><span class="icon">🐻</span>Bear<br><span class="p" style="color:#ff8844">300 ⚠️</span></div>
-    <div class="ag"><span class="icon">🦆</span>Duck<br><span class="p">50 pts</span></div>
-    <div class="ag"><span class="icon">🐿️</span>Squirrel<br><span class="p">25 pts</span></div>
-    <div class="ag"><span class="icon">🦊</span>Fox<br><span class="p">120 pts</span></div>
-    <div class="ag"><span class="icon">🐺</span>Wolf<br><span class="p" style="color:#ff9944">200 ⚠️</span></div>
-    <div class="ag"><span class="icon">🦅</span>Eagle<br><span class="p">75 pts</span></div>
-    <div class="ag"><span class="icon">🐇</span>Rabbit<br><span class="p">30 pts</span></div>
-  </div>
-  <div class="weapon-grid">
-    <div class="wg"><span class="wicon">🔫</span><span class="wn">Rifle</span>Key 1 · 8 shots<br>Scope ready</div>
-    <div class="wg"><span class="wicon">💥</span><span class="wn">Shotgun</span>Key 2 · 2 shots<br>Wide spread</div>
-    <div class="wg"><span class="wicon">🔫</span><span class="wn">Pistol</span>Key 3 · 12 shots<br>Fast fire</div>
-    <div class="wg"><span class="wicon">🏹</span><span class="wn">Bow</span>Key 4 · Hold to charge<br>Silent &amp; infinite</div>
-  </div>
-  <button id="start-btn" onclick="startGame()">ENTER THE FOREST</button>
-  <div class="ctrl">
-    <span>WASD</span> Move &nbsp;|&nbsp; <span>Mouse</span> Look &nbsp;|&nbsp; <span>LClick</span> Shoot &nbsp;|&nbsp; <span>RClick</span> Scope/ADS<br>
-    <span>1-4</span> Switch Weapon &nbsp;|&nbsp; <span>R</span> Reload &nbsp;|&nbsp; <span>Shift</span> Sprint &nbsp;|&nbsp; <span>Tab</span> Crouch<br>
-    <span style="color:#ff6644">⚠️ Bears and wolves will charge and attack you!</span>
-  </div>
-</div>
-
-<div id="gameover">
-  <h2>GAME OVER</h2>
-  <div class="go-score" id="go-score">Score: 0 | Kills: 0</div>
-  <button onclick="location.reload()">PLAY AGAIN</button>
-</div>
-
-<div id="ui">
-  <div id="crosshair"><div class="dot"></div></div>
-  <div id="hit-flash"></div><div id="kill-flash"></div>
-  <div id="bear-flash"></div><div id="dmg-flash"></div>
-  <div id="info"><strong>🌲 WILDHUNT — ULTIMATE</strong>10 Animals · 4 Weapons<br>Keys 1-4 to switch · R reload · RClick scope</div>
-  <div id="guide">
-    <div><span>🦌 Deer</span><span class="gpts">100</span></div>
-    <div><span>🫎 Elk (2hp)</span><span class="gpts">180</span></div>
-    <div><span>🐗 Boar (2hp)</span><span class="gpts">150</span></div>
-    <div><span>🐻 Bear (3hp) ⚠️</span><span class="gpts">300</span></div>
-    <div><span>🦆 Duck</span><span class="gpts">50</span></div>
-    <div><span>🐿️ Squirrel</span><span class="gpts">25</span></div>
-    <div><span>🦊 Fox</span><span class="gpts">120</span></div>
-    <div><span>🐺 Wolf (2hp) ⚠️</span><span class="gpts">200</span></div>
-    <div><span>🦅 Eagle</span><span class="gpts">75</span></div>
-    <div><span>🐇 Rabbit</span><span class="gpts">30</span></div>
-  </div>
-  <div id="score-feed"></div>
-  <div id="reload-msg">PRESS R TO RELOAD</div>
-  <div id="danger-msg">⚠️ PREDATOR CHARGING!</div>
-  <div id="bow-charge"><div id="bow-fill"></div></div>
-  <div id="weapon-bar">
-    <div class="wep-slot active" id="ws0"><div class="wkey">KEY 1</div><div class="wname">🔫 RIFLE</div><div class="wammo" id="wa0">8/8</div></div>
-    <div class="wep-slot" id="ws1"><div class="wkey">KEY 2</div><div class="wname">💥 SHOTGUN</div><div class="wammo" id="wa1">2/2</div></div>
-    <div class="wep-slot" id="ws2"><div class="wkey">KEY 3</div><div class="wname">🔫 PISTOL</div><div class="wammo" id="wa2">12/12</div></div>
-    <div class="wep-slot" id="ws3"><div class="wkey">KEY 4</div><div class="wname">🏹 BOW</div><div class="wammo" id="wa3">∞</div></div>
-  </div>
-  <div id="hpbar-wrap">
-    <span>HP</span>
-    <div id="hpbar"><div id="hpfill"></div></div>
-    <span id="hpnum">100</span>
-  </div>
-  <div id="hud">
-    <div class="hp"><div class="hp-label">Score</div><div class="hp-value" id="score-val">0</div></div>
-    <div class="hp"><div class="hp-label">Ammo</div><div id="ammo-bar"></div></div>
-    <div class="hp"><div class="hp-label">Kills</div><div class="hp-value" id="kills-val">0</div></div>
-    <div class="hp"><div class="hp-label">Health</div><div class="hp-value" id="health-val" style="color:#88dd66">100</div></div>
-  </div>
-</div>
-<div id="scope-overlay"><canvas id="scope-canvas"></canvas></div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-<script>
-// ===== WEAPONS =====
-const WEAPONS=[
-  {name:'Rifle',  maxAmmo:8,  ammo:8,  spread:0,    cooldown:.55,reloadTime:2.0,pellets:1, isBow:false,scopeFov:26},
-  {name:'Shotgun',maxAmmo:2,  ammo:2,  spread:.065, cooldown:.9, reloadTime:1.4,pellets:8, isBow:false,scopeFov:52},
-  {name:'Pistol', maxAmmo:12, ammo:12, spread:.022, cooldown:.2, reloadTime:1.1,pellets:1, isBow:false,scopeFov:58},
-  {name:'Bow',    maxAmmo:999,ammo:999,spread:0,    cooldown:.1, reloadTime:0,  pellets:1, isBow:true, scopeFov:38},
-];
-let curWep=0,isReloading=false,shootCD=0;
-let bowHeld=false,bowCharge=0;
-
-// ===== STATE =====
-let score=0,kills=0,playerHP=100,gameStarted=false,gameOver=false;
-
-// ===== RENDERER =====
-const renderer=new THREE.WebGLRenderer({antialias:true});
-renderer.setPixelRatio(Math.min(devicePixelRatio,2));
-renderer.setSize(innerWidth,innerHeight);
-renderer.shadowMap.enabled=true;
-renderer.shadowMap.type=THREE.PCFSoftShadowMap;
-document.body.appendChild(renderer.domElement);
-
-const scene=new THREE.Scene();
-scene.background=new THREE.Color(0x7ab8d4);
-scene.fog=new THREE.FogExp2(0x9dc8a0,.026);
-
-const camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,.05,300);
-camera.position.set(0,1.7,0);
-
-// ===== LIGHTING =====
-scene.add(new THREE.AmbientLight(0xffeedd,.48));
-const sun=new THREE.DirectionalLight(0xfff8e0,1.25);
-sun.position.set(70,90,50);sun.castShadow=true;
-sun.shadow.mapSize.set(2048,2048);
-sun.shadow.camera.left=sun.shadow.camera.bottom=-100;
-sun.shadow.camera.right=sun.shadow.camera.top=100;
-sun.shadow.camera.far=250;
-scene.add(sun);
-const fill=new THREE.DirectionalLight(0xb0d8ff,.22);
-fill.position.set(-50,30,-30);scene.add(fill);
-
-// ===== TERRAIN =====
-function getY(x,z){
-  return Math.sin(x*.05)*1.4+Math.cos(z*.07)*.9+Math.sin(x*.13+z*.09)*.5+Math.cos(x*.03-z*.04)*.7;
-}
-const gGeo=new THREE.PlaneGeometry(320,320,90,90);
-const gv=gGeo.attributes.position;
-for(let i=0;i<gv.count;i++) gv.setY(i,getY(gv.getX(i),gv.getZ(i)));
-gGeo.computeVertexNormals();
-const gnd=new THREE.Mesh(gGeo,new THREE.MeshLambertMaterial({color:0x3e7030}));
-gnd.rotation.x=-Math.PI/2;gnd.receiveShadow=true;scene.add(gnd);
-
-// ===== TREES =====
-for(let i=0;i<240;i++){
-  const a=Math.random()*Math.PI*2,d=8+Math.random()*130;
-  const x=Math.cos(a)*d,z=Math.sin(a)*d;
-  const g=new THREE.Group();
-  const h=3.5+Math.random()*5;
-  const tr=new THREE.Mesh(new THREE.CylinderGeometry(.13,.25,h,7),new THREE.MeshLambertMaterial({color:0x4a3018}));
-  tr.position.y=h/2;tr.castShadow=true;g.add(tr);
-  for(let j=0;j<3;j++){
-    const c=new THREE.Mesh(new THREE.ConeGeometry(1.9-j*.45,2.4-j*.25,8),
-      new THREE.MeshLambertMaterial({color:new THREE.Color().setHSL(.31+Math.random()*.04,.5+Math.random()*.12,.19+Math.random()*.08)}));
-    c.position.y=h+j*1.15;c.castShadow=true;g.add(c);
-  }
-  g.position.set(x,getY(x,z),z);scene.add(g);
-}
-// Rocks
-for(let i=0;i<55;i++){
-  const x=(Math.random()-.5)*190,z=(Math.random()-.5)*190;
-  const r=new THREE.Mesh(new THREE.DodecahedronGeometry(.25+Math.random()*.9,0),new THREE.MeshLambertMaterial({color:0x6a7868}));
-  r.position.set(x,getY(x,z)+.1,z);r.rotation.set(Math.random()*6,Math.random()*6,Math.random()*6);
-  r.castShadow=r.receiveShadow=true;scene.add(r);
-}
-// Grass
-for(let i=0;i<500;i++){
-  const x=(Math.random()-.5)*230,z=(Math.random()-.5)*230;
-  const g=new THREE.Mesh(new THREE.PlaneGeometry(.35+Math.random()*.5,.45+Math.random()*.5),
-    new THREE.MeshLambertMaterial({color:new THREE.Color().setHSL(.32,.6,.2+Math.random()*.1),side:THREE.DoubleSide}));
-  g.position.set(x,getY(x,z)+.25,z);g.rotation.y=Math.random()*Math.PI;scene.add(g);
-}
-// Lake
-const lake=new THREE.Mesh(new THREE.CircleGeometry(18,32),new THREE.MeshLambertMaterial({color:0x2a6090}));
-lake.rotation.x=-Math.PI/2;lake.position.set(55,getY(55,55)+.05,55);scene.add(lake);
-
-// ===== ANIMAL DEFS =====
-const ADEFS={
-  deer:    {hp:1,pts:100,speed:6.5,flee:22,fly:0,   c:0xc8864a,dc:0xb07840,danger:false},
-  elk:     {hp:2,pts:180,speed:5.5,flee:20,fly:0,   c:0xa06030,dc:0x784020,danger:false},
-  boar:    {hp:2,pts:150,speed:5.5,flee:18,fly:0,   c:0x5a4a38,dc:0x3e3028,danger:false},
-  bear:    {hp:3,pts:300,speed:7.2,flee:0, fly:0,   c:0x4a3520,dc:0x2e2010,danger:true},
-  duck:    {hp:1,pts:50, speed:8,  flee:18,fly:8,   c:0x1a5a2a,dc:0x0f4020,danger:false},
-  squirrel:{hp:1,pts:25, speed:9.5,flee:28,fly:0,   c:0x9a6030,dc:0x7a4820,danger:false},
-  fox:     {hp:1,pts:120,speed:8,  flee:25,fly:0,   c:0xd05820,dc:0xa04010,danger:false},
-  wolf:    {hp:2,pts:200,speed:7,  flee:0, fly:0,   c:0x707880,dc:0x505860,danger:true},
-  eagle:   {hp:1,pts:75, speed:10, flee:20,fly:12,  c:0x5a4020,dc:0x3a2810,danger:false},
-  rabbit:  {hp:1,pts:30, speed:11, flee:30,fly:0,   c:0xc8b090,dc:0xa89070,danger:false},
+    <header>
+        <div class="header-content">
+            <a href="../index.html" class="logo-link">
+                <img src="../icons/UNBLOCKED-GAMES-GG.png" alt="Cool Unblocked Games Logo" class="logo-img">
+            </a>
+            <nav class="header-nav">
+                <a href="../index.html">Home</a>
+                <a href="../all-games.html">All Games</a>
+                <a href="../favorites.html">Favorites</a>
+                <a href="../categories/school-games.html">School Games</a>
+                </nav>
+        </div>
+    </header>
+    <div class="container">        <aside class="sidebar">
+            <nav>
+                <h2>Categories</h2>
+                                <ul id="categories">
+                    <li>
+                        <img class="category-icon" src="../icons/home.webp" alt="Home icon">
+                        <a href="../index.html">Home</a>
+                    </li>
+                    <li>
+                        <img class="category-icon" src="../icons/like.png" alt="Favorites icon">
+                        <a href="../favorites.html">Favorites</a>
+                    </li>
+                    <li>
+                        <img class="category-icon" src="../icons/puzzle.webp" alt="School Games icon">
+                        <a href="../categories/school-games.html">School Games</a>
+                    </li>
+                    <li>
+                        <img class="category-icon" src="../icons/actions.webp" alt="Action Games icon">
+                        <a href="../categories/action.html">Action</a>
+                    </li>
+                    <li>
+                        <img class="category-icon" src="../icons/shooter.webp" alt="Shooter Games icon">
+                        <a href="../categories/shooter.html">Shooter</a>
+                    </li>
+                    <li>
+                        <img class="category-icon" src="../icons/adventure.webp" alt="Adventure Games icon">
+                        <a href="../categories/adventure.html">Adventure</a>
+                    </li>
+                    <li>
+                        <img class="category-icon" src="../icons/fire.webp" alt="Battle Games icon">
+                        <a href="../categories/battle.html">Battle</a>
+                    </li>
+                    <li>
+                        <img class="category-icon" src="../icons/racing.webp" alt="Racing Games icon">
+                        <a href="../categories/racing.html">Racing</a>
+                    </li>
+                    <li>
+                        <img class="category-icon" src="../icons/puzzle.webp" alt="Puzzle Games icon">
+                        <a href="../categories/puzzle.html">Puzzle</a>
+                    </li>
+                    <li>
+                        <img class="category-icon" src="../icons/similar.webp" alt="Platformer Games icon">
+                        <a href="../categories/platformer.html">Platformer</a>
+                    </li>
+                    <li>
+                        <img class="category-icon" src="../icons/trivia.webp" alt="Skill Games icon">
+                        <a href="../categories/skill.html">Skill</a>
+                    </li>
+                    <li>
+                        <img class="category-icon" src="../icons/multiplayer.webp" alt="Multiplayer Games icon">
+                        <a href="../categories/multiplayer.html">Multiplayer</a>
+                    </li>
+                    <li>
+                        <img class="category-icon" src="../icons/clicker.webp" alt="Idle Games icon">
+                        <a href="../categories/idle.html">Idle</a>
+                    </li>
+                    <li>
+                        <img class="category-icon" src="../icons/io.webp" alt="io Games icon">
+                        <a href="../categories/io.html">io</a>
+                    </li>
+                    <li>
+                        <img class="category-icon" src="../icons/3d.webp" alt="3D Games icon">
+                        <a href="../categories/3d.html">3D</a>
+                    </li>
+                    <li>
+                        <img class="category-icon" src="../icons/simulation.webp" alt="Simulation Games icon">
+                        <a href="../categories/simulation.html">Simulation</a>
+                    </li>                    <li>
+                        <img class="category-icon" src="../icons/sport.webp" alt="Sport Games icon">
+                        <a href="../categories/sport.html">Sport</a>
+                    </li>
+                    <li>
+                        <img class="category-icon" src="../icons/strategy.png" alt="Strategy Games icon">
+                        <a href="../categories/strategy.html">Strategy</a>
+                    </li>
+                    <li>
+                        <img class="category-icon" src="../icons/rpg.webp" alt="RPG Games icon">
+                        <a href="../categories/rpg.html">RPG</a>
+                    </li>
+                    <li>
+                        <img class="category-icon" src="../icons/classic.webp" alt="Classic Games icon">
+                        <a href="../categories/classic.html">Classic</a>
+                    </li>
+                    <li>
+                        <img class="category-icon" src="../icons/classic.webp" alt="Retro Games icon">
+                        <a href="../categories/retro.html">Retro</a>
+                    </li>
+                    <li>
+                        <img class="category-icon" src="../icons/board.webp" alt="Board Games icon">
+                        <a href="../categories/board.html">Board</a>
+                    </li>
+                    <li>
+                        <img class="category-icon" src="../icons/girls.webp" alt="Girls Games icon">
+                        <a href="../categories/girls.html">Girls</a>
+                    </li>
+                    <li>
+                        <img class="category-icon" src="../icons/other.webp" alt="Other Games icon">
+                        <a href="../categories/other.html">Other</a>
+                    </li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <div class="game-container">
+                <h1 id="game-title">Gunspin</h1>
+                
+                                <!-- Breadcrumb Navigation -->
+                <nav class="breadcrumb">
+                    <a href="../index.html">Home</a>
+                    <span class="breadcrumb-separator">></span>
+                    <a href="../categories/shooter.html">Shooter Games</a>
+                    <span class="breadcrumb-separator">></span>
+                    <span>Gunspin</span>
+                </nav>
+                
+                <div class="game-frame-container">
+                    <iframe id="game-frame" 
+                    allowfullscreen 
+                    sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
+                    referrerpolicy="no-referrer-when-downgrade"
+                    loading="lazy"
+                    title="Game Frame"></iframe>
+                </div>
+                <div class="game-actions">
+                    <button id="fullscreen-btn" class="action-btn">⛶ Fullscreen</button>
+                    <button id="favorite-btn" class="action-btn">
+                        <span id="favorite-icon">♡</span> Favorite
+                    </button>
+                    <div class="action-btn rating-container">
+                        <span>Rate:</span>
+                        <div class="stars">
+                            <span class="star" data-rating="1">★</span>
+                            <span class="star" data-rating="2">★</span>
+                            <span class="star" data-rating="3">★</span>
+                            <span class="star" data-rating="4">★</span>
+                            <span class="star" data-rating="5">★</span>
+                        </div>
+                        <span class="rating-text" id="rating-text">(0)</span>
+                    </div>
+                </div>
+                <div class="game-description-container">
+                    <h2>About Gunspin</h2>
+                    <p id="game-description">A unique physics-based shooter where you use the recoil of your gun to move. Master the art of the gunspin to defeat your opponents in stylish duels.</p>
+                </div>
+            </div>
+            
+            <!-- Game-specific FAQ Section -->
+            <section class="faq-section game-faq">
+                <h2>Game FAQ</h2>
+                <div class="faq-container">
+                    <div class="faq-item">
+                        <h3 class="faq-question">How do I play Gunspin?</h3>
+                        <p class="faq-answer">Gunspin is easy to play! Simply click on the game above and it will load in your browser. Use your mouse and keyboard to control the game. Each game may have different controls, so look for any on-screen instructions.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h3 class="faq-question">Is Gunspin free to play?</h3>
+                        <p class="faq-answer">Yes, Gunspin is completely free to play on Cool Unblocked Games. No downloads, registrations, or payments required.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h3 class="faq-question">Can I play Gunspin on my mobile device?</h3>
+                        <p class="faq-answer">Many of our games, including Gunspin, are mobile-friendly and can be played on smartphones and tablets through your mobile browser.</p>
+                    </div>
+                    <div class="faq-item">
+                        <h3 class="faq-question">Why won't Gunspin load?</h3>
+                        <p class="faq-answer">If Gunspin isn't loading, try refreshing the page, checking your internet connection, or trying a different browser. Some games may take a moment to load completely.</p>
+                    </div>
+                </div>
+            </section>
+            
+            <div class="related-games-container">
+                <h2>More Action Games</h2>
+                <div class="games-grid" id="related-games-grid">
+                    <div class="game-card">
+                        <a href="cannon-strike.html">
+                            <img src="../game-images/cannon-strike.png" alt="Cannon Strike" loading="lazy">
+                            <h3>Cannon Strike</h3>
+                            <p>Fast-paced action game with exciting gameplay. Battle enemies and overcome challenges in Cannon S...</p>
+                        </a>
+                    </div>
+                    <div class="game-card">
+                        <a href="tank-trouble-2.html">
+                            <img src="../game-images/tank-trouble-2.png" alt="Tank Trouble 2" loading="lazy">
+                            <h3>Tank Trouble 2</h3>
+                            <p>Fast-paced action game with exciting gameplay. Battle enemies and overcome challenges in Tank Tro...</p>
+                        </a>
+                    </div>
+                    <div class="game-card">
+                        <a href="awesome-tanks.html">
+                            <img src="../game-images/awesome-tanks.png" alt="Awesome Tanks" loading="lazy">
+                            <h3>Awesome Tanks</h3>
+                            <p>Fast-paced action game with exciting gameplay. Battle enemies and overcome challenges in Awesome ...</p>
+                        </a>
+                    </div>
+                    <div class="game-card">
+                        <a href="getaway-shootout.html">
+                            <img src="../game-images/getaway-shootout.png" alt="Getaway Shootout" loading="lazy">
+                            <h3>Getaway Shootout</h3>
+                            <p>Fast-paced action game with exciting gameplay. Battle enemies and overcome challenges in Getaway ...</p>
+                        </a>
+                    </div>
+                    <div class="game-card">
+                        <a href="rooftop-snipers-2.html">
+                            <img src="../game-images/rooftop-snipers-2.png" alt="Rooftop Snipers 2" loading="lazy">
+                            <h3>Rooftop Snipers 2</h3>
+                            <p>Fast-paced action game with exciting gameplay. Battle enemies and overcome challenges in Rooftop ...</p>
+                        </a>
+                    </div>
+                    <div class="game-card">
+                        <a href="paper-fighter-3d.html">
+                            <img src="../game-images/paper-fighter-3d.png" alt="Paper Fighter 3D" loading="lazy">
+                            <h3>Paper Fighter 3D</h3>
+                            <p>Fast-paced action game with exciting gameplay. Battle enemies and overcome challenges in Paper Fi...</p>
+                        </a>
+                    </div>
+                    <div class="game-card">
+                        <a href="mini-battles.html">
+                            <img src="../game-images/Mini Battles.png" alt="Mini Battles" loading="lazy">
+                            <h3>Mini Battles</h3>
+                            <p>Fast-paced action game with exciting gameplay. Battle enemies and overcome challenges in Mini Bat...</p>
+                        </a>
+                    </div>
+                    <div class="game-card">
+                        <a href="fortnite.html">
+                            <img src="../game-images/icon_game.png" alt="Fortnite" loading="lazy">
+                            <h3>Fortnite</h3>
+                            <p>Fast-paced action game with exciting gameplay. Battle enemies and overcome challenges in Fortnite!</p>
+                        </a>
+                    </div>
+                    <div class="game-card">
+                        <a href="sniper-gun-shooting.html">
+                            <img src="../game-images/sniper-gun-shooting.png" alt="Sniper Gun Shooting" loading="lazy">
+                            <h3>Sniper Gun Shooting</h3>
+                            <p>Take precise shots in this sniper shooting game!</p>
+                        </a>
+                    </div>
+                    <div class="game-card">
+                        <a href="gun-mayhem.html">
+                            <img src="../game-images/Gun Mayhem.jpeg" alt="Gun Mayhem" loading="lazy">
+                            <h3>Gun Mayhem</h3>
+                            <p>Battle in chaotic gun fights in this action-packed game!</p>
+                        </a>
+                    </div>
+                    <div class="game-card">
+                        <a href="penalty-shooter-2.html">
+                            <img src="../game-images/Penalty Shooter 2.jpeg" alt="Penalty Shooter 2" loading="lazy">
+                            <h3>Penalty Shooter 2</h3>
+                            <p>Score penalty shots in this soccer shooting game!</p>
+                        </a>
+                    </div>
+                    <div class="game-card">
+                        <a href="shootz.html">
+                            <img src="../game-images/Shootz.png" alt="Shootz" loading="lazy">
+                            <h3>Shootz</h3>
+                            <p>Shoot targets in this fast-paced shooting game!</p>
+                        </a>
+                    </div>
+                    <div class="game-card">
+                        <a href="time-shooter-2.html">
+                            <img src="../game-images/Time Shooter 2.png" alt="Time Shooter 2" loading="lazy">
+                            <h3>Time Shooter 2</h3>
+                            <p>Shoot enemies in this time-based shooting game!</p>
+                        </a>
+                    </div>
+                    <div class="game-card">
+                        <a href="among-us.html">
+                            <img src="../game-images/Among Us.jpg" alt="Among Us" loading="lazy">
+                            <h3>Among Us</h3>
+                            <p>Work together to find the impostor in this multiplayer mystery game!</p>
+                        </a>
+                    </div>
+                    <div class="game-card">
+                        <a href="paper-io.html">
+                            <img src="../game-images/paper-io.webp" alt="Paper.io" loading="lazy">
+                            <h3>Paper.io</h3>
+                            <p>Claim territory and compete with other players online!</p>
+                        </a>
+                    </div>
+                    <div class="game-card">
+                        <a href="smashkartsio.html">
+                            <img src="../game-images/smash-karts.png" alt="Smash Karts" loading="lazy">
+                            <h3>Smash Karts</h3>
+                            <p>Race and battle with karts in this multiplayer racing game!</p>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script>
+        // Game-specific data
+        window.currentGameData = {
+  "name": "Gunspin",
+  "type": "shooter",
+  "image": "game-images/Gunspin.jpeg",
+  "url": "https://labgstore311.github.io/g5/class-533",
+  "description": "A unique physics-based shooter where you use the recoil of your gun to move. Master the art of the gunspin to defeat your opponents in stylish duels.",
+  "original_image_url": "https://cdn.statically.io/gh/CodingKitten-YT/KittenGames-gamelibrary/main/images/hunspan.jpeg",
+  "category": "action"
 };
-const EMOJIS={deer:'🦌',elk:'🫎',boar:'🐗',bear:'🐻',duck:'🦆',squirrel:'🐿️',fox:'🦊',wolf:'🐺',eagle:'🦅',rabbit:'🐇'};
-const animals=[];
+        window.gameType = "shooter";
+    </script>
+    
+    
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>Popular Categories</h3>
+                <ul class="footer-links">
+                    <li><a href="../categories/shooter.html">Shooter Games</a></li>
+                    <li><a href="../categories/skill.html">Skill Games</a></li>
+                    <li><a href="../categories/platformer.html">Platformer Games</a></li>
+                    <li><a href="../categories/puzzle.html">Puzzle Games</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul class="footer-links">
+                    <li><a href="../index.html">Home</a></li>
+                    <li><a href="../favorites.html">Favorites</a></li>
+                    <li><a href="../categories/school-games.html">School Games</a></li>
+                    <li><a href="../legal.html">Legal</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Game Types</h3>
+                <ul class="footer-links">
+                    <li><a href="../categories/battle.html">Battle Games</a></li>
+                    <li><a href="../categories/io.html">io Games</a></li>
+                    <li><a href="../categories/simulation.html">Simulation Games</a></li>
+                    <li><a href="../categories/retro.html">Retro Games</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 <a href="../index.html" style="color: inherit; text-decoration: none;">Cool Unblocked Games</a>. All rights reserved.</p>
+            <p>Play free unblocked games online - Always updated, always fun!</p>
+        </div>
+    </footer>
+    <script src="../individual-game.js"></script>
 
-// ===== ANIMAL CLASS =====
-class Animal{
-  constructor(type){
-    this.type=type;
-    const d=ADEFS[type];
-    this.hp=d.hp;this.maxHP=d.hp;this.pts=d.pts;
-    this.speed=d.speed;this.fleeRange=d.flee;
-    this.flyH=d.fly;this.danger=d.danger;
-    this.alive=true;this.deathTimer=0;
-    this.state='idle';this.stateTimer=Math.random()*3;
-    this.bobPhase=Math.random()*Math.PI*2;
-    this.vel=new THREE.Vector3();
-    this.target=new THREE.Vector3();
-    this.charging=false;this.attackTimer=0;
-    this.group=new THREE.Group();
-    this._build(d.c,d.dc);
-    const ang=Math.random()*Math.PI*2,dist=10+Math.random()*95;
-    const sx=Math.cos(ang)*dist,sz=Math.sin(ang)*dist;
-    this.group.position.set(sx,getY(sx,sz)+(type==='duck'?7+Math.random()*4:type==='eagle'?11+Math.random()*5:type==='squirrel'?.4:0),sz);
-    scene.add(this.group);
-  }
-
-  M(geo,col,px=0,py=0,pz=0,rx=0,ry=0,rz=0){
-    const m=new THREE.Mesh(geo,new THREE.MeshLambertMaterial({color:col}));
-    m.position.set(px,py,pz);m.rotation.set(rx,ry,rz);m.castShadow=true;
-    this.group.add(m);return m;
-  }
-  box(w,h,d,col,px,py,pz,rx=0,ry=0,rz=0){return this.M(new THREE.BoxGeometry(w,h,d),col,px,py,pz,rx,ry,rz);}
-  sph(r,col,px,py,pz){return this.M(new THREE.SphereGeometry(r,8,6),col,px,py,pz);}
-  cyl(rt,rb,h,seg,col,px,py,pz,rx=0,ry=0,rz=0){return this.M(new THREE.CylinderGeometry(rt,rb,h,seg),col,px,py,pz,rx,ry,rz);}
-  con(r,h,seg,col,px,py,pz,rx=0,ry=0,rz=0){return this.M(new THREE.ConeGeometry(r,h,seg),col,px,py,pz,rx,ry,rz);}
-
-  _build(c,dc){
-    const t=this.type;
-    if(t==='deer'){
-      this.box(.5,.55,1.1,c,0,.9,0);
-      this.box(.32,.36,.45,dc,0,1.32,.62);
-      [[-0.18,-0.38],[.18,-0.38],[-0.18,.38],[.18,.38]].forEach(([dx,dz])=>this.box(.1,.55,.1,0xa06030,dx,.3,dz));
-      this.cyl(.02,.03,.55,5,0x8b5e3c,-.12,1.68,.52,0,0,.45);
-      this.cyl(.02,.03,.55,5,0x8b5e3c,.12,1.68,.52,0,0,-.45);
-      this.box(.14,.12,.06,0xf0f0f0,0,.95,-.57);
-    } else if(t==='elk'){
-      this.box(.65,.7,1.4,c,0,1.1,0);
-      this.box(.42,.46,.55,dc,0,1.7,.8);
-      [[-0.22,-0.52],[.22,-0.52],[-0.22,.52],[.22,.52]].forEach(([dx,dz])=>this.box(.13,.75,.13,0x784020,dx,.35,dz));
-      [-1,1].forEach(s=>{
-        this.cyl(.025,.035,.8,5,0x7a4e2c,s*.16,2.15,.72,0,0,s*.5);
-        this.cyl(.018,.025,.35,4,0x7a4e2c,s*.36,2.45,.72,0,0,s*.2);
-        this.cyl(.018,.025,.3,4,0x7a4e2c,s*.16,2.55,.55,0,0,s*-.1);
-      });
-      this.box(.18,.14,.08,0xf0efe0,0,1.1,-.72);
-    } else if(t==='boar'){
-      this.box(.65,.58,1.05,c,0,.52,0);
-      this.box(.48,.44,.6,dc,0,.58,.72);
-      this.cyl(.11,.11,.22,8,0x3a3028,0,.54,1.05,Math.PI/2,0,0);
-      [[-0.22,-0.32],[.22,-0.32],[-0.22,.32],[.22,.32]].forEach(([dx,dz])=>this.box(.12,.4,.12,0x3e3028,dx,.18,dz));
-      this.cyl(.025,.015,.18,5,0xf0e0c0,-.14,.38,1.14,.3,0,.15);
-      this.cyl(.025,.015,.18,5,0xf0e0c0,.14,.38,1.14,.3,0,-.15);
-    } else if(t==='bear'){
-      this.sph(.65,c,0,.8,0);
-      this.sph(.38,dc,0,1.45,.32);
-      this.sph(.16,0x3a2810,0,1.44,.7);
-      this.sph(.11,dc,-.3,1.8,.22);
-      this.sph(.11,dc,.3,1.8,.22);
-      [[-0.35,-0.42],[.35,-0.42],[-0.3,.3],[.3,.3]].forEach(([dx,dz])=>{
-        this.cyl(.15,.17,.65,7,c,dx,.28,dz);
-        this.sph(.17,dc,dx,-.02,dz+.04);
-      });
-      this.cyl(.12,.14,.52,7,c,-.6,.88,0,0,0,.42);
-      this.cyl(.12,.14,.52,7,c,.6,.88,0,0,0,-.42);
-    } else if(t==='duck'){
-      this.sph(.22,c,0,0,0);
-      this.sph(.13,0x1a5020,0,.26,.2);
-      this.box(.06,.04,.14,0xffcc00,0,.24,.34);
-      this.lw=this.box(.38,.06,.22,0x2a6830,-.28,0,0);
-      this.rw=this.box(.38,.06,.22,0x2a6830,.28,0,0);
-    } else if(t==='squirrel'){
-      this.sph(.1,c,0,.22,0);
-      this.sph(.07,dc,0,.37,.1);
-      this.box(.03,.04,.06,dc,-.04,.46,.08);
-      this.box(.03,.04,.06,dc,.04,.46,.08);
-      this.cyl(.06,.03,.35,6,c,0,.35,-.18,.9,0,0);
-      this.cyl(.04,.02,.2,6,c,0,.58,-.08,.2,0,0);
-      [[-0.06,-0.06],[.06,-0.06],[-0.05,.05],[.05,.05]].forEach(([dx,dz])=>this.cyl(.025,.025,.12,5,dc,dx,.06,dz));
-    } else if(t==='fox'){
-      this.box(.38,.42,.9,c,0,.5,0);
-      this.box(.28,.3,.35,c,0,.9,.52);
-      this.con(.06,.18,5,0x3a1a0a,-.1,1.12,.38,.1,0,.2);
-      this.con(.06,.18,5,0x3a1a0a,.1,1.12,.38,.1,0,-.2);
-      this.sph(.05,0x1a0808,-.08,.88,.68);
-      this.sph(.05,0x1a0808,.08,.88,.68);
-      this.sph(.18,0xf0f0e0,0,.55,-.52);
-      [[-0.12,-0.28],[.12,-0.28],[-0.1,.28],[.1,.28]].forEach(([dx,dz])=>this.box(.08,.38,.08,0xa04010,dx,.18,dz));
-    } else if(t==='wolf'){
-      this.box(.52,.56,1.15,c,0,.62,0);
-      this.box(.36,.38,.5,dc,0,1.12,.7);
-      this.con(.07,.2,5,dc,-.1,1.48,.62,.1,0,.2);
-      this.con(.07,.2,5,dc,.1,1.48,.62,.1,0,-.2);
-      this.sph(.045,0xffaa00,-.1,1.08,.88);
-      this.sph(.045,0xffaa00,.1,1.08,.88);
-      this.cyl(.06,.04,.45,6,c,0,.66,-.62,.25,0,0);
-      [[-0.18,-0.38],[.18,-0.38],[-0.18,.38],[.18,.38]].forEach(([dx,dz])=>this.box(.1,.55,.1,dc,dx,.28,dz));
-    } else if(t==='eagle'){
-      this.sph(.2,c,0,0,0);
-      this.sph(.14,0xf0f0f0,0,.25,.18);
-      this.box(.06,.05,.1,0xe8a020,0,.22,.34);
-      this.lw=this.box(.7,.05,.28,0x4a3018,-.45,0,0,0,0,.25);
-      this.rw=this.box(.7,.05,.28,0x4a3018,.45,0,0,0,0,-.25);
-      this.cyl(.04,.04,.15,6,0xffaa00,-.06,-.22,.04);
-      this.cyl(.04,.04,.15,6,0xffaa00,.06,-.22,.04);
-    } else if(t==='rabbit'){
-      this.sph(.14,c,0,.2,0);
-      this.sph(.1,dc,0,.38,.1);
-      this.box(.05,.25,.04,c,-.06,.6,.06);
-      this.box(.05,.25,.04,c,.06,.6,.06);
-      [[-0.07,-.1],[.07,-.1]].forEach(([dx,dz])=>this.cyl(.04,.04,.2,5,c,dx,.08,dz));
-      this.sph(.07,0xf0f0f0,0,.22,-.14);
-    }
-  }
-
-  flashRed(){
-    this.group.children.forEach(c=>{if(c.material)c.material.emissive=new THREE.Color(1,.05,0)});
-    setTimeout(()=>this.group.children.forEach(c=>{if(c.material)c.material.emissive=new THREE.Color(0,0,0)}),130);
-  }
-
-  hit(){
-    this.hp--;this.flashRed();
-    if(this.hp<=0){
-      this.alive=false;
-      this.group.rotation.z=Math.PI/2;
-      this.group.position.y=getY(this.group.position.x,this.group.position.z)-.2;
-      return true;
-    }
-    if(this.danger){this.state='charge';this.charging=true;showDanger();}
-    return false;
-  }
-
-  update(dt,pp){
-    if(!this.alive){this.deathTimer+=dt;return this.deathTimer>5;}
-    this.stateTimer-=dt;this.bobPhase+=dt*3;
-    const dist=this.group.position.distanceTo(pp);
-
-    if(this.danger){
-      if(dist<40&&!this.charging){this.charging=true;this.state='charge';showDanger();}
-      if(dist>72){this.charging=false;this.state='idle';}
-      if(this.state==='charge'){
-        const dx=pp.x-this.group.position.x,dz=pp.z-this.group.position.z,d=Math.sqrt(dx*dx+dz*dz);
-        if(d>0.1){this.vel.x=(dx/d)*this.speed;this.vel.z=(dz/d)*this.speed;this.group.rotation.y=Math.atan2(dx,dz);}
-        if(dist<1.9){this.attackTimer+=dt;if(this.attackTimer>.75){this.attackTimer=0;damagePlayer(this.type==='bear'?22:14);}}
-      } else {
-        if(this.stateTimer<=0){
-          const a=Math.random()*Math.PI*2,d2=6+Math.random()*10;
-          this.target.set(this.group.position.x+Math.cos(a)*d2,0,this.group.position.z+Math.sin(a)*d2);
-          this.stateTimer=3+Math.random()*4;
-        }
-        const dx=this.target.x-this.group.position.x,dz=this.target.z-this.group.position.z,d=Math.sqrt(dx*dx+dz*dz);
-        if(d>1){this.vel.x=(dx/d)*1.8;this.vel.z=(dz/d)*1.8;this.group.rotation.y=Math.atan2(dx,dz);}
-        else this.vel.set(0,0,0);
-      }
-    } else {
-      if(dist<this.fleeRange)this.state='flee';
-      else if(this.state==='flee'&&dist>this.fleeRange*1.9)this.state='idle';
-      if(this.state==='flee'){
-        const dx=this.group.position.x-pp.x,dz=this.group.position.z-pp.z,d=Math.sqrt(dx*dx+dz*dz);
-        if(d>0.1){this.vel.x=(dx/d)*this.speed;this.vel.z=(dz/d)*this.speed;this.group.rotation.y=Math.atan2(dx,dz);}
-      } else {
-        if(this.stateTimer<=0){
-          const a=Math.random()*Math.PI*2,d=5+Math.random()*14;
-          this.target.set(this.group.position.x+Math.cos(a)*d,0,this.group.position.z+Math.sin(a)*d);
-          this.stateTimer=1.5+Math.random()*4;
-        }
-        const dx=this.target.x-this.group.position.x,dz=this.target.z-this.group.position.z,d=Math.sqrt(dx*dx+dz*dz);
-        const ws=this.type==='rabbit'?3.5:1.8;
-        if(d>1){this.vel.x=(dx/d)*ws;this.vel.z=(dz/d)*ws;this.group.rotation.y=Math.atan2(dx,dz);}
-        else this.vel.set(0,0,0);
-      }
-    }
-
-    this.group.position.x+=this.vel.x*dt;
-    this.group.position.z+=this.vel.z*dt;
-    this.group.position.x=Math.max(-140,Math.min(140,this.group.position.x));
-    this.group.position.z=Math.max(-140,Math.min(140,this.group.position.z));
-
-    const gy=getY(this.group.position.x,this.group.position.z);
-    if(this.flyH>0){
-      const ty=gy+this.flyH+Math.sin(this.bobPhase*.4)*1.5;
-      this.group.position.y+=(ty-this.group.position.y)*dt*2;
-      if(this.lw&&this.rw){this.lw.rotation.z=Math.sin(this.bobPhase*7)*.6+.3;this.rw.rotation.z=-Math.sin(this.bobPhase*7)*.6-.3;}
-    } else if(this.type==='rabbit'){
-      this.group.position.y=gy+.1+Math.abs(Math.sin(this.bobPhase*6))*.25;
-    } else if(this.type==='squirrel'){
-      this.group.position.y=gy+.35+Math.abs(Math.sin(this.bobPhase*5))*.1;
-    } else {
-      this.group.position.y=gy;
-    }
-    return false;
-  }
-}
-
-// ===== SPAWN =====
-const TYPES=Object.keys(ADEFS);
-let spawnTimer=0;
-const MAX_ALIVE=45;
-
-function spawnAll(){
-  const counts={deer:5,elk:4,boar:4,bear:3,duck:5,squirrel:6,fox:4,wolf:3,eagle:4,rabbit:6};
-  Object.entries(counts).forEach(([t,n])=>{for(let i=0;i<n;i++)animals.push(new Animal(t));});
-}
-
-function autoSpawn(dt){
-  spawnTimer-=dt;
-  const alive=animals.filter(a=>a.alive).length;
-  if(spawnTimer<=0&&alive<MAX_ALIVE){
-    animals.push(new Animal(TYPES[Math.floor(Math.random()*TYPES.length)]));
-    spawnTimer=1.2+Math.random()*1.8;
-  }
-}
-
-// ===== GUN MODELS =====
-const gunGroup=new THREE.Group();
-camera.add(gunGroup);scene.add(camera);
-
-function mkRifle(){
-  const g=new THREE.Group();
-  const brl=new THREE.Mesh(new THREE.CylinderGeometry(.024,.03,.72,8),new THREE.MeshLambertMaterial({color:0x1a1a1a}));
-  brl.rotation.x=Math.PI/2;brl.position.set(0,0,-.55);g.add(brl);
-  const stk=new THREE.Mesh(new THREE.BoxGeometry(.07,.13,.54),new THREE.MeshLambertMaterial({color:0x6a3818}));
-  stk.position.set(0,-.02,-.22);g.add(stk);
-  const rcv=new THREE.Mesh(new THREE.BoxGeometry(.07,.1,.32),new THREE.MeshLambertMaterial({color:0x1c1c1c}));
-  rcv.position.set(0,.02,-.46);g.add(rcv);
-  const scp=new THREE.Mesh(new THREE.CylinderGeometry(.027,.027,.33,8),new THREE.MeshLambertMaterial({color:0x101010}));
-  scp.rotation.x=Math.PI/2;scp.position.set(0,.06,-.48);g.add(scp);
-  const grp=new THREE.Mesh(new THREE.BoxGeometry(.06,.1,.09),new THREE.MeshLambertMaterial({color:0x6a3818}));
-  grp.position.set(0,-.1,-.36);grp.rotation.x=.3;g.add(grp);
-  g.position.set(.17,-.14,0);return g;
-}
-function mkShotgun(){
-  const g=new THREE.Group();
-  [-.04,.04].forEach(dx=>{
-    const b=new THREE.Mesh(new THREE.CylinderGeometry(.022,.026,.7,7),new THREE.MeshLambertMaterial({color:0x222222}));
-    b.rotation.x=Math.PI/2;b.position.set(dx,0,-.52);g.add(b);
-  });
-  const stk=new THREE.Mesh(new THREE.BoxGeometry(.1,.16,.62),new THREE.MeshLambertMaterial({color:0x7a4a20}));
-  stk.position.set(0,-.04,-.18);g.add(stk);
-  const fore=new THREE.Mesh(new THREE.BoxGeometry(.1,.09,.32),new THREE.MeshLambertMaterial({color:0x7a4a20}));
-  fore.position.set(0,.02,-.46);g.add(fore);
-  g.position.set(.18,-.13,0);return g;
-}
-function mkPistol(){
-  const g=new THREE.Group();
-  const brl=new THREE.Mesh(new THREE.CylinderGeometry(.02,.022,.38,7),new THREE.MeshLambertMaterial({color:0x1a1a1a}));
-  brl.rotation.x=Math.PI/2;brl.position.set(0,.02,-.32);g.add(brl);
-  const body=new THREE.Mesh(new THREE.BoxGeometry(.06,.12,.22),new THREE.MeshLambertMaterial({color:0x1c1c1c}));
-  body.position.set(0,.0,-.14);g.add(body);
-  const grp=new THREE.Mesh(new THREE.BoxGeometry(.055,.14,.08),new THREE.MeshLambertMaterial({color:0x333333}));
-  grp.position.set(0,-.1,-.1);grp.rotation.x=.15;g.add(grp);
-  g.position.set(.15,-.16,0);return g;
-}
-function mkBow(){
-  const g=new THREE.Group();
-  const bm=new THREE.MeshLambertMaterial({color:0x8a5a20});
-  for(let i=0;i<9;i++){
-    const ang=(i/8-.5)*1.5;
-    const seg=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.2,5),bm);
-    seg.position.set(0,Math.sin(ang)*.4,-.22+Math.cos(ang)*.1-.18);
-    seg.rotation.x=ang;g.add(seg);
-  }
-  const strM=new THREE.Mesh(new THREE.CylinderGeometry(.007,.007,.8,4),new THREE.MeshLambertMaterial({color:0xf0e8d0}));
-  strM.position.set(0,0,-.27);g.add(strM);
-  const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.01,.01,.6,5),new THREE.MeshLambertMaterial({color:0xa07030}));
-  shaft.rotation.x=Math.PI/2;shaft.position.set(0,0,-.22);g.add(shaft);
-  const head=new THREE.Mesh(new THREE.ConeGeometry(.025,.08,5),new THREE.MeshLambertMaterial({color:0x888888}));
-  head.rotation.x=Math.PI/2;head.position.set(0,0,-.53);g.add(head);
-  g.position.set(.05,-.12,0);return g;
-}
-
-const gunModels=[mkRifle(),mkShotgun(),mkPistol(),mkBow()];
-gunModels.forEach((m,i)=>{m.visible=(i===0);gunGroup.add(m);});
-
-// ===== WEAPON SWITCH =====
-function switchWep(idx){
-  isReloading=false;
-  gunModels.forEach((m,i)=>m.visible=i===idx);
-  document.querySelectorAll('.wep-slot').forEach((s,i)=>s.classList.toggle('active',i===idx));
-  curWep=idx;
-  document.getElementById('crosshair').classList.toggle('bow-mode',WEAPONS[idx].isBow);
-  document.getElementById('bow-charge').classList.toggle('show',WEAPONS[idx].isBow);
-  updateAmmoUI();
-  document.getElementById('reload-msg').classList.remove('show');
-}
-
-// ===== SCOPE =====
-let isScoped=false;
-function enterScope(){
-  isScoped=true;camera.fov=WEAPONS[curWep].scopeFov;camera.updateProjectionMatrix();
-  document.getElementById('scope-overlay').classList.add('active');
-  drawScope();gunGroup.visible=false;
-}
-function exitScope(){
-  isScoped=false;camera.fov=75;camera.updateProjectionMatrix();
-  document.getElementById('scope-overlay').classList.remove('active');
-  gunGroup.visible=true;
-}
-function drawScope(){
-  const sc=document.getElementById('scope-canvas');
-  sc.width=innerWidth;sc.height=innerHeight;
-  const ctx=sc.getContext('2d'),cx=sc.width/2,cy=sc.height/2,r=Math.min(sc.width,sc.height)*.38;
-  ctx.fillStyle='rgba(0,0,0,.95)';ctx.fillRect(0,0,sc.width,sc.height);
-  ctx.globalCompositeOperation='destination-out';
-  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.fill();
-  ctx.globalCompositeOperation='source-over';
-  ctx.strokeStyle='rgba(0,0,0,.85)';ctx.lineWidth=1.5;
-  ctx.beginPath();ctx.moveTo(cx-r,cy);ctx.lineTo(cx+r,cy);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(cx,cy-r);ctx.lineTo(cx,cy+r);ctx.stroke();
-  for(let i=1;i<=5;i++){
-    const o=i*r*.165;ctx.strokeStyle='rgba(0,0,0,.5)';ctx.lineWidth=.7;
-    [[cx-5,cy+o,cx+5,cy+o],[cx-5,cy-o,cx+5,cy-o],[cx+o,cy-5,cx+o,cy+5],[cx-o,cy-5,cx-o,cy+5]].forEach(([x1,y1,x2,y2])=>{ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();});
-  }
-  ctx.strokeStyle='rgba(0,0,0,.6)';ctx.lineWidth=3;
-  ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
-}
-
-// ===== SHOOTING =====
-const raycaster=new THREE.Raycaster();
-function fireShot(spMult=1){
-  const wep=WEAPONS[curWep];
-  let hit=false;
-  for(let p=0;p<wep.pellets&&!hit;p++){
-    const sx=(Math.random()-.5)*wep.spread*spMult;
-    const sy=(Math.random()-.5)*wep.spread*spMult;
-    raycaster.setFromCamera(new THREE.Vector2(sx,sy),camera);
-    const meshes=[];
-    animals.forEach(a=>{if(a.alive)a.group.children.forEach(c=>meshes.push(c));});
-    const hits=raycaster.intersectObjects(meshes);
-    if(hits.length>0){
-      const hm=hits[0].object;
-      const ha=animals.find(a=>a.alive&&a.group.children.includes(hm));
-      if(ha){
-        hit=true;
-        const killed=ha.hit();
-        flash('hit-flash');
-        if(killed){
-          score+=ha.pts;kills++;
-          document.getElementById('score-val').textContent=score;
-          document.getElementById('kills-val').textContent=kills;
-          feed(EMOJIS[ha.type]+' +'+ha.pts+' — '+ha.type.toUpperCase()+' DOWN!');
-          flash('kill-flash');
-          const tp=ha.type;
-          setTimeout(()=>animals.push(new Animal(tp)),tp==='bear'?10000:tp==='wolf'?8000:2000);
-        } else {
-          feed('💥 HIT! '+ha.hp+'/'+ha.maxHP+' HP left');
-        }
-      }
-    }
-  }
-}
-
-function shoot(){
-  if(!gameStarted||gameOver)return;
-  const wep=WEAPONS[curWep];
-  if(wep.isBow)return;
-  if(shootCD>0||isReloading)return;
-  if(wep.ammo<=0){document.getElementById('reload-msg').classList.add('show');return;}
-  wep.ammo--;updateAmmoUI();shootCD=wep.cooldown;
-  const el=document.getElementById('hit-flash');
-  el.style.background='rgba(255,210,60,.18)';el.style.opacity='1';
-  setTimeout(()=>{el.style.opacity='0';el.style.background='rgba(255,80,40,.15)';},80);
-  gunGroup.position.z+=.07;setTimeout(()=>gunGroup.position.z-=.07,100);
-  fireShot();
-  if(wep.ammo===0)setTimeout(()=>document.getElementById('reload-msg').classList.add('show'),200);
-}
-
-function bowRelease(){
-  if(!gameStarted||gameOver||curWep!==3||!bowHeld)return;
-  const power=bowCharge;
-  bowCharge=0;bowHeld=false;
-  document.getElementById('bow-fill').style.width='0%';
-  if(gunModels[3]&&gunModels[3].children[0])gunModels[3].children[0].position.z=0;
-  if(power<.1)return;
-  shootCD=WEAPONS[3].cooldown;
-  feed('🏹 Arrow! ('+Math.round(power*100)+'% power)');
-  const el=document.getElementById('hit-flash');
-  el.style.background='rgba(200,140,20,.08)';el.style.opacity='1';
-  setTimeout(()=>{el.style.opacity='0';el.style.background='rgba(255,80,40,.15)';},60);
-  fireShot(1-power*.85);
-}
-
-function reload(){
-  const wep=WEAPONS[curWep];
-  if(isReloading||wep.isBow||wep.ammo===wep.maxAmmo)return;
-  isReloading=true;document.getElementById('reload-msg').classList.remove('show');
-  feed('🔄 Reloading...');
-  gunGroup.position.y-=.2;
-  setTimeout(()=>{
-    wep.ammo=wep.maxAmmo;updateAmmoUI();gunGroup.position.y+=.2;isReloading=false;
-    feed('✅ '+wep.name+' reloaded!');
-  },wep.reloadTime*1000);
-}
-
-function updateAmmoUI(){
-  const wep=WEAPONS[curWep];
-  const bar=document.getElementById('ammo-bar');bar.innerHTML='';
-  if(wep.isBow){
-    bar.innerHTML='<span style="color:#c09038;font-size:11px;letter-spacing:1px">∞ ARROWS</span>';
-    document.getElementById('wa3').textContent='∞';return;
-  }
-  for(let i=0;i<wep.maxAmmo;i++){
-    const b=document.createElement('div');b.className='bullet'+(i>=wep.ammo?' spent':'');bar.appendChild(b);
-  }
-  document.getElementById('wa'+curWep).textContent=wep.ammo+'/'+wep.maxAmmo;
-}
-
-function flash(id){const el=document.getElementById(id);el.style.opacity='1';setTimeout(()=>el.style.opacity='0',id==='kill-flash'?200:120);}
-function feed(msg){
-  const f=document.getElementById('score-feed');
-  const el=document.createElement('div');el.className='sf';el.textContent=msg;
-  f.prepend(el);while(f.children.length>6)f.removeChild(f.lastChild);
-  setTimeout(()=>el.remove(),3500);
-}
-let dTO;
-function showDanger(){
-  const el=document.getElementById('danger-msg');el.classList.add('show');
-  clearTimeout(dTO);dTO=setTimeout(()=>el.classList.remove('show'),2800);
-}
-
-// ===== PLAYER HEALTH =====
-function damagePlayer(amt){
-  if(gameOver)return;
-  playerHP=Math.max(0,playerHP-amt);
-  document.getElementById('health-val').textContent=playerHP;
-  document.getElementById('health-val').style.color=playerHP<30?'#ff3311':playerHP<60?'#ffaa22':'#88dd66';
-  document.getElementById('hpnum').textContent=playerHP;
-  document.getElementById('hpfill').style.width=playerHP+'%';
-  document.getElementById('hpfill').style.background=playerHP<30?'#c02010':playerHP<60?'#cc8020':'#28a030';
-  flash('dmg-flash');flash('bear-flash');
-  if(playerHP<=0){
-    document.getElementById('go-score').textContent='Score: '+score+' | Kills: '+kills;
-    document.getElementById('gameover').style.display='flex';
-    gameOver=true;
-    setTimeout(()=>document.pointerLockElement&&document.exitPointerLock(),100);
-  }
-}
-
-// ===== INPUT =====
-const keys={};
-document.addEventListener('keydown',e=>{
-  keys[e.code]=true;
-  if(e.code==='KeyR')reload();
-  if(e.code==='Digit1')switchWep(0);
-  if(e.code==='Digit2')switchWep(1);
-  if(e.code==='Digit3')switchWep(2);
-  if(e.code==='Digit4')switchWep(3);
-});
-document.addEventListener('keyup',e=>keys[e.code]=false);
-
-document.addEventListener('mousedown',e=>{
-  if(!gameStarted)return;
-  if(e.button===2)enterScope();
-  if(e.button===0){if(WEAPONS[curWep].isBow)bowHeld=true;else shoot();}
-});
-document.addEventListener('mouseup',e=>{
-  if(e.button===2)exitScope();
-  if(e.button===0&&WEAPONS[curWep].isBow&&bowHeld)bowRelease();
-});
-document.addEventListener('contextmenu',e=>e.preventDefault());
-renderer.domElement.addEventListener('click',()=>{if(gameStarted)renderer.domElement.requestPointerLock();});
-
-let yaw=0,pitch=0;
-document.addEventListener('mousemove',e=>{
-  if(!gameStarted||document.pointerLockElement!==renderer.domElement)return;
-  const s=isScoped?.0007:.0018;
-  yaw-=e.movementX*s;
-  pitch=Math.max(-Math.PI/2.1,Math.min(Math.PI/2.1,pitch-e.movementY*s));
-});
-
-// ===== LOOP =====
-const clock=new THREE.Clock();
-const pp=new THREE.Vector3();
-
-function loop(){
-  requestAnimationFrame(loop);
-  const dt=Math.min(clock.getDelta(),.05);
-  if(!gameStarted){renderer.render(scene,camera);return;}
-
-  const qY=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),yaw);
-  const qP=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1,0,0),pitch);
-  camera.quaternion.copy(qY).multiply(qP);
-
-  const sprint=keys['ShiftLeft']||keys['ShiftRight'];
-  const crouch=keys['Tab']||keys['ControlLeft'];
-  const spd=sprint?8:crouch?2:4;
-  const fwd=new THREE.Vector3(0,0,-1).applyQuaternion(qY);
-  const rgt=new THREE.Vector3(1,0,0).applyQuaternion(qY);
-  const mv=new THREE.Vector3();
-  if(keys['KeyW']||keys['ArrowUp'])mv.add(fwd);
-  if(keys['KeyS']||keys['ArrowDown'])mv.sub(fwd);
-  if(keys['KeyA']||keys['ArrowLeft'])mv.sub(rgt);
-  if(keys['KeyD']||keys['ArrowRight'])mv.add(rgt);
-  mv.y=0;
-  if(mv.length()>0)mv.normalize().multiplyScalar(spd*dt);
-  camera.position.add(mv);
-  camera.position.x=Math.max(-138,Math.min(138,camera.position.x));
-  camera.position.z=Math.max(-138,Math.min(138,camera.position.z));
-  camera.position.y=getY(camera.position.x,camera.position.z)+(crouch?1.05:1.72);
-
-  const moving=mv.length()>0,t2=performance.now()*.004;
-  gunGroup.position.x=Math.sin(t2*2)*.015*(moving?1:0);
-  gunGroup.position.y=Math.sin(t2*4)*.01*(moving?1:0);
-
-  if(bowHeld&&WEAPONS[3].isBow){
-    bowCharge=Math.min(1,bowCharge+dt*.85);
-    document.getElementById('bow-fill').style.width=(bowCharge*100)+'%';
-    if(gunModels[3]&&gunModels[3].children[0])gunModels[3].children[0].position.z=bowCharge*.14;
-  }
-
-  if(shootCD>0)shootCD-=dt;
-
-  pp.copy(camera.position);
-  for(let i=animals.length-1;i>=0;i--)if(animals[i].update(dt,pp))animals.splice(i,1);
-
-  autoSpawn(dt);
-  renderer.render(scene,camera);
-}
-
-// ===== START =====
-function startGame(){
-  document.getElementById('start').style.display='none';
-  gameStarted=true;gameOver=false;
-  spawnAll();updateAmmoUI();
-  document.getElementById('hpfill').style.width='100%';
-  renderer.domElement.requestPointerLock();
-}
-
-window.addEventListener('resize',()=>{
-  camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);
-});
-
-loop();
-</script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"b165251b5cdf468084482e3d180ab836","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
 </html>
