@@ -39,7 +39,7 @@
   select{background:#111;border:2px solid rgba(245,197,66,.4);color:#f5c542;padding:7px 12px;border-radius:8px;font-family:'Cabin',sans-serif;font-size:.8em;cursor:pointer}
   select:focus{outline:none;border-color:#f5c542}
 
-  #tractor-panel{position:fixed;right:0;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.92);border-left:2px solid rgba(245,197,66,.3);padding:14px;width:215px;z-index:10;pointer-events:auto}
+  #tractor-panel{position:fixed;right:0;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.92);border-left:2px solid rgba(245,197,66,.3);padding:14px;width:220px;z-index:10;pointer-events:auto;max-height:80vh;overflow-y:auto}
   #tractor-panel h3{font-family:'Rye',serif;color:#f5c542;font-size:.9em;margin-bottom:10px;text-align:center}
   .tractor-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:9px;margin-bottom:7px;cursor:pointer;transition:all .2s}
   .tractor-card:hover{background:rgba(245,197,66,.1);border-color:rgba(245,197,66,.4)}
@@ -47,6 +47,7 @@
   .tractor-card.locked{opacity:.4;cursor:not-allowed}
   .tractor-name{font-weight:700;color:#f5c542;font-size:.8em}
   .tractor-info{font-size:.7em;color:#aaa;margin-top:2px}
+  .tractor-scale{font-size:.68em;color:#88aaff;margin-top:2px}
   .tractor-price{font-size:.73em;color:#4caf50;margin-top:3px;font-weight:700}
 
   #msg{position:fixed;top:80px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,.92);border:2px solid #f5c542;padding:10px 24px;border-radius:25px;font-weight:700;color:#f5c542;z-index:100;pointer-events:none;opacity:0;transition:opacity .3s;font-size:.88em;white-space:nowrap}
@@ -54,7 +55,7 @@
   #key-guide{position:fixed;left:14px;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.75);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:12px;z-index:10;font-size:.7em;line-height:1.9;pointer-events:none}
   #key-guide b{color:#f5c542}
 
-  #minimap{position:fixed;right:230px;bottom:105px;width:120px;height:120px;border:2px solid rgba(245,197,66,.5);border-radius:8px;overflow:hidden;z-index:10}
+  #minimap{position:fixed;right:235px;bottom:105px;width:120px;height:120px;border:2px solid rgba(245,197,66,.5);border-radius:8px;overflow:hidden;z-index:10}
 
   #attachment-hud{position:fixed;left:50%;transform:translateX(-50%);bottom:108px;display:flex;gap:7px;z-index:10;pointer-events:none}
   .att-pill{padding:5px 13px;border-radius:20px;font-size:.75em;font-weight:700;border:2px solid rgba(255,255,255,.2);background:rgba(0,0,0,.6);color:rgba(255,255,255,.35);transition:all .2s}
@@ -67,7 +68,7 @@
 <div id="hud">
   <div id="top-bar">
     <div id="title">🚜 Farm Dynasty 3D</div>
-    <div class="stat">💰 $<span id="h-money">1000</span></div>
+    <div class="stat">💰 $<span id="h-money">1500</span></div>
     <div class="stat">📅 Day <span id="h-day">1</span> · <span id="h-season">🌸 Spring</span></div>
     <div class="stat">⛽ <span id="h-fuel">100</span>%</div>
     <div class="stat">🌾<span id="h-wheat">0</span> 🌽<span id="h-corn">0</span> 🥔<span id="h-pot">0</span></div>
@@ -103,6 +104,10 @@
     <button class="btn btn-gold"   onclick="G.sellCrops()">💰 Sell<span id="sell-preview"></span></button>
     <button class="btn btn-blue"   onclick="G.refuel()">⛽ Refuel $10</button>
     <button class="btn btn-purple" onclick="G.buyLand()">🏞️ Land $3k</button>
+    <div class="sep"></div>
+    <button class="btn btn-gold" onclick="G.saveGame()" style="font-size:.72em">💾 Save</button>
+    <button class="btn btn-red"  onclick="G.resetGame()" style="font-size:.72em">🗑️ Reset</button>
+    <div style="color:#555;font-size:.65em;line-height:1.3" id="save-info"></div>
   </div>
 </div>
 
@@ -132,11 +137,15 @@
 // ═══════════════════════════════════════════════════════
 //  GAME STATE
 // ═══════════════════════════════════════════════════════
-const GRID_W = 10, GRID_H = 10, CELL = 4;
-const gridOffX = -(GRID_W * CELL) / 2 + CELL / 2;
-const gridOffZ = -(GRID_H * CELL) / 2 + CELL / 2;
+var GRID_W = 10, GRID_H = 10, CELL = 4;
+var gridOffX = -(GRID_W * CELL) / 2 + CELL / 2;
+var gridOffZ = -(GRID_H * CELL) / 2 + CELL / 2;
 
-const G = {
+// Each tractor def has:
+//   scale  — uniform 3D scale of the whole tractor model (1.0 = base size)
+//   plowW  — width of the plow blade in world units
+//   tines  — number of plow tines
+var G = {
   money: 1500, day: 1, fuel: 100, season: 0,
   seasons: ['🌸 Spring','☀️ Summer','🍂 Fall','❄️ Winter'],
   crops: { wheat: 0, corn: 0, potatoes: 0 },
@@ -148,12 +157,12 @@ const G = {
   attachment: null,
   tractorIdx: 0,
   tractorDefs: [
-    { name:'Basic Tractor',     price:0,      speed:6,  eff:1,   fuel:2, color:0xe05020, owned:true  },
-    { name:'Farm Master 2000',  price:3000,   speed:9,  eff:1.5, fuel:2, color:0x2060e0, owned:false },
-    { name:'Crop King Pro',     price:7000,  speed:12, eff:2,   fuel:1, color:0x20b040, owned:false },
-    { name:'Harvest Giant X',   price:10000,  speed:15, eff:3,   fuel:1, color:0xe0a020, owned:false },
-    { name:'Quantum Harvester', price:15000, speed:20, eff:6,   fuel:0, color:0xe020e0, owned:false },
-    { name:'Episty Plower 67000', price:50000, speed:100, eff:10, fuel:0, color:0xe06ca0, owned:false } 
+    { name:'Basic Tractor',       price:0,     speed:6,   eff:1,   fuel:2, color:0xe05020, owned:true,  scale:1.0, plowW:2.5,  tines:3  },
+    { name:'Farm Master 2000',    price:3000,  speed:9,   eff:1.5, fuel:2, color:0x2060e0, owned:false, scale:1.35,plowW:4.5,  tines:4  },
+    { name:'Crop King Pro',       price:7000,  speed:12,  eff:2,   fuel:1, color:0x20b040, owned:false, scale:1.7, plowW:7.0,  tines:6  },
+    { name:'Harvest Giant X',     price:10000, speed:15,  eff:3,   fuel:1, color:0xe0a020, owned:false, scale:2.1, plowW:10.0, tines:8  },
+    { name:'Quantum Harvester',   price:15000, speed:20,  eff:6,   fuel:0, color:0xe020e0, owned:false, scale:2.6, plowW:13.5, tines:11 },
+    { name:'Episty Plower 67000', price:50000, speed:100, eff:10,  fuel:0, color:0xe06ca0, owned:false, scale:3.4, plowW:18.0, tines:15 }
   ],
   fields: []
 };
@@ -161,20 +170,20 @@ const G = {
 // ═══════════════════════════════════════════════════════
 //  THREE.JS SETUP
 // ═══════════════════════════════════════════════════════
-const canvas = document.getElementById('c');
-const renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+var canvas = document.getElementById('c');
+var renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.2;
 
-const scene = new THREE.Scene();
+var scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87ceeb);
-scene.fog = new THREE.Fog(0x87ceeb, 40, 130);
+scene.fog = new THREE.Fog(0x87ceeb, 50, 160);
 
-const camera = new THREE.PerspectiveCamera(65, 1, 0.1, 500);
-let camMode = 0;
+var camera = new THREE.PerspectiveCamera(65, 1, 0.1, 500);
+var camMode = 0;
 
 // Lighting
 var sun = new THREE.DirectionalLight(0xfff5e0, 1.4);
@@ -182,15 +191,15 @@ sun.position.set(30, 50, 30);
 sun.castShadow = true;
 sun.shadow.mapSize.width = 2048; sun.shadow.mapSize.height = 2048;
 sun.shadow.camera.near = 0.5; sun.shadow.camera.far = 200;
-sun.shadow.camera.left = -60; sun.shadow.camera.right = 60;
-sun.shadow.camera.top = 60; sun.shadow.camera.bottom = -60;
+sun.shadow.camera.left = -80; sun.shadow.camera.right = 80;
+sun.shadow.camera.top = 80; sun.shadow.camera.bottom = -80;
 scene.add(sun);
 scene.add(new THREE.AmbientLight(0x6090c0, 0.6));
 scene.add(new THREE.HemisphereLight(0x87ceeb, 0x5a3a10, 0.4));
 
 // Ground
 var ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(200, 200),
+  new THREE.PlaneGeometry(300, 300),
   new THREE.MeshLambertMaterial({ color: 0x5a8a2a })
 );
 ground.rotation.x = -Math.PI / 2;
@@ -248,9 +257,9 @@ function updateFieldMesh(f) {
   if (f.status === 'planted' || f.status === 'ready') {
     var rdy = f.status === 'ready';
     var geo, col;
-    if (f.crop === 'wheat')         { geo = new THREE.CylinderGeometry(0.05,0.08,0.8,5);  col = rdy ? 0xf0c040 : 0x70b020; }
-    else if (f.crop === 'corn')     { geo = new THREE.CylinderGeometry(0.10,0.15,1.2,6);  col = rdy ? 0xf0a020 : 0x40a020; }
-    else                            { geo = new THREE.SphereGeometry(0.35,6,5);             col = rdy ? 0xa06030 : 0x306010; }
+    if (f.crop === 'wheat')     { geo = new THREE.CylinderGeometry(0.05,0.08,0.8,5); col = rdy ? 0xf0c040 : 0x70b020; }
+    else if (f.crop === 'corn') { geo = new THREE.CylinderGeometry(0.10,0.15,1.2,6); col = rdy ? 0xf0a020 : 0x40a020; }
+    else                        { geo = new THREE.SphereGeometry(0.35,6,5);            col = rdy ? 0xa06030 : 0x306010; }
     var cm = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: col }));
     var yOff = f.crop === 'wheat' ? 0.4 : f.crop === 'corn' ? 0.6 : 0.35;
     cm.position.set(f.wx, yOff, f.wz);
@@ -286,7 +295,7 @@ var siloTop = new THREE.Mesh(new THREE.CylinderGeometry(0,1.7,2,12), new THREE.M
 siloTop.position.set(-22,9,-12); siloTop.castShadow=true; scene.add(siloTop);
 
 // ═══════════════════════════════════════════════════════
-//  TRACTOR
+//  TRACTOR  (built to a fixed "base" size, then scaled via tractorGroup.scale)
 // ═══════════════════════════════════════════════════════
 var tractorGroup = null;
 var attachGroup  = null;
@@ -296,112 +305,273 @@ function buildTractor(def) {
   tractorGroup = new THREE.Group();
   var c = def.color;
 
-  var body = new THREE.Mesh(new THREE.BoxGeometry(1.8,1.1,2.8), new THREE.MeshLambertMaterial({color:c}));
+  // ── Body ──────────────────────────────────────────────
+  var body = new THREE.Mesh(
+    new THREE.BoxGeometry(1.8, 1.1, 2.8),
+    new THREE.MeshLambertMaterial({color: c})
+  );
   body.position.y = 1.1; body.castShadow = true; tractorGroup.add(body);
 
-  var cab = new THREE.Mesh(new THREE.BoxGeometry(1.3,1.0,1.4), new THREE.MeshLambertMaterial({color:c}));
-  cab.position.set(0,2.1,0.2); cab.castShadow = true; tractorGroup.add(cab);
+  // ── Cab ───────────────────────────────────────────────
+  var cab = new THREE.Mesh(
+    new THREE.BoxGeometry(1.3, 1.0, 1.4),
+    new THREE.MeshLambertMaterial({color: c})
+  );
+  cab.position.set(0, 2.1, 0.2); cab.castShadow = true; tractorGroup.add(cab);
 
-  var wind = new THREE.Mesh(new THREE.BoxGeometry(1.25,0.85,0.05), new THREE.MeshLambertMaterial({color:0x88ccff,transparent:true,opacity:0.6}));
-  wind.position.set(0,2.1,-0.5); tractorGroup.add(wind);
-  var rwin = wind.clone(); rwin.position.z = 0.9; tractorGroup.add(rwin);
+  // ── Windshields ───────────────────────────────────────
+  var windMat = new THREE.MeshLambertMaterial({color:0x88ccff, transparent:true, opacity:0.6});
+  var windF = new THREE.Mesh(new THREE.BoxGeometry(1.25,0.85,0.05), windMat);
+  windF.position.set(0, 2.1, -0.5); tractorGroup.add(windF);
+  var windR = windF.clone(); windR.position.z = 0.9; tractorGroup.add(windR);
 
-  var pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,1.0,8), new THREE.MeshLambertMaterial({color:0x333333}));
-  pipe.position.set(0.5,2.4,-0.8); tractorGroup.add(pipe);
+  // ── Exhaust pipe ──────────────────────────────────────
+  var pipe = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.08,0.08,1.0,8),
+    new THREE.MeshLambertMaterial({color:0x333333})
+  );
+  pipe.position.set(0.5, 2.4, -0.8); tractorGroup.add(pipe);
 
-  var wheelPositions = [[-1.1,0.55,-0.8],[1.1,0.55,-0.8],[-1.1,0.55,0.9],[1.1,0.55,0.9]];
-  var wGeo = new THREE.CylinderGeometry(0.55,0.55,0.38,16);
+  // ── Wheels ────────────────────────────────────────────
+  var wGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.38, 16);
   var wMat = new THREE.MeshLambertMaterial({color:0x222222});
-  var hGeo = new THREE.CylinderGeometry(0.18,0.18,0.42,10);
+  var hGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.42, 10);
   var hMat = new THREE.MeshLambertMaterial({color:0xaaaaaa});
-  wheelPositions.forEach(function(wp) {
-    var w = new THREE.Mesh(wGeo, wMat); w.rotation.z = Math.PI/2; w.position.set(wp[0],wp[1],wp[2]); w.castShadow=true; tractorGroup.add(w);
-    var h = new THREE.Mesh(hGeo, hMat); h.rotation.z = Math.PI/2; h.position.set(wp[0],wp[1],wp[2]); tractorGroup.add(h);
+  [[-1.1,0.55,-0.8],[1.1,0.55,-0.8],[-1.1,0.55,0.9],[1.1,0.55,0.9]].forEach(function(wp) {
+    var w = new THREE.Mesh(wGeo, wMat);
+    w.rotation.z = Math.PI/2; w.position.set(wp[0],wp[1],wp[2]); w.castShadow=true;
+    tractorGroup.add(w);
+    var h = new THREE.Mesh(hGeo, hMat);
+    h.rotation.z = Math.PI/2; h.position.set(wp[0],wp[1],wp[2]);
+    tractorGroup.add(h);
   });
 
+  // ── Headlights ────────────────────────────────────────
   [-0.6, 0.6].forEach(function(x) {
-    var hl = new THREE.Mesh(new THREE.BoxGeometry(0.25,0.18,0.08), new THREE.MeshLambertMaterial({color:0xffffaa,emissive:0xffff88,emissiveIntensity:0.5}));
-    hl.position.set(x,1.3,-1.45); tractorGroup.add(hl);
+    var hl = new THREE.Mesh(
+      new THREE.BoxGeometry(0.25,0.18,0.08),
+      new THREE.MeshLambertMaterial({color:0xffffaa, emissive:0xffff88, emissiveIntensity:0.5})
+    );
+    hl.position.set(x, 1.3, -1.45); tractorGroup.add(hl);
   });
 
-  tractorGroup.position.set(0,0,0);
+  // ── Apply scale ── THIS is what makes each tractor bigger ──
+  tractorGroup.scale.setScalar(def.scale);
+  tractorGroup.position.set(0, 0, 0);
   scene.add(tractorGroup);
 }
 
+// ═══════════════════════════════════════════════════════
+//  ATTACHMENTS  (plow width + tine count driven by tractorDef)
+// ═══════════════════════════════════════════════════════
 function buildAttachment(type) {
   if (attachGroup) { scene.remove(attachGroup); attachGroup = null; }
   if (!type) return;
 
   attachGroup = new THREE.Group();
+  var def = G.tractorDefs[G.tractorIdx];
+  var sc  = def.scale;   // used to size non-plow attachments consistently
 
+  // ── PLOW ──────────────────────────────────────────────
   if (type === 'plow') {
-    var blade = new THREE.Mesh(new THREE.BoxGeometry(2.4,0.5,0.2), new THREE.MeshLambertMaterial({color:0xc0c0c0}));
-    blade.position.set(0,0.25,0); attachGroup.add(blade);
-    [-0.8,0,0.8].forEach(function(x) {
-      var tine = new THREE.Mesh(new THREE.BoxGeometry(0.12,0.5,0.7), new THREE.MeshLambertMaterial({color:0x888888}));
-      tine.position.set(x,-0.2,0.35); attachGroup.add(tine);
+    var pw = def.plowW;    // blade width grows with tractor tier
+    var nt = def.tines;    // tine count grows too
+    var bh = 0.45 + sc * 0.12;   // blade height scales slightly
+    var bd = 0.18 + sc * 0.04;   // blade depth scales slightly
+
+    // Main blade
+    var blade = new THREE.Mesh(
+      new THREE.BoxGeometry(pw, bh, bd),
+      new THREE.MeshLambertMaterial({color:0xd0d0d0})
+    );
+    blade.position.set(0, bh/2 + 0.05, 0);
+    attachGroup.add(blade);
+
+    // Curved top edge strip (darker chrome)
+    var topStrip = new THREE.Mesh(
+      new THREE.BoxGeometry(pw, 0.08, bd * 0.6),
+      new THREE.MeshLambertMaterial({color:0x888888})
+    );
+    topStrip.position.set(0, bh + 0.05, -bd * 0.2);
+    attachGroup.add(topStrip);
+
+    // Tines — spread evenly across blade width
+    var tineSpacing = pw / (nt - 1);
+    for (var ti = 0; ti < nt; ti++) {
+      var tx = -pw/2 + ti * tineSpacing;
+      var tineH = 0.5 + sc * 0.1;
+      var tine = new THREE.Mesh(
+        new THREE.BoxGeometry(0.1 + sc*0.015, tineH, 0.65 + sc*0.08),
+        new THREE.MeshLambertMaterial({color:0x777777})
+      );
+      tine.position.set(tx, -(tineH/2), 0.32 + sc*0.04);
+      attachGroup.add(tine);
+
+      // Pointed shoe tip on each tine
+      var shoe = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12 + sc*0.015, 0.18, 0.22),
+        new THREE.MeshLambertMaterial({color:0xaaaaaa})
+      );
+      shoe.position.set(tx, -(tineH), 0.52 + sc*0.04);
+      attachGroup.add(shoe);
+    }
+
+    // Side end-plates
+    [-pw/2 - 0.05, pw/2 + 0.05].forEach(function(ex) {
+      var ep = new THREE.Mesh(
+        new THREE.BoxGeometry(0.1, bh + 0.12, bd * 1.2),
+        new THREE.MeshLambertMaterial({color:0x999999})
+      );
+      ep.position.set(ex, bh/2, 0);
+      attachGroup.add(ep);
     });
-    var arm = new THREE.Mesh(new THREE.BoxGeometry(0.15,0.15,1.2), new THREE.MeshLambertMaterial({color:0x333333}));
-    arm.position.set(0,0.35,-0.6); attachGroup.add(arm);
-    attachGroup.position.set(0,0,1.8);
+
+    // Wing extensions on tier 3+ (wider than 6 units)
+    if (pw >= 7.0) {
+      [-1, 1].forEach(function(side) {
+        var wx2 = side * (pw/2 - 0.8);
+        var wing = new THREE.Mesh(
+          new THREE.BoxGeometry(1.4, bh * 0.85, bd * 0.9),
+          new THREE.MeshLambertMaterial({color:0xbbbbbb})
+        );
+        wing.position.set(wx2, bh/2 + 0.05, bd * 0.35);
+        wing.rotation.y = side * 0.18; // slight angle
+        attachGroup.add(wing);
+      });
+    }
+
+    // Central hitch arm
+    var arm = new THREE.Mesh(
+      new THREE.BoxGeometry(0.14, 0.14, 1.1 + sc * 0.2),
+      new THREE.MeshLambertMaterial({color:0x333333})
+    );
+    arm.position.set(0, 0.3, -(0.55 + sc * 0.1));
+    attachGroup.add(arm);
+
+    // Hydraulic ram (cosmetic)
+    var ram = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.06, 0.06, 0.9 + sc * 0.15, 8),
+      new THREE.MeshLambertMaterial({color:0x555599})
+    );
+    ram.rotation.x = Math.PI / 2;
+    ram.position.set(0.35, 0.5, -(0.3 + sc * 0.05));
+    attachGroup.add(ram);
+
+    // Position behind tractor, offset by scale
+    attachGroup.position.set(0, 0, 1.7 * sc);
   }
 
+  // ── PLANTER ───────────────────────────────────────────
   if (type === 'planter') {
-    var hopper = new THREE.Mesh(new THREE.BoxGeometry(2.8,1.0,0.9), new THREE.MeshLambertMaterial({color:0x228B22}));
-    hopper.position.set(0,1.1,0); attachGroup.add(hopper);
+    var hopW = 2.8 * sc;
+    var hopper = new THREE.Mesh(
+      new THREE.BoxGeometry(hopW, 1.0 * sc, 0.9 * sc),
+      new THREE.MeshLambertMaterial({color:0x228B22})
+    );
+    hopper.position.set(0, 1.1 * sc, 0); attachGroup.add(hopper);
 
-    var lid = new THREE.Mesh(new THREE.BoxGeometry(2.8,0.15,0.9), new THREE.MeshLambertMaterial({color:0x1a6b1a}));
-    lid.position.set(0,1.65,0); lid.rotation.x = 0.18; attachGroup.add(lid);
+    var lid = new THREE.Mesh(
+      new THREE.BoxGeometry(hopW, 0.15 * sc, 0.9 * sc),
+      new THREE.MeshLambertMaterial({color:0x1a6b1a})
+    );
+    lid.position.set(0, 1.65 * sc, 0); lid.rotation.x = 0.18; attachGroup.add(lid);
 
     var selectedCrop = document.getElementById('crop-sel').value;
     var cropCol = G.cropTypes[selectedCrop].color;
-    var stripe = new THREE.Mesh(new THREE.BoxGeometry(2.82,0.22,0.92), new THREE.MeshLambertMaterial({color:cropCol,emissive:cropCol,emissiveIntensity:0.35}));
-    stripe.position.set(0,1.1,0); attachGroup.add(stripe);
+    var stripe = new THREE.Mesh(
+      new THREE.BoxGeometry(hopW + 0.05, 0.22 * sc, (0.92 * sc)),
+      new THREE.MeshLambertMaterial({color:cropCol, emissive:cropCol, emissiveIntensity:0.35})
+    );
+    stripe.position.set(0, 1.1 * sc, 0); attachGroup.add(stripe);
 
-    var pArm = new THREE.Mesh(new THREE.BoxGeometry(0.12,0.12,1.4), new THREE.MeshLambertMaterial({color:0x333333}));
-    pArm.position.set(0,0.4,-0.7); attachGroup.add(pArm);
+    var pArm = new THREE.Mesh(
+      new THREE.BoxGeometry(0.12, 0.12, 1.4 * sc),
+      new THREE.MeshLambertMaterial({color:0x333333})
+    );
+    pArm.position.set(0, 0.4 * sc, -0.7 * sc); attachGroup.add(pArm);
 
-    var beam = new THREE.Mesh(new THREE.BoxGeometry(3.2,0.12,0.12), new THREE.MeshLambertMaterial({color:0x555555}));
-    beam.position.set(0,0.35,0.5); attachGroup.add(beam);
+    var beam = new THREE.Mesh(
+      new THREE.BoxGeometry(hopW * 1.15, 0.12, 0.12),
+      new THREE.MeshLambertMaterial({color:0x555555})
+    );
+    beam.position.set(0, 0.35 * sc, 0.5 * sc); attachGroup.add(beam);
 
-    [-1.2,-0.6,0,0.6,1.2].forEach(function(x) {
-      var tube = new THREE.Mesh(new THREE.CylinderGeometry(0.07,0.04,0.6,8), new THREE.MeshLambertMaterial({color:0x1a5c1a}));
-      tube.position.set(x,0.05,0.5); attachGroup.add(tube);
-      var shoe = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.22,0.35), new THREE.MeshLambertMaterial({color:0x999999}));
-      shoe.position.set(x,-0.22,0.55); attachGroup.add(shoe);
+    var tubeXs = [-1.2,-0.6,0,0.6,1.2];
+    tubeXs.forEach(function(x) {
+      var tube = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.07,0.04,0.6*sc,8),
+        new THREE.MeshLambertMaterial({color:0x1a5c1a})
+      );
+      tube.position.set(x * sc, 0.05*sc, 0.5*sc); attachGroup.add(tube);
+      var shoe2 = new THREE.Mesh(
+        new THREE.BoxGeometry(0.1,0.22*sc,0.35*sc),
+        new THREE.MeshLambertMaterial({color:0x999999})
+      );
+      shoe2.position.set(x * sc, -0.22*sc, 0.55*sc); attachGroup.add(shoe2);
     });
 
     [-1.5,1.5].forEach(function(x) {
-      var gw = new THREE.Mesh(new THREE.CylinderGeometry(0.28,0.28,0.15,12), new THREE.MeshLambertMaterial({color:0x222222}));
-      gw.rotation.z = Math.PI/2; gw.position.set(x,0.28,0.45); attachGroup.add(gw);
+      var gw = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.28*sc,0.28*sc,0.15*sc,12),
+        new THREE.MeshLambertMaterial({color:0x222222})
+      );
+      gw.rotation.z = Math.PI/2; gw.position.set(x*sc, 0.28*sc, 0.45*sc); attachGroup.add(gw);
     });
-    attachGroup.position.set(0,0,1.9);
+
+    attachGroup.position.set(0, 0, 1.9 * sc);
   }
 
+  // ── WATER SPRAYER ─────────────────────────────────────
   if (type === 'water') {
-    var tank = new THREE.Mesh(new THREE.CylinderGeometry(0.5,0.5,1.8,12), new THREE.MeshLambertMaterial({color:0x2080ff}));
-    tank.rotation.z = Math.PI/2; tank.position.set(0,1.2,0); attachGroup.add(tank);
-    var bar = new THREE.Mesh(new THREE.BoxGeometry(3.2,0.08,0.08), new THREE.MeshLambertMaterial({color:0x444444}));
-    bar.position.set(0,0.5,0.6); attachGroup.add(bar);
-    for (var nx = -1.4; nx <= 1.5; nx += 0.7) {
-      var nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.05,0.05,0.2,6), new THREE.MeshLambertMaterial({color:0x333333}));
-      nozzle.position.set(nx,0.3,0.6); attachGroup.add(nozzle);
+    var tank = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.5*sc,0.5*sc,1.8*sc,12),
+      new THREE.MeshLambertMaterial({color:0x2080ff})
+    );
+    tank.rotation.z = Math.PI/2; tank.position.set(0, 1.2*sc, 0); attachGroup.add(tank);
+
+    var barW = 3.2 * sc;
+    var bar = new THREE.Mesh(
+      new THREE.BoxGeometry(barW, 0.08, 0.08),
+      new THREE.MeshLambertMaterial({color:0x444444})
+    );
+    bar.position.set(0, 0.5*sc, 0.6*sc); attachGroup.add(bar);
+
+    var nozzleCount = Math.round(5 * sc);
+    for (var ni = 0; ni <= nozzleCount; ni++) {
+      var nx2 = -barW/2 + (barW / nozzleCount) * ni;
+      var nozzle = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.05,0.05,0.2*sc,6),
+        new THREE.MeshLambertMaterial({color:0x333333})
+      );
+      nozzle.position.set(nx2, 0.3*sc, 0.6*sc); attachGroup.add(nozzle);
     }
-    attachGroup.position.set(0,0,1.8);
+    attachGroup.position.set(0, 0, 1.8 * sc);
   }
 
+  // ── HARVESTER ─────────────────────────────────────────
   if (type === 'harvest') {
-    var header = new THREE.Mesh(new THREE.BoxGeometry(3.6,0.6,0.8), new THREE.MeshLambertMaterial({color:0xd4a017}));
-    header.position.set(0,0.3,0); attachGroup.add(header);
+    var header = new THREE.Mesh(
+      new THREE.BoxGeometry(3.6*sc, 0.6*sc, 0.8*sc),
+      new THREE.MeshLambertMaterial({color:0xd4a017})
+    );
+    header.position.set(0, 0.3*sc, 0); attachGroup.add(header);
+
     for (var si = 0; si < 6; si++) {
-      var spoke = new THREE.Mesh(new THREE.BoxGeometry(0.08,1.2,0.08), new THREE.MeshLambertMaterial({color:0x888800}));
-      spoke.rotation.z = (si/6)*Math.PI*2; spoke.position.set(0,0.3,0.1); attachGroup.add(spoke);
+      var spoke = new THREE.Mesh(
+        new THREE.BoxGeometry(0.08,1.2*sc,0.08),
+        new THREE.MeshLambertMaterial({color:0x888800})
+      );
+      spoke.rotation.z = (si/6)*Math.PI*2; spoke.position.set(0, 0.3*sc, 0.1); attachGroup.add(spoke);
     }
-    for (var tx2 = -1.6; tx2 <= 1.7; tx2 += 0.22) {
-      var tooth = new THREE.Mesh(new THREE.BoxGeometry(0.12,0.25,0.18), new THREE.MeshLambertMaterial({color:0xcccccc}));
-      tooth.position.set(tx2,-0.1,0.4); attachGroup.add(tooth);
+
+    for (var tx3 = -1.6*sc; tx3 <= 1.7*sc; tx3 += 0.22*sc) {
+      var tooth = new THREE.Mesh(
+        new THREE.BoxGeometry(0.12,0.25*sc,0.18),
+        new THREE.MeshLambertMaterial({color:0xcccccc})
+      );
+      tooth.position.set(tx3, -0.1*sc, 0.4*sc); attachGroup.add(tooth);
     }
-    attachGroup.position.set(0,0,-2.0);
+    attachGroup.position.set(0, 0, -2.0 * sc);
   }
 
   scene.add(attachGroup);
@@ -409,12 +579,13 @@ function buildAttachment(type) {
 
 function syncAttachment() {
   if (!attachGroup || !tractorGroup) return;
+  var sc = G.tractorDefs[G.tractorIdx].scale;
   attachGroup.position.copy(tractorGroup.position);
   var offset = new THREE.Vector3();
   if (G.attachment === 'plow' || G.attachment === 'water' || G.attachment === 'planter') {
-    offset.set(0, 0, 1.8);
+    offset.set(0, 0, 1.8 * sc);
   } else if (G.attachment === 'harvest') {
-    offset.set(0, 0, -2.0);
+    offset.set(0, 0, -2.1 * sc);
   }
   offset.applyEuler(tractorGroup.rotation);
   attachGroup.position.add(offset);
@@ -461,8 +632,9 @@ function spawnDirt(wx, wz) {
 
 function spawnSmoke() {
   if (smokePool.length > 20) return;
-  var m = new THREE.Mesh(new THREE.SphereGeometry(0.15+Math.random()*.1,5,4), new THREE.MeshLambertMaterial({color:0x888888,transparent:true,opacity:0.5}));
-  m.position.set(tractor.x + Math.sin(tractor.angle)*.5, 2.5+Math.random()*.2, tractor.z + Math.cos(tractor.angle)*.5);
+  var sc = G.tractorDefs[G.tractorIdx].scale;
+  var m = new THREE.Mesh(new THREE.SphereGeometry((0.15+Math.random()*.1)*sc,5,4), new THREE.MeshLambertMaterial({color:0x888888,transparent:true,opacity:0.5}));
+  m.position.set(tractor.x + Math.sin(tractor.angle)*.5, (2.5*sc)+Math.random()*.2, tractor.z + Math.cos(tractor.angle)*.5);
   m.userData = { vy:1.5+Math.random(), life:1 };
   scene.add(m); smokePool.push(m);
 }
@@ -503,7 +675,7 @@ function updateParticles(dt) {
 }
 
 // ═══════════════════════════════════════════════════════
-//  TRACTOR PHYSICS STATE
+//  TRACTOR PHYSICS
 // ═══════════════════════════════════════════════════════
 var tractor = { x:0, z:0, angle:0, speed:0 };
 
@@ -524,7 +696,6 @@ function doPlowField(idx) {
   f.status = 'plowed'; G.fuel -= def.fuel;
   updateFieldMesh(f); updateHUD();
   spawnDirt(f.wx, f.wz);
-  showMsg('Field plowed!');
 }
 
 function doPlanterPlant(idx) {
@@ -536,14 +707,12 @@ function doPlanterPlant(idx) {
   G.money -= ct.buyPrice;
   updateFieldMesh(f); updateHUD();
   for (var si = 0; si < 6; si++) spawnSeed(f.wx, f.wz, ct.color);
-  showMsg(ct.icon + ' ' + crop + ' planted!');
 }
 
 function doWaterField(idx) {
   var f = G.fields[idx];
   f.watered = true;
   for (var wi = 0; wi < 4; wi++) spawnWaterDrop(f.wx, f.wz);
-  showMsg('💧 Watered!');
 }
 
 function doHarvestField(idx) {
@@ -552,7 +721,6 @@ function doHarvestField(idx) {
   var amt = Math.floor(def.eff * (1 + Math.random()));
   G.crops[f.crop] += amt; f.status = 'empty'; f.crop = null; f.plantDay = 0;
   updateFieldMesh(f); updateHUD();
-  showMsg('🌾 Harvested ' + amt + '!');
 }
 
 G.doAction = function() {
@@ -563,26 +731,26 @@ G.doAction = function() {
   if (G.attachment === 'planter' && f.status === 'plowed')  { doPlanterPlant(ci); return; }
   if (G.attachment === 'water'   && f.status === 'planted') { doWaterField(ci);   return; }
   if (G.attachment === 'harvest' && f.status === 'ready')   { doHarvestField(ci); return; }
-  if (!G.attachment && f.status === 'plowed') showMsg('🌱 Attach Planter to plant! [Key 2]');
+  if (!G.attachment && f.status === 'plowed') showMsg('🌱 Attach Planter! [Key 2]');
 };
 
 G.attachPlow = function() {
   G.attachment = 'plow'; buildAttachment('plow'); updateAttachUI();
-  showMsg('🔧 Plow attached! Drive over empty fields.');
+  var def = G.tractorDefs[G.tractorIdx];
+  showMsg('🔧 Plow attached — ' + def.plowW.toFixed(1) + 'u wide, ' + def.tines + ' tines');
 };
 G.attachPlanter = function() {
   G.attachment = 'planter'; buildAttachment('planter'); updateAttachUI();
   var crop = document.getElementById('crop-sel').value;
-  var ct = G.cropTypes[crop];
-  showMsg('🌱 Planter loaded with ' + ct.icon + ' ' + crop + '! Drive over plowed fields.');
+  showMsg('🌱 Planter loaded with ' + G.cropTypes[crop].icon + ' ' + crop);
 };
 G.attachWater = function() {
   G.attachment = 'water'; buildAttachment('water'); updateAttachUI();
-  showMsg('💧 Sprayer attached! Drive over planted fields.');
+  showMsg('💧 Sprayer attached!');
 };
 G.attachHarvest = function() {
   G.attachment = 'harvest'; buildAttachment('harvest'); updateAttachUI();
-  showMsg('🌾 Harvester attached! Drive over ready crops.');
+  showMsg('🌾 Harvester attached!');
 };
 G.detach = function() {
   G.attachment = null; buildAttachment(null); updateAttachUI();
@@ -595,9 +763,7 @@ G.nextDay = function() {
   G.fields.forEach(function(f) {
     if (f.status === 'planted') {
       var ct = G.cropTypes[f.crop];
-      if ((G.day - f.plantDay) >= ct.growTime) {
-        f.status = 'ready'; updateFieldMesh(f);
-      }
+      if ((G.day - f.plantDay) >= ct.growTime) { f.status = 'ready'; updateFieldMesh(f); }
     }
   });
   if (Math.random() < 0.1) {
@@ -619,8 +785,8 @@ G.sellCrops = function() {
 };
 
 G.refuel = function() {
-  if (G.money < 20) { showMsg('Not enough money!'); return; }
-  G.money -= 20; G.fuel = 100; updateHUD(); showMsg('⛽ Tank full!');
+  if (G.money < 10) { showMsg('Not enough money!'); return; }
+  G.money -= 10; G.fuel = 100; updateHUD(); showMsg('⛽ Tank full!');
 };
 
 G.buyLand = function() {
@@ -631,14 +797,15 @@ G.buyLand = function() {
 G.switchTractor = function(idx) {
   var def = G.tractorDefs[idx];
   if (!def.owned) {
-    if (G.money < def.price) { showMsg('Need $' + def.price + '!'); return; }
+    if (G.money < def.price) { showMsg('Need $' + def.price.toLocaleString() + '!'); return; }
     G.money -= def.price; def.owned = true; updateHUD();
     showMsg('🚜 Purchased ' + def.name + '!');
   }
   G.tractorIdx = idx;
-  buildTractor(def); buildAttachment(G.attachment);
+  buildTractor(def);
+  buildAttachment(G.attachment);
   renderTractorList();
-  showMsg('Driving: ' + def.name);
+  showMsg('Driving: ' + def.name + ' (size ' + def.scale + 'x)');
 };
 
 // ═══════════════════════════════════════════════════════
@@ -670,11 +837,19 @@ function updateSellPreview() {
 }
 
 function renderTractorList() {
-  document.getElementById('tractor-list').innerHTML = G.tractorDefs.map(function(t,i) {
+  document.getElementById('tractor-list').innerHTML = G.tractorDefs.map(function(t, i) {
+    var sizeBar = '';
+    for (var s = 0; s < 6; s++) {
+      sizeBar += '<span style="display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:2px;background:' +
+        (s < i + 1 ? '#f5c542' : 'rgba(255,255,255,.15)') + '"></span>';
+    }
     return '<div class="tractor-card ' + (i===G.tractorIdx?'active':'') + ' ' + (!t.owned&&G.money<t.price?'locked':'') + '" onclick="G.switchTractor(' + i + ')">' +
       '<div class="tractor-name">🚜 ' + t.name + '</div>' +
       '<div class="tractor-info">Spd:' + t.speed + ' Eff:' + t.eff + 'x Fuel:' + t.fuel + '</div>' +
-      (t.owned ? '<div class="tractor-price" style="color:#4caf50">✓ Owned</div>' : '<div class="tractor-price">$' + t.price.toLocaleString() + '</div>') +
+      '<div class="tractor-scale">' + sizeBar + ' ' + t.scale + 'x · Plow ' + t.plowW + 'u</div>' +
+      (t.owned
+        ? '<div class="tractor-price" style="color:#4caf50">✓ Owned</div>'
+        : '<div class="tractor-price">$' + t.price.toLocaleString() + '</div>') +
       '</div>';
   }).join('');
 }
@@ -684,7 +859,7 @@ function showMsg(text) {
   var el = document.getElementById('msg');
   el.textContent = text; el.style.opacity = '1';
   clearTimeout(msgTimer);
-  msgTimer = setTimeout(function() { el.style.opacity = '0'; }, 2500);
+  msgTimer = setTimeout(function() { el.style.opacity = '0'; }, 2800);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -701,26 +876,31 @@ function drawMinimap() {
   });
   var mtx = ((tractor.x - gridOffX)/CELL)*cs + cs/2;
   var mtz = ((tractor.z - gridOffZ)/CELL)*cs + cs/2;
+  // Draw tractor dot sized by scale
+  var dotR = 3 + G.tractorDefs[G.tractorIdx].scale;
   mmCtx.fillStyle = '#ff4444';
-  mmCtx.beginPath(); mmCtx.arc(mtx, mtz, 3.5, 0, Math.PI*2); mmCtx.fill();
+  mmCtx.beginPath(); mmCtx.arc(mtx, mtz, dotR, 0, Math.PI*2); mmCtx.fill();
 }
 
 // ═══════════════════════════════════════════════════════
-//  CAMERA
+//  CAMERA  (zoom out for bigger tractors)
 // ═══════════════════════════════════════════════════════
 function updateCamera() {
   if (!tractorGroup) return;
+  var sc = G.tractorDefs[G.tractorIdx].scale;
+  var followDist = 14 + sc * 5;
+  var followHeight = 8 + sc * 3;
   var tp = tractorGroup.position;
   if (camMode === 0) {
-    var ctx = tp.x - Math.sin(tractor.angle)*14;
-    var ctz = tp.z - Math.cos(tractor.angle)*14;
-    camera.position.lerp(new THREE.Vector3(ctx, 8, ctz), 0.08);
-    camera.lookAt(tp.x, 1.5, tp.z);
+    var ctx = tp.x - Math.sin(tractor.angle) * followDist;
+    var ctz = tp.z - Math.cos(tractor.angle) * followDist;
+    camera.position.lerp(new THREE.Vector3(ctx, followHeight, ctz), 0.08);
+    camera.lookAt(tp.x, sc * 1.5, tp.z);
   } else if (camMode === 1) {
-    camera.position.lerp(new THREE.Vector3(tp.x, 35, tp.z), 0.05);
+    camera.position.lerp(new THREE.Vector3(tp.x, 40 + sc*8, tp.z), 0.05);
     camera.lookAt(tp.x, 0, tp.z);
   } else {
-    camera.position.set(0, 50, 0);
+    camera.position.set(0, 60, 0);
     camera.lookAt(0, 0, 0);
   }
 }
@@ -773,10 +953,10 @@ function animate(now) {
     var ci = getTractorCell();
     if (ci >= 0) {
       var af = G.fields[ci];
-      if      (G.attachment==='plow'    && af.status==='empty'   && G.fuel>0) doPlowField(ci);
-      else if (G.attachment==='planter' && af.status==='plowed')               doPlanterPlant(ci);
-      else if (G.attachment==='water'   && af.status==='planted')              doWaterField(ci);
-      else if (G.attachment==='harvest' && af.status==='ready')                doHarvestField(ci);
+      if      (G.attachment==='plow'    && af.status==='empty'   && G.fuel>=0) doPlowField(ci);
+      else if (G.attachment==='planter' && af.status==='plowed')                doPlanterPlant(ci);
+      else if (G.attachment==='water'   && af.status==='planted')               doWaterField(ci);
+      else if (G.attachment==='harvest' && af.status==='ready')                 doHarvestField(ci);
     }
     updateSellPreview();
   }
@@ -808,13 +988,138 @@ document.getElementById('crop-sel').addEventListener('change', function() {
   if (G.attachment === 'planter') buildAttachment('planter');
 });
 
-// Boot
-buildTractor(G.tractorDefs[0]);
+// ═══════════════════════════════════════════════════════
+//  SAVE / LOAD  (localStorage — persists across page reloads)
+// ═══════════════════════════════════════════════════════
+var SAVE_KEY = 'farmDynasty3D_save';
+
+function serializeFields() {
+  return G.fields.map(function(f) {
+    return { status: f.status, crop: f.crop, plantDay: f.plantDay, watered: f.watered };
+  });
+}
+
+function applyFieldData(data) {
+  data.forEach(function(fd, i) {
+    var f = G.fields[i];
+    f.status   = fd.status;
+    f.crop     = fd.crop;
+    f.plantDay = fd.plantDay;
+    f.watered  = fd.watered;
+    updateFieldMesh(f);
+  });
+}
+
+G.saveGame = function() {
+  var save = {
+    money:      G.money,
+    day:        G.day,
+    fuel:       G.fuel,
+    season:     G.season,
+    crops:      JSON.parse(JSON.stringify(G.crops)),
+    tractorIdx: G.tractorIdx,
+    attachment: G.attachment,
+    tractorOwned: G.tractorDefs.map(function(d){ return d.owned; }),
+    fields:     serializeFields(),
+    tractor:    { x: tractor.x, z: tractor.z, angle: tractor.angle },
+    savedAt:    Date.now()
+  };
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+    showMsg('💾 Game saved!');
+    updateSaveInfo();
+  } catch(e) {
+    showMsg('⚠️ Save failed: ' + e.message);
+  }
+};
+
+function loadGame() {
+  var raw;
+  try { raw = localStorage.getItem(SAVE_KEY); } catch(e) { return false; }
+  if (!raw) return false;
+  try {
+    var save = JSON.parse(raw);
+    G.money      = save.money      || 1500;
+    G.day        = save.day        || 1;
+    G.fuel       = save.fuel       != null ? save.fuel : 100;
+    G.season     = save.season     || 0;
+    G.crops      = save.crops      || { wheat:0, corn:0, potatoes:0 };
+    G.tractorIdx = save.tractorIdx || 0;
+    G.attachment = save.attachment || null;
+
+    if (save.tractorOwned) {
+      save.tractorOwned.forEach(function(owned, i) {
+        if (G.tractorDefs[i]) G.tractorDefs[i].owned = owned;
+      });
+    }
+
+    if (save.tractor) {
+      tractor.x     = save.tractor.x     || 0;
+      tractor.z     = save.tractor.z     || 0;
+      tractor.angle = save.tractor.angle || 0;
+    }
+
+    if (save.fields && save.fields.length === G.fields.length) {
+      applyFieldData(save.fields);
+    }
+
+    return save.savedAt || true;
+  } catch(e) {
+    console.warn('Save load failed:', e);
+    return false;
+  }
+}
+
+G.resetGame = function() {
+  if (!confirm('Reset all progress? This cannot be undone.')) return;
+  try { localStorage.removeItem(SAVE_KEY); } catch(e) {}
+  location.reload();
+};
+
+function updateSaveInfo() {
+  var el = document.getElementById('save-info');
+  if (!el) return;
+  try {
+    var raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) { el.textContent = 'No save'; return; }
+    var s = JSON.parse(raw);
+    var d = new Date(s.savedAt);
+    var pad = function(n){ return n < 10 ? '0'+n : ''+n; };
+    el.textContent = 'Saved ' + pad(d.getMonth()+1)+'/'+pad(d.getDate())+' '+pad(d.getHours())+':'+pad(d.getMinutes());
+  } catch(e) { el.textContent = ''; }
+}
+
+// Auto-save every 60 seconds
+setInterval(function() {
+  G.saveGame();
+}, 60000);
+
+// Also save on page hide (tab close / navigation)
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'hidden') G.saveGame();
+});
+window.addEventListener('beforeunload', function() {
+  G.saveGame();
+});
+
+// ── Boot ──────────────────────────────────────────────
+var savedAt = loadGame();  // load before building anything
+
+var startDef = G.tractorDefs[G.tractorIdx];
+buildTractor(startDef);
+buildAttachment(G.attachment);
 renderTractorList();
 updateHUD();
 updateSellPreview();
 updateAttachUI();
-showMsg('WASD drive · 1=Plow 2=Planter 3=Sprayer 4=Harvest · Space=Action · C=Cam');
+updateSaveInfo();
+
+if (savedAt) {
+  showMsg('🌱 Farm loaded! Day ' + G.day + ' · $' + G.money.toLocaleString());
+} else {
+  showMsg('WASD drive · 1=Plow 2=Planter 3=Sprayer 4=Harvest · Space=Action · C=Cam');
+}
+
 animate(0);
 </script>
 </body>
