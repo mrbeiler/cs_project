@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deep Earth Mining Co.</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#07080d;--surface:#0f1018;--surface2:#161820;--surface3:#1c1e2a;
+  --border:#2a2d3a;--border2:#3a3d50;
+  --text:#d8d0c4;--text-dim:#6b6a72;--text-muted:#4a4a55;
+  --gold:#f5c842;--gold-dim:#7a6118;--gold-bg:rgba(245,200,66,0.06);
+  --green:#22c55e;--red:#ef4444;--blue:#38bdf8;--purple:#a78bfa;
+  --font-h:'Cinzel',serif;--font-n:'Share Tech Mono',monospace;
+}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--font-n);font-size:13px;min-height:100vh;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(ellipse 80% 40% at 20% 80%,rgba(245,200,66,0.04) 0%,transparent 60%),radial-gradient(ellipse 60% 60% at 80% 20%,rgba(99,88,255,0.03) 0%,transparent 50%),url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0}
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.07) 2px,rgba(0,0,0,0.07) 4px);pointer-events:none;z-index:999}
+
+/* ===== TOP BAR ===== */
+#top-bar{position:sticky;top:0;z-index:100;background:rgba(7,8,13,0.97);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:10px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:0 4px 24px rgba(0,0,0,0.6)}
+.logo{font-family:var(--font-h);font-size:14px;font-weight:900;letter-spacing:.12em;color:var(--gold);text-shadow:0 0 20px rgba(245,200,66,0.5);white-space:nowrap}
+.top-stats{display:flex;gap:10px;flex-wrap:wrap;flex:1}
+.stat-chip{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;white-space:nowrap}
+.stat-chip .label{color:var(--text-dim);font-size:10px}
+.stat-chip .value{color:var(--gold);font-size:13px;font-weight:700}
+.stat-chip.rebirth-chip{border-color:#a78bfa88;background:rgba(167,139,250,0.08)}
+.stat-chip.rebirth-chip .value{color:var(--purple)}
+.top-buttons{display:flex;gap:7px}
+.btn-top{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:5px 12px;border-radius:6px;cursor:pointer;font-family:var(--font-n);font-size:11px;transition:all .15s;white-space:nowrap}
+.btn-top:hover{border-color:var(--gold);color:var(--gold)}
+.btn-top.danger:hover{border-color:var(--red);color:var(--red)}
+.btn-top.rebirth-pulse{border-color:var(--purple);color:var(--purple);animation:rebirthPulse 2s ease-in-out infinite}
+@keyframes rebirthPulse{0%,100%{box-shadow:0 0 0 0 rgba(167,139,250,0)}50%{box-shadow:0 0 12px 3px rgba(167,139,250,0.3)}}
+
+/* ===== OFFLINE BANNER ===== */
+#offline-banner{position:relative;z-index:10;background:linear-gradient(135deg,#1a1400,#1f1c00);border-bottom:1px solid #5a4800;padding:12px 20px;display:flex;align-items:center;gap:14px;animation:slideDown .4s ease}
+#offline-banner.hidden{display:none}
+@keyframes slideDown{from{transform:translateY(-100%);opacity:0}to{transform:none;opacity:1}}
+.offline-text{flex:1}.offline-text strong{color:var(--gold);font-size:13px;display:block;margin-bottom:2px}.offline-text span{color:#a89030;font-size:11px}
+.btn-collect{background:var(--gold);color:#000;border:none;padding:7px 18px;border-radius:6px;cursor:pointer;font-family:var(--font-h);font-weight:700;font-size:11px;letter-spacing:.06em;transition:all .15s;white-space:nowrap}
+.btn-collect:hover{background:#ffe066;transform:translateY(-1px);box-shadow:0 4px 12px rgba(245,200,66,0.4)}
+
+/* ===== TABS ===== */
+#tabs-bar{position:relative;z-index:5;background:var(--surface);border-bottom:1px solid var(--border);display:flex;padding:0 20px}
+.tab-btn{background:none;border:none;border-bottom:2px solid transparent;color:var(--text-dim);font-family:var(--font-n);font-size:11px;letter-spacing:.08em;padding:10px 16px;cursor:pointer;transition:all .2s;white-space:nowrap}
+.tab-btn:hover{color:var(--text)}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold)}
+.tab-btn.notify{position:relative}.tab-btn.notify::after{content:'●';position:absolute;top:6px;right:6px;font-size:7px;color:var(--green);animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+.tab-panel{display:none}.tab-panel.active{display:block}
+
+/* ===== MAIN WRAPPER ===== */
+#main-wrapper{position:relative;z-index:1;max-width:1280px;margin:0 auto;padding:20px 16px}
+
+/* ===== MINES GRID ===== */
+#mines-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:18px}
+
+/* ===== MINE CARD ===== */
+.mine-card{background:var(--surface);border-radius:12px;border:1px solid var(--border);overflow:hidden;transition:box-shadow .3s,border-color .3s;position:relative}
+.mine-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--mine-color,var(--gold)),transparent)}
+.mine-card:hover{box-shadow:0 0 28px -6px var(--mine-color,rgba(245,200,66,0.3));border-color:color-mix(in srgb,var(--mine-color,var(--border)) 40%,var(--border))}
+.mine-card.locked{opacity:.55;filter:grayscale(.5)}
+
+.mine-header{padding:12px 14px 10px;display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--border);background:rgba(255,255,255,0.02)}
+.mine-icon{font-size:24px;filter:drop-shadow(0 0 6px var(--mine-color,#f5c842))}
+.mine-title-block{flex:1;min-width:0}
+.mine-name{font-family:var(--font-h);font-size:12px;font-weight:700;color:var(--text);letter-spacing:.08em}
+.mine-subtitle{color:var(--text-dim);font-size:10px;margin-top:1px}
+.mine-rate-badge{background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:20px;padding:3px 9px;font-size:10px;color:var(--mine-color,var(--gold));white-space:nowrap}
+
+/* ===== SHAFT CANVAS ===== */
+.shaft-wrap{position:relative;border-bottom:1px solid var(--border);background:#050508;overflow:hidden}
+.shaft-canvas{display:block;width:100%;height:130px}
+.shaft-overlay{position:absolute;top:4px;left:6px;font-size:9px;color:rgba(255,255,255,0.3);letter-spacing:.05em;pointer-events:none}
+.shaft-overlay-right{position:absolute;top:4px;right:6px;font-size:9px;color:rgba(255,255,255,0.25);pointer-events:none;text-align:right}
+
+/* ===== STORAGE SECTION ===== */
+.storage-section{padding:10px 14px;border-bottom:1px solid var(--border)}
+.storage-header{display:flex;justify-content:space-between;margin-bottom:5px;color:var(--text-dim);font-size:10px}
+.storage-bar-bg{height:7px;border-radius:4px;background:rgba(255,255,255,0.06);overflow:hidden}
+.storage-bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--mine-color,var(--gold)),color-mix(in srgb,var(--mine-color,var(--gold)) 60%,white));transition:width .4s ease;box-shadow:0 0 6px var(--mine-color,var(--gold))}
+.collect-btn{width:100%;margin-top:8px;padding:7px;background:rgba(255,255,255,0.04);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-n);font-size:11px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
+.collect-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.06),transparent);transform:translateX(-100%);transition:transform .4s}
+.collect-btn:hover::before{transform:translateX(100%)}
+.collect-btn:hover:not(:disabled){border-color:var(--mine-color,var(--gold));color:var(--mine-color,var(--gold));background:rgba(245,200,66,0.06)}
+.collect-btn:disabled{opacity:.4;cursor:default}
+.collect-btn.managed{border-color:var(--green);color:var(--green);background:rgba(34,197,94,0.06);opacity:1;cursor:default}
+
+/* ===== UPGRADES SECTION ===== */
+.upgrades-section{padding:10px 14px;display:flex;flex-direction:column;gap:6px}
+.upgrade-row{display:flex;align-items:center;gap:8px}
+.upgrade-label{flex:1;color:var(--text-dim);font-size:10px;line-height:1.4}
+.upgrade-label strong{color:var(--text);font-size:11px;display:block}
+.upgrade-btn{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:5px 10px;border-radius:6px;cursor:pointer;font-family:var(--font-n);font-size:10px;white-space:nowrap;transition:all .15s;min-width:96px;text-align:center}
+.upgrade-btn:hover:not(:disabled){border-color:var(--mine-color,var(--gold));color:var(--mine-color,var(--gold));background:rgba(245,200,66,0.05);transform:translateY(-1px)}
+.upgrade-btn:disabled{opacity:.3;cursor:default;transform:none}
+.upgrade-btn.owned{border-color:var(--green);color:var(--green);opacity:1;cursor:default;background:rgba(34,197,94,0.06)}
+.upgrade-btn.max{border-color:var(--gold);color:var(--gold);opacity:1;cursor:default;background:rgba(245,200,66,0.06)}
+
+/* ===== LOCKED OVERLAY ===== */
+.locked-overlay{padding:18px 14px;text-align:center}
+.locked-icon{font-size:28px;margin-bottom:6px;filter:grayscale(.8)}
+.locked-title{font-family:var(--font-h);font-size:12px;letter-spacing:.08em;color:var(--text-dim);margin-bottom:5px}
+.unlock-btn{display:inline-block;background:var(--surface2);border:1px solid var(--gold-dim);color:var(--gold);padding:8px 20px;border-radius:8px;cursor:pointer;font-family:var(--font-h);font-size:11px;letter-spacing:.08em;transition:all .2s;margin-top:8px}
+.unlock-btn:hover:not(:disabled){background:rgba(245,200,66,0.1);border-color:var(--gold);box-shadow:0 0 18px rgba(245,200,66,0.25);transform:translateY(-1px)}
+.unlock-btn:disabled{opacity:.3;cursor:default;transform:none}
+
+/* ===== RESEARCH PANEL ===== */
+#research-panel{display:flex;flex-direction:column;gap:24px}
+.research-branch{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.branch-header{padding:12px 16px;background:rgba(255,255,255,0.02);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.branch-icon{font-size:20px}
+.branch-title{font-family:var(--font-h);font-size:13px;font-weight:700;color:var(--text);letter-spacing:.08em}
+.branch-desc{color:var(--text-dim);font-size:10px;margin-top:1px}
+.research-grid{display:flex;flex-wrap:wrap;gap:10px;padding:14px}
+.research-node{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;min-width:180px;flex:1;cursor:pointer;transition:all .2s;position:relative}
+.research-node:hover:not(.res-owned):not(.res-locked){border-color:var(--node-color,var(--gold));transform:translateY(-2px);box-shadow:0 4px 16px rgba(0,0,0,0.4)}
+.research-node.res-owned{border-color:var(--green);background:rgba(34,197,94,0.05);cursor:default}
+.research-node.res-locked{opacity:.4;cursor:not-allowed}
+.research-node.res-available{border-color:color-mix(in srgb,var(--node-color,var(--gold)) 50%,transparent)}
+.res-node-icon{font-size:22px;margin-bottom:6px;display:block}
+.res-node-name{font-family:var(--font-h);font-size:11px;font-weight:700;color:var(--text);letter-spacing:.06em;margin-bottom:3px}
+.res-node-desc{font-size:10px;color:var(--text-dim);line-height:1.5;margin-bottom:6px}
+.res-node-cost{font-size:10px;color:var(--gold)}
+.res-node-cost.owned{color:var(--green)}
+.res-node-cost.locked{color:var(--text-muted)}
+.res-arrow{color:var(--border2);font-size:16px;display:flex;align-items:center;padding-top:14px}
+
+/* ===== REBIRTH PANEL ===== */
+#rebirth-panel{}
+.rebirth-info-card{background:linear-gradient(135deg,rgba(167,139,250,0.08),rgba(99,60,255,0.04));border:1px solid rgba(167,139,250,0.3);border-radius:12px;padding:24px;margin-bottom:20px;text-align:center}
+.rebirth-title{font-family:var(--font-h);font-size:20px;color:var(--purple);letter-spacing:.12em;margin-bottom:8px;text-shadow:0 0 20px rgba(167,139,250,0.5)}
+.rebirth-desc{color:var(--text-dim);font-size:12px;line-height:1.7;max-width:500px;margin:0 auto 16px}
+.rebirth-stats{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:18px}
+.rebirth-stat{background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:8px;padding:10px 18px;text-align:center}
+.rebirth-stat .rs-val{font-size:20px;font-weight:700;color:var(--purple);display:block}
+.rebirth-stat .rs-lab{font-size:10px;color:var(--text-dim);display:block;margin-top:2px}
+.btn-rebirth{background:linear-gradient(135deg,#6d28d9,#7c3aed);border:none;color:#fff;padding:12px 36px;border-radius:8px;cursor:pointer;font-family:var(--font-h);font-size:14px;letter-spacing:.1em;transition:all .2s;box-shadow:0 4px 20px rgba(109,40,217,0.4)}
+.btn-rebirth:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 28px rgba(109,40,217,0.6)}
+.btn-rebirth:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.rebirth-shop-title{font-family:var(--font-h);font-size:14px;color:var(--purple);letter-spacing:.1em;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid rgba(167,139,250,0.2)}
+.rebirth-shop-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px}
+.rebirth-upgrade{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:all .2s;position:relative}
+.rebirth-upgrade:hover:not(.ru-maxed){border-color:rgba(167,139,250,0.5);transform:translateY(-2px);box-shadow:0 4px 16px rgba(109,40,217,0.25)}
+.rebirth-upgrade.ru-maxed{border-color:rgba(167,139,250,0.4);background:rgba(167,139,250,0.05);cursor:default}
+.ru-icon{font-size:20px;margin-bottom:6px}
+.ru-name{font-family:var(--font-h);font-size:11px;font-weight:700;color:var(--text);letter-spacing:.06em;margin-bottom:3px}
+.ru-desc{font-size:10px;color:var(--text-dim);line-height:1.5;margin-bottom:8px}
+.ru-footer{display:flex;justify-content:space-between;align-items:center}
+.ru-cost{font-size:11px;color:var(--purple)}
+.ru-level{font-size:10px;color:var(--text-dim)}
+.ru-progress{height:3px;background:rgba(255,255,255,0.08);border-radius:2px;margin-top:6px;overflow:hidden}
+.ru-progress-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#a78bfa);border-radius:2px;transition:width .3s}
+
+/* ===== ACHIEVEMENTS PANEL ===== */
+.achievements-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.achievement{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;display:flex;gap:12px;align-items:flex-start;transition:all .2s}
+.achievement.ach-unlocked{border-color:rgba(245,200,66,0.4);background:rgba(245,200,66,0.04)}
+.achievement.ach-locked{opacity:.5}
+.ach-icon{font-size:26px;flex-shrink:0;filter:grayscale(.6)}
+.achievement.ach-unlocked .ach-icon{filter:none;filter:drop-shadow(0 0 6px rgba(245,200,66,0.5))}
+.ach-body{flex:1;min-width:0}
+.ach-name{font-family:var(--font-h);font-size:11px;font-weight:700;color:var(--text);letter-spacing:.06em;margin-bottom:3px}
+.ach-desc{font-size:10px;color:var(--text-dim);line-height:1.5;margin-bottom:5px}
+.ach-reward{font-size:10px;color:var(--gold)}
+.ach-unlock-time{font-size:9px;color:var(--text-muted);margin-top:3px}
+
+/* ===== EVENT LOG ===== */
+#event-log-section{margin-top:18px;background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.log-header{padding:8px 14px;background:rgba(255,255,255,0.02);border-bottom:1px solid var(--border);font-family:var(--font-h);font-size:10px;letter-spacing:.1em;color:var(--text-dim)}
+#event-log{max-height:100px;overflow-y:auto;padding:4px 0}
+.log-entry{padding:3px 14px;font-size:10px;color:var(--text-dim);border-bottom:1px solid rgba(255,255,255,0.02);animation:fadeIn .3s ease}
+.log-entry .time{color:var(--text-muted);margin-right:6px}
+.log-entry .amount{color:var(--gold)}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:none}}
+
+/* ===== COIN POP ===== */
+.coin-pop{position:fixed;font-size:12px;color:var(--gold);font-family:var(--font-n);font-weight:700;pointer-events:none;z-index:9999;text-shadow:0 0 8px rgba(245,200,66,0.6);animation:popUp .9s ease forwards}
+@keyframes popUp{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-48px) scale(0.8)}}
+
+/* ===== NOTIFICATION TOAST ===== */
+#toast{position:fixed;bottom:20px;right:20px;z-index:9998;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast-item{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:12px 16px;max-width:320px;animation:toastIn .3s ease;pointer-events:auto}
+.toast-item.toast-achievement{border-color:rgba(245,200,66,0.5);background:linear-gradient(135deg,rgba(245,200,66,0.08),var(--surface))}
+.toast-item.toast-rebirth{border-color:rgba(167,139,250,0.5);background:linear-gradient(135deg,rgba(167,139,250,0.08),var(--surface))}
+.toast-title{font-family:var(--font-h);font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.08em;margin-bottom:3px}
+.toast-item.toast-rebirth .toast-title{color:var(--purple)}
+.toast-body{font-size:10px;color:var(--text-dim)}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+
+/* ===== MODAL ===== */
+#modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:500;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+#modal-overlay.hidden{display:none}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:26px 30px;max-width:400px;width:90%;text-align:center}
+.modal-box h2{font-family:var(--font-h);color:var(--gold);margin-bottom:10px;font-size:17px}
+.modal-box p{color:var(--text-dim);line-height:1.6;margin-bottom:18px;font-size:12px}
+.modal-btns{display:flex;gap:10px;justify-content:center}
+.modal-btn{padding:8px 22px;border-radius:6px;border:1px solid var(--border);cursor:pointer;font-family:var(--font-n);font-size:11px;background:var(--surface2);color:var(--text);transition:all .15s}
+.modal-btn.confirm{border-color:var(--red);color:var(--red)}.modal-btn.confirm:hover{background:rgba(239,68,68,0.1)}
+.modal-btn:hover{border-color:var(--text)}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* ===== RESPONSIVE ===== */
+@media(max-width:600px){
+  #top-bar{padding:8px 10px;gap:8px}.logo{font-size:11px}
+  #main-wrapper{padding:12px 8px}#mines-grid{grid-template-columns:1fr}
+  .tab-btn{padding:8px 10px;font-size:10px}
+}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<header id="top-bar">
+  <div class="logo">⛏ DEEP EARTH MINING Co.</div>
+  <div class="top-stats">
+    <div class="stat-chip"><span class="label">COINS</span><span class="value" id="disp-coins">0</span></div>
+    <div class="stat-chip"><span class="label">INCOME</span><span class="value" id="disp-income">0</span><span class="label">/s</span></div>
+    <div class="stat-chip"><span class="label">ALL TIME</span><span class="value" id="disp-total">0</span></div>
+    <div class="stat-chip rebirth-chip"><span class="label">REBIRTHS</span><span class="value" id="disp-rebirths">0</span></div>
+    <div class="stat-chip rebirth-chip"><span class="label">ESSENCE</span><span class="value" id="disp-de">0</span></div>
+  </div>
+  <div class="top-buttons">
+    <button class="btn-top" id="btn-rebirth-top" onclick="openRebirthTab()" style="display:none">♻️ REBIRTH</button>
+    <button class="btn-top" onclick="saveGame()">💾 Save</button>
+    <button class="btn-top danger" onclick="confirmReset()">🔄 Reset</button>
+  </div>
+</header>
+
+<!-- OFFLINE BANNER -->
+<div id="offline-banner" class="hidden">
+  <div class="offline-text"><strong>⏰ Welcome Back!</strong><span id="offline-msg">You earned coins while away.</span></div>
+  <button class="btn-collect" onclick="collectOffline()">⚡ Collect</button>
+</div>
+
+<!-- TABS -->
+<div id="tabs-bar">
+  <button class="tab-btn active" data-tab="mines" onclick="switchTab('mines')">⛏ MINES</button>
+  <button class="tab-btn" data-tab="research" onclick="switchTab('research')">🔬 RESEARCH</button>
+  <button class="tab-btn" data-tab="rebirth" onclick="switchTab('rebirth')">♻️ REBIRTH</button>
+  <button class="tab-btn" data-tab="achievements" onclick="switchTab('achievements')">🏆 ACHIEVEMENTS</button>
+</div>
+
+<!-- MAIN -->
+<div id="main-wrapper">
+
+  <!-- MINES TAB -->
+  <div id="tab-mines" class="tab-panel active">
+    <div id="mines-grid"></div>
+    <div id="event-log-section">
+      <div class="log-header">📜 EVENT LOG</div>
+      <div id="event-log"></div>
+    </div>
+  </div>
+
+  <!-- RESEARCH TAB -->
+  <div id="tab-research" class="tab-panel">
+    <div id="research-panel"></div>
+  </div>
+
+  <!-- REBIRTH TAB -->
+  <div id="tab-rebirth" class="tab-panel">
+    <div id="rebirth-panel"></div>
+  </div>
+
+  <!-- ACHIEVEMENTS TAB -->
+  <div id="tab-achievements" class="tab-panel">
+    <div id="achievements-panel" class="achievements-grid"></div>
+  </div>
+
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay" class="hidden">
+  <div class="modal-box" id="modal-box">
+    <h2 id="modal-title">⚠ Reset Game?</h2>
+    <p id="modal-body">This will permanently erase all your progress. This cannot be undone.</p>
+    <div class="modal-btns">
+      <button class="modal-btn" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn confirm" id="modal-confirm-btn" onclick="resetGame()">Reset Everything</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast"></div>
+
+<script>
+/* ==============================================================
+   DEEP EARTH MINING Co. v2.0 — Full Idle RPG
+   8 Mines | Physical Shaft Visualization | Rebirth System
+   16 Research Upgrades | 9 Per-Mine Upgrades | 16 Achievements
+   ============================================================== */
+
+// ─────────────────────────────────────────
+// MINE DEFINITIONS
+// ─────────────────────────────────────────
+const MINE_DEFS = [
+  { id:'gold',    name:'Gold Mine',      emoji:'🥇', resource:'Gold',       color:'#f5c842', baseRate:1.0,   coinValue:2,      maxStorage:80,   unlockCost:0,         workerHireBase:30,    baseDepth:50,   rockColor:'#1e1508', subtitle:'Shallow alluvial deposits' },
+  { id:'coal',    name:'Coal Shaft',     emoji:'⬛', resource:'Coal',       color:'#9ca3af', baseRate:2.5,   coinValue:5,      maxStorage:150,  unlockCost:500,       workerHireBase:60,    baseDepth:130,  rockColor:'#0e1116', subtitle:'Dense carboniferous seams' },
+  { id:'iron',    name:'Iron Works',     emoji:'🔩', resource:'Iron Ore',   color:'#e07840', baseRate:1.8,   coinValue:14,     maxStorage:120,  unlockCost:3000,      workerHireBase:130,   baseDepth:220,  rockColor:'#1a0e08', subtitle:'Rich hematite ore veins' },
+  { id:'gems',    name:'Gem Cavern',     emoji:'💎', resource:'Gemstones',  color:'#06b6d4', baseRate:0.45,  coinValue:85,     maxStorage:35,   unlockCost:25000,     workerHireBase:420,   baseDepth:380,  rockColor:'#0a1619', subtitle:'Crystalline pegmatite chambers' },
+  { id:'ruby',    name:'Ruby Pit',       emoji:'🔴', resource:'Rubies',     color:'#e11d48', baseRate:0.22,  coinValue:480,    maxStorage:22,   unlockCost:200000,    workerHireBase:2200,  baseDepth:650,  rockColor:'#1a0306', subtitle:'Deep volcanic corundum' },
+  { id:'diamond', name:'Diamond Vault',  emoji:'🔷', resource:'Diamonds',   color:'#a78bfa', baseRate:0.1,   coinValue:2200,   maxStorage:12,   unlockCost:1500000,   workerHireBase:16000, baseDepth:1100, rockColor:'#100b1a', subtitle:'Kimberlite pipe deposits' },
+  { id:'mithril', name:'Mithril Core',   emoji:'✨', resource:'Mithril',    color:'#38bdf8', baseRate:0.045, coinValue:25000,  maxStorage:8,    unlockCost:15000000,  workerHireBase:130000,baseDepth:2800, rockColor:'#030b14', subtitle:'Mythical deep-earth ore' },
+  { id:'void',    name:'Void Crystal',   emoji:'🌌', resource:'Void Shards',color:'#c084fc', baseRate:0.018, coinValue:300000, maxStorage:5,    unlockCost:150000000, workerHireBase:1800000,baseDepth:12000,rockColor:'#07000f', subtitle:'Dimensional rift anomalies' },
+];
+
+// ─────────────────────────────────────────
+// RESEARCH DEFINITIONS
+// ─────────────────────────────────────────
+const RESEARCH_BRANCHES = [
+  {
+    id:'engineering', name:'Engineering', icon:'⚙️', color:'#f59e0b', desc:'Improve mining machinery and infrastructure',
+    nodes:[
+      { id:'better_picks',    name:'Better Pickaxes',    desc:'+15% all mine production rates',    cost:600,     icon:'⛏️',  effect:{type:'rate',  val:1.15} },
+      { id:'steel_supports',  name:'Steel Supports',     desc:'+25% max storage all mines',        cost:2000,    icon:'🏗️',  effect:{type:'store', val:1.25}, req:'better_picks' },
+      { id:'hydraulic_lifts', name:'Hydraulic Lifts',    desc:'+35% all mine production rates',    cost:10000,   icon:'🔧',  effect:{type:'rate',  val:1.35}, req:'steel_supports' },
+      { id:'auto_drills',     name:'Automated Drills',   desc:'+60% all mine production rates',    cost:75000,   icon:'🤖',  effect:{type:'rate',  val:1.60}, req:'hydraulic_lifts' },
+      { id:'nano_excavators', name:'Nano Excavators',    desc:'×2 all mine production rates',      cost:800000,  icon:'💠',  effect:{type:'rate',  val:2.00}, req:'auto_drills' },
+    ]
+  },
+  {
+    id:'chemistry', name:'Chemistry', icon:'⚗️', color:'#10b981', desc:'Extract greater value from every ore',
+    nodes:[
+      { id:'ore_processing',  name:'Ore Processing',     desc:'+20% coin value from all mines',    cost:800,     icon:'⚗️',  effect:{type:'value', val:1.20} },
+      { id:'acid_leaching',   name:'Acid Leaching',      desc:'+35% coin value from all mines',    cost:4000,    icon:'🧪',  effect:{type:'value', val:1.35}, req:'ore_processing' },
+      { id:'smelting',        name:'Smelting Complex',   desc:'+60% coin value from all mines',    cost:30000,   icon:'🔥',  effect:{type:'value', val:1.60}, req:'acid_leaching' },
+      { id:'nano_refinery',   name:'Nano Refinery',      desc:'×2.5 coin value from all mines',    cost:350000,  icon:'💊',  effect:{type:'value', val:2.50}, req:'smelting' },
+      { id:'quantum_purify',  name:'Quantum Purifier',   desc:'×3 coin value from all mines',      cost:5000000, icon:'🌀',  effect:{type:'value', val:3.00}, req:'nano_refinery' },
+    ]
+  },
+  {
+    id:'geology', name:'Geology', icon:'🌍', color:'#3b82f6', desc:'Survey the earth and reduce costs',
+    nodes:[
+      { id:'seismic_survey',  name:'Seismic Survey',     desc:'-15% all upgrade and hire costs',   cost:1200,    icon:'📡',  effect:{type:'cost',  val:0.85} },
+      { id:'deep_scan',       name:'Deep Scan',          desc:'-20% all upgrade costs',            cost:7000,    icon:'🔭',  effect:{type:'cost',  val:0.80}, req:'seismic_survey' },
+      { id:'fault_mapping',   name:'Fault Mapping',      desc:'+50% max storage all mines',        cost:45000,   icon:'🗺️',  effect:{type:'store', val:1.50}, req:'deep_scan' },
+      { id:'mantle_probe',    name:'Mantle Probe',       desc:'-30% costs & +40% production',      cost:400000,  icon:'🌋',  effect:{type:'combo', rateMult:1.40, costMult:0.70}, req:'fault_mapping' },
+    ]
+  },
+  {
+    id:'economics', name:'Economics', icon:'💼', color:'#f472b6', desc:'Unlock trade networks and market advantages',
+    nodes:[
+      { id:'trade_routes',    name:'Trade Routes',       desc:'+15% total income multiplier',      cost:2000,    icon:'💼',  effect:{type:'income',val:1.15} },
+      { id:'futures_market',  name:'Futures Market',     desc:'+30% total income multiplier',      cost:15000,   icon:'📈',  effect:{type:'income',val:1.30}, req:'trade_routes' },
+      { id:'black_market',    name:'Black Market',       desc:'+60% total income multiplier',      cost:120000,  icon:'🕵️', effect:{type:'income',val:1.60}, req:'futures_market' },
+      { id:'galactic_export', name:'Galactic Exports',   desc:'×3 total income multiplier',        cost:2000000, icon:'🚀',  effect:{type:'income',val:3.00}, req:'black_market' },
+    ]
+  }
+];
+
+// ─────────────────────────────────────────
+// REBIRTH UPGRADES
+// ─────────────────────────────────────────
+const REBIRTH_UPGRADES = [
+  { id:'head_start',      name:'Head Start',        icon:'🚀', desc:'Begin each run with bonus starting coins (+100% per level)',    maxLv:10, baseCost:2,  costMult:1.5 },
+  { id:'veteran_miners',  name:'Veteran Miners',    icon:'⛏️', desc:'+20% all mine production rates per level',                      maxLv:10, baseCost:3,  costMult:1.6 },
+  { id:'market_insight',  name:'Market Insight',    icon:'💰', desc:'+25% all coin values per level',                                maxLv:10, baseCost:3,  costMult:1.6 },
+  { id:'union_discount',  name:'Union Discount',    icon:'👷', desc:'-8% all worker hire costs per level',                           maxLv:5,  baseCost:4,  costMult:2.0 },
+  { id:'deep_sleep',      name:'Deep Sleep',        icon:'💤', desc:'+20% offline earnings efficiency per level',                    maxLv:5,  baseCost:3,  costMult:1.8 },
+  { id:'expansion',       name:'Expansion Plans',   icon:'📦', desc:'+40% max storage all mines per level',                          maxLv:5,  baseCost:4,  costMult:2.0 },
+  { id:'surveyed_land',   name:'Surveyed Land',     icon:'🗺️', desc:'Start with the next mine pre-unlocked (per level)',             maxLv:3,  baseCost:8,  costMult:3.0 },
+  { id:'de_resonance',    name:'Deep Resonance',    icon:'💠', desc:'+30% Deep Essence gained per rebirth',                          maxLv:8,  baseCost:5,  costMult:1.8 },
+  { id:'headhunting',     name:'Headhunting',       icon:'🧑‍💼',desc:'-15% manager hire costs per level',                             maxLv:4,  baseCost:3,  costMult:2.0 },
+  { id:'trained_crew',    name:'Trained Crew',      icon:'⛏️', desc:'Start first mine with +2 extra workers per level',              maxLv:5,  baseCost:5,  costMult:2.0 },
+  { id:'synergy',         name:'Synergy Matrix',    icon:'🔗', desc:'+8% production for each other unlocked mine per level',         maxLv:5,  baseCost:6,  costMult:2.2 },
+  { id:'lucky_strike',    name:'Lucky Strike',      icon:'⚡', desc:'+7% chance of 3× collection windfall per level',               maxLv:10, baseCost:4,  costMult:1.7 },
+  { id:'deep_memory',     name:'Deep Memory',       icon:'🧠', desc:'Retain 5% of research costs when rebirthting (per level ×5%)',  maxLv:5,  baseCost:7,  costMult:2.5 },
+  { id:'shaft_mastery',   name:'Shaft Mastery',     icon:'🕳️', desc:'Start with shaft depth +1 in all unlocked mines per level',    maxLv:3,  baseCost:8,  costMult:3.0 },
+];
+
+// ─────────────────────────────────────────
+// ACHIEVEMENTS
+// ─────────────────────────────────────────
+const ACHIEVEMENT_DEFS = [
+  { id:'first_collect', name:'First Strike',        icon:'⛏️', desc:'Collect resources for the first time',        cond:g=>g.totalEarned>=20,        reward:'coins', rVal:50 },
+  { id:'coins_1k',      name:'Thousand Coins',      icon:'🪙', desc:'Earn 1,000 total coins',                      cond:g=>g.totalEarned>=1000,      reward:'coins', rVal:500 },
+  { id:'coins_100k',    name:'Rich Vein',            icon:'💰', desc:'Earn 100,000 total coins',                    cond:g=>g.totalEarned>=100000,    reward:'coins', rVal:50000 },
+  { id:'coins_1m',      name:'Millionaire',          icon:'💎', desc:'Earn 1,000,000 total coins',                  cond:g=>g.totalEarned>=1e6,       reward:'coins', rVal:500000 },
+  { id:'coins_1b',      name:'Tycoon',               icon:'🏆', desc:'Earn 1,000,000,000 total coins',              cond:g=>g.totalEarned>=1e9,       reward:'coins', rVal:1e8 },
+  { id:'coins_1t',      name:'Plutocrat',            icon:'👑', desc:'Earn 1,000,000,000,000 total coins',          cond:g=>g.totalEarned>=1e12,      reward:'de',    rVal:50 },
+  { id:'all_mines',     name:'Full Excavation',      icon:'🌍', desc:'Unlock all 8 mines',                          cond:g=>g.mines.every(m=>m.unlocked), reward:'coins', rVal:5e6 },
+  { id:'workers_10',    name:'Small Team',           icon:'👷', desc:'Have 10 workers in any single mine',          cond:g=>g.mines.some(m=>m.workers>=10), reward:'coins', rVal:2000 },
+  { id:'workers_50',    name:'Big Operation',        icon:'🏭', desc:'Have 50 workers in any single mine',          cond:g=>g.mines.some(m=>m.workers>=50), reward:'coins', rVal:200000 },
+  { id:'workers_100',   name:'Workforce',            icon:'🌆', desc:'Have 100 workers total across all mines',     cond:g=>g.mines.reduce((a,m)=>a+m.workers,0)>=100, reward:'de', rVal:5 },
+  { id:'mine_lv5',      name:'Deep Digger',          icon:'🏔️', desc:'Upgrade any mine to level 5',                cond:g=>g.mines.some(m=>m.mineLevel>=5), reward:'coins', rVal:15000 },
+  { id:'mine_lv10',     name:'Legendary Shaft',      icon:'⛰️', desc:'Upgrade any mine to level 10',               cond:g=>g.mines.some(m=>m.mineLevel>=10), reward:'de', rVal:3 },
+  { id:'all_managers',  name:'Fully Automated',      icon:'🤖', desc:'Hire managers in all unlocked mines',         cond:g=>g.mines.filter(m=>m.unlocked).every(m=>m.hasManager), reward:'de', rVal:2 },
+  { id:'first_rebirth', name:'Reborn',               icon:'♻️', desc:'Complete your first rebirth',                cond:g=>g.rebirths>=1,            reward:'de',    rVal:10 },
+  { id:'rebirth_5',     name:'Seasoned Veteran',     icon:'🔄', desc:'Complete 5 rebirths',                         cond:g=>g.rebirths>=5,            reward:'de',    rVal:30 },
+  { id:'rebirth_10',    name:'Eternal Miner',        icon:'🌀', desc:'Complete 10 rebirths',                        cond:g=>g.rebirths>=10,           reward:'de',    rVal:100 },
+];
+
+// ─────────────────────────────────────────
+// DEFAULT STATE
+// ─────────────────────────────────────────
+function defaultState() {
+  return {
+    coins: 50, totalEarned: 50, lastSave: Date.now(),
+    rebirths: 0, deepEssence: 0, totalDE: 0,
+    research: {},      // id -> true
+    rebirthUpgrades: {}, // id -> level
+    achievements: {},  // id -> timestamp
+    mines: MINE_DEFS.map(def => ({
+      id: def.id,
+      unlocked:    def.unlockCost === 0,
+      workers:     def.unlockCost === 0 ? 1 : 0,
+      workerLevel: 1,
+      mineLevel:   1,
+      hasManager:  false,
+      stored:      0,
+      shaftDepth:  0,  // 0-5 levels
+      oreCart:     0,  // 0-5 levels
+      ventilation: 0,  // 0-4 levels
+      blastDrill:  0,  // 0-3 levels
+      assayLab:    0,  // 0-4 levels
+    }))
+  };
+}
+
+let G = defaultState();
+let offlineCoins = 0;
+let pendingModalAction = null;
+
+// ─────────────────────────────────────────
+// HELPERS / FORMULAS
+// ─────────────────────────────────────────
+const getDef  = id => MINE_DEFS.find(d => d.id === id);
+const getState= id => G.mines.find(m => m.id === id);
+
+function researchMults() {
+  let rateMult = 1, valueMult = 1, costMult = 1, incomeMult = 1, storeMult = 1;
+  Object.keys(G.research).forEach(rid => {
+    for (const br of RESEARCH_BRANCHES) {
+      const node = br.nodes.find(n => n.id === rid);
+      if (!node) continue;
+      const e = node.effect;
+      if (e.type === 'rate')   rateMult   *= e.val;
+      if (e.type === 'value')  valueMult  *= e.val;
+      if (e.type === 'cost')   costMult   *= e.val;
+      if (e.type === 'income') incomeMult *= e.val;
+      if (e.type === 'store')  storeMult  *= e.val;
+      if (e.type === 'combo')  { rateMult *= e.rateMult; costMult *= e.costMult; }
+    }
+  });
+  return { rateMult, valueMult, costMult, incomeMult, storeMult };
+}
+
+function rebirthBonus() {
+  const ru = G.rebirthUpgrades || {};
+  const lv = id => ru[id] || 0;
+  return {
+    startCoins:      100 * (Math.pow(5, lv('head_start')) - 1),
+    rateMult:        1 + 0.20 * lv('veteran_miners'),
+    valueMult:       1 + 0.25 * lv('market_insight'),
+    workerCostMult:  1 - 0.08 * lv('union_discount'),
+    offlineMult:     0.5 + 0.20 * lv('deep_sleep'),
+    storeMult:       1 + 0.40 * lv('expansion'),
+    preUnlocked:     lv('surveyed_land'),
+    deGainMult:      1 + 0.30 * lv('de_resonance'),
+    managerCostMult: 1 - 0.15 * lv('headhunting'),
+    extraWorkers:    2 * lv('trained_crew'),
+    synergyBonus:    0.08 * lv('synergy'),
+    luckyCrit:       0.07 * lv('lucky_strike'),
+    shaftStart:      lv('shaft_mastery'),
+  };
+}
+
+function mineRate(s) {
+  if (!s.unlocked || s.workers === 0) return 0;
+  const def = getDef(s.id);
+  const rm = researchMults();
+  const rb = rebirthBonus();
+  const wm = 1 + 0.5  * (s.workerLevel - 1);
+  const mm = 1 + 1.0  * (s.mineLevel   - 1);
+  const vm = 1 + 0.25 * s.ventilation;
+  const dm = 1 + 0.30 * s.shaftDepth;
+  // Synergy: bonus per other unlocked mine
+  const otherUnlocked = G.mines.filter(m => m.unlocked && m.id !== s.id).length;
+  const syn = 1 + rb.synergyBonus * otherUnlocked;
+  return s.workers * def.baseRate * wm * mm * vm * dm * rm.rateMult * rb.rateMult * syn;
+}
+
+function mineIncome(s) {
+  const def = getDef(s.id);
+  const rm = researchMults();
+  const rb = rebirthBonus();
+  return mineRate(s) * def.coinValue * rm.valueMult * rb.valueMult * rm.incomeMult;
+}
+
+function totalIncome() {
+  return G.mines.reduce((sum, s) => {
+    if (!s.unlocked || !s.hasManager) return sum;
+    return sum + mineIncome(s);
+  }, 0);
+}
+
+function maxStorage(s) {
+  const rm = researchMults();
+  const rb = rebirthBonus();
+  const cm = 1 + 0.50 * s.oreCart;
+  return getDef(s.id).maxStorage * s.mineLevel * rm.storeMult * rb.storeMult * cm;
+}
+
+// ── Upgrade Costs ──────────────────────────────────────────
+function costMult() {
+  const rm = researchMults();
+  const rb = rebirthBonus();
+  return rm.costMult;  // rebirth worker cost applied per formula
+}
+
+function costHireWorker(s) {
+  const def = getDef(s.id);
+  const rb = rebirthBonus();
+  return Math.ceil(def.workerHireBase * Math.pow(1.18, s.workers) * s.mineLevel * costMult() * rb.workerCostMult);
+}
+function costWorkerUpgrade(s) {
+  return Math.ceil(80 * Math.pow(2.2, s.workerLevel - 1) * s.mineLevel * costMult());
+}
+function costMineUpgrade(s) {
+  return Math.ceil(250 * Math.pow(3.0, s.mineLevel - 1) * (MINE_DEFS.findIndex(d=>d.id===s.id)+1) * costMult());
+}
+function costManager(s) {
+  const rb = rebirthBonus();
+  return Math.ceil(800 * s.mineLevel * (MINE_DEFS.findIndex(d=>d.id===s.id)+1) * costMult() * rb.managerCostMult);
+}
+function costShaftDepth(s) {
+  if (s.shaftDepth >= 5) return Infinity;
+  return Math.ceil(500 * Math.pow(4.0, s.shaftDepth) * (MINE_DEFS.findIndex(d=>d.id===s.id)+1) * costMult());
+}
+function costOreCart(s) {
+  if (s.oreCart >= 5) return Infinity;
+  return Math.ceil(600 * Math.pow(3.5, s.oreCart) * s.mineLevel * costMult());
+}
+function costVentilation(s) {
+  if (s.ventilation >= 4) return Infinity;
+  return Math.ceil(450 * Math.pow(3.0, s.ventilation) * s.mineLevel * costMult());
+}
+function costBlastDrill(s) {
+  if (s.blastDrill >= 3) return Infinity;
+  return Math.ceil(1200 * Math.pow(5.0, s.blastDrill) * (MINE_DEFS.findIndex(d=>d.id===s.id)+1) * costMult());
+}
+function costAssayLab(s) {
+  if (s.assayLab >= 4) return Infinity;
+  return Math.ceil(2000 * Math.pow(4.5, s.assayLab) * s.mineLevel * costMult());
+}
+
+// ─────────────────────────────────────────
+// FORMATTING
+// ─────────────────────────────────────────
+function fmt(n) {
+  if (n === Infinity) return '∞';
+  if (n >= 1e15) return (n/1e15).toFixed(2)+'Q';
+  if (n >= 1e12) return (n/1e12).toFixed(2)+'T';
+  if (n >= 1e9)  return (n/1e9 ).toFixed(2)+'B';
+  if (n >= 1e6)  return (n/1e6 ).toFixed(2)+'M';
+  if (n >= 1e3)  return (n/1e3 ).toFixed(1)+'K';
+  return Math.floor(n).toLocaleString();
+}
+function fmtTime(ms) {
+  const s = Math.floor(ms/1000);
+  if (s < 60)  return s+'s ago';
+  const m = Math.floor(s/60);
+  if (m < 60)  return m+'m ago';
+  const h = Math.floor(m/60);
+  if (h < 24)  return h+'h ago';
+  return Math.floor(h/24)+'d ago';
+}
+
+// ─────────────────────────────────────────
+// SAVE / LOAD
+// ─────────────────────────────────────────
+const SAVE_KEY = 'deepEarth_v3';
+
+function saveGame(silent=false) {
+  G.lastSave = Date.now();
+  localStorage.setItem(SAVE_KEY, JSON.stringify(G));
+  if (!silent) addLog('💾 Game saved.');
+  document.getElementById('disp-save') && (document.getElementById('disp-save').textContent = 'Just now');
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const saved = JSON.parse(raw);
+    const base = defaultState();
+    G.coins          = saved.coins          ?? base.coins;
+    G.totalEarned    = saved.totalEarned    ?? base.totalEarned;
+    G.lastSave       = saved.lastSave       ?? base.lastSave;
+    G.rebirths       = saved.rebirths       ?? 0;
+    G.deepEssence    = saved.deepEssence    ?? 0;
+    G.totalDE        = saved.totalDE        ?? 0;
+    G.research       = saved.research       ?? {};
+    G.rebirthUpgrades= saved.rebirthUpgrades?? {};
+    G.achievements   = saved.achievements   ?? {};
+    G.mines = base.mines.map(bm => {
+      const sm = (saved.mines||[]).find(m => m.id === bm.id);
+      return sm ? { ...bm, ...sm } : bm;
+    });
+    return true;
+  } catch(e) { console.error(e); return false; }
+}
+
+function confirmReset() {
+  document.getElementById('modal-title').textContent = '⚠ Reset Game?';
+  document.getElementById('modal-body').textContent  = 'This will permanently erase ALL progress, upgrades, and earnings. This cannot be undone.';
+  document.getElementById('modal-confirm-btn').onclick = resetGame;
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+function closeModal() { document.getElementById('modal-overlay').classList.add('hidden'); }
+function resetGame() {
+  localStorage.removeItem(SAVE_KEY);
+  G = defaultState();
+  closeModal();
+  renderAll();
+  renderResearch();
+  renderRebirth();
+  renderAchievements();
+  updateHUD();
+  addLog('🔄 Game reset to defaults.');
+}
+
+// ─────────────────────────────────────────
+// OFFLINE PROGRESS
+// ─────────────────────────────────────────
+function calcOffline() {
+  const elapsed = (Date.now() - G.lastSave) / 1000;
+  if (elapsed < 10) return 0;
+  const effectiveTime = Math.min(elapsed, 10 * 3600);
+  const rb = rebirthBonus();
+  let earned = 0;
+  G.mines.forEach(s => {
+    if (!s.unlocked || !s.hasManager) return;
+    earned += mineIncome(s) * effectiveTime * rb.offlineMult;
+  });
+  return earned;
+}
+
+// ─────────────────────────────────────────
+// REBIRTH SYSTEM
+// ─────────────────────────────────────────
+function calcDE(totalEarned) {
+  const rb = rebirthBonus();
+  return Math.floor(Math.sqrt(totalEarned / 500) * rb.deGainMult);
+}
+
+function canRebirth() {
+  return G.totalEarned >= 10000;
+}
+
+function doRebirth() {
+  if (!canRebirth()) return;
+  const de = Math.max(0, calcDE(G.totalEarned) - G.totalDE);
+  G.deepEssence += de;
+  G.totalDE     += de;
+  G.rebirths    += 1;
+
+  const rb = rebirthBonus();
+  const keepResearch = {};
+  const retainFrac = 0.05 * (G.rebirthUpgrades['deep_memory'] || 0);
+  // Retain partial research (deep memory)
+  if (retainFrac > 0) {
+    Object.keys(G.research).forEach(rid => {
+      if (Math.random() < retainFrac * 20) keepResearch[rid] = true;
+    });
+  }
+
+  addLog(`♻️ <span class="amount">REBIRTH #${G.rebirths}</span> — Earned +${fmt(de)} Deep Essence`);
+
+  // Reset mine states
+  G.mines = MINE_DEFS.map((def, idx) => ({
+    id:          def.id,
+    unlocked:    def.unlockCost === 0 || idx < (1 + rb.preUnlocked),
+    workers:     def.unlockCost === 0 ? (1 + (idx===0 ? rb.extraWorkers : 0)) : 0,
+    workerLevel: 1,
+    mineLevel:   1,
+    hasManager:  false,
+    stored:      0,
+    shaftDepth:  def.unlockCost === 0 ? rb.shaftStart : 0,
+    oreCart:     0,
+    ventilation: 0,
+    blastDrill:  0,
+    assayLab:    0,
+  }));
+
+  G.coins       = 50 + rb.startCoins;
+  G.totalEarned = G.coins;
+  G.research    = keepResearch;
+
+  renderAll();
+  renderResearch();
+  renderRebirth();
+  renderAchievements();
+  updateHUD();
+  showToast('♻️ Rebirth Complete!', `+${fmt(de)} Deep Essence earned. Multipliers apply immediately.`, 'rebirth');
+}
+
+function rebirthUpgCost(id) {
+  const def = REBIRTH_UPGRADES.find(r => r.id === id);
+  const lv  = G.rebirthUpgrades[id] || 0;
+  return Math.ceil(def.baseCost * Math.pow(def.costMult, lv));
+}
+
+function buyRebirthUpgrade(id) {
+  const def = REBIRTH_UPGRADES.find(r => r.id === id);
+  const lv  = G.rebirthUpgrades[id] || 0;
+  if (lv >= def.maxLv) return;
+  const cost = rebirthUpgCost(id);
+  if (G.deepEssence < cost) return;
+  G.deepEssence -= cost;
+  G.rebirthUpgrades[id] = lv + 1;
+  addLog(`💠 Rebirth upgrade: <span class="amount">${def.name}</span> Lv.${lv+1}`);
+  renderRebirth();
+  updateHUD();
+}
+
+// ─────────────────────────────────────────
+// RESEARCH
+// ─────────────────────────────────────────
+function canResearch(nodeId) {
+  if (G.research[nodeId]) return false;
+  for (const br of RESEARCH_BRANCHES) {
+    const node = br.nodes.find(n => n.id === nodeId);
+    if (!node) continue;
+    if (node.req && !G.research[node.req]) return false;
+    return true;
+  }
+  return false;
+}
+
+function buyResearch(nodeId) {
+  if (!canResearch(nodeId)) return;
+  let node = null;
+  for (const br of RESEARCH_BRANCHES) {
+    node = br.nodes.find(n => n.id === nodeId);
+    if (node) break;
+  }
+  if (!node || G.coins < node.cost) return;
+  G.coins -= node.cost;
+  G.research[nodeId] = true;
+  addLog(`🔬 Research: <span class="amount">${node.name}</span> complete!`);
+  renderResearch();
+  renderAll();
+  updateHUD();
+  checkAchievements();
+}
+
+// ─────────────────────────────────────────
+// MINE ACTIONS
+// ─────────────────────────────────────────
+function collectMine(id, showPop=true, evt=null) {
+  const s = getState(id);
+  const def = getDef(id);
+  if (s.stored < 0.01) return;
+  const rb = rebirthBonus();
+  let coins = s.stored * def.coinValue * researchMults().valueMult * researchMults().incomeMult * rb.valueMult;
+  // Lucky crit
+  if (Math.random() < rb.luckyCrit) { coins *= 3; if (showPop && evt) spawnPop('⚡ LUCKY ×3!', evt.clientX, evt.clientY - 20); }
+  G.coins       += coins;
+  G.totalEarned += coins;
+  if (showPop && evt) spawnPop('+'+fmt(coins)+' 🪙', evt.clientX, evt.clientY);
+  addLog(`⛏ Collected <span class="amount">+${fmt(coins)} coins</span> from ${def.name}`);
+  s.stored = 0;
+  updateMineCard(id);
+  updateHUD();
+  checkAchievements();
+}
+
+function hireWorker(id)       { const s=getState(id); const c=costHireWorker(s); if(G.coins<c)return; G.coins-=c; s.workers++;   addLog(`👷 Hired worker at ${getDef(id).name} (${s.workers} workers)`); renderMineCard(id); updateHUD(); checkAchievements(); }
+function upgradeWorker(id)    { const s=getState(id); const c=costWorkerUpgrade(s); if(G.coins<c)return; G.coins-=c; s.workerLevel++; addLog(`⬆️ Workers Lv.${s.workerLevel} at ${getDef(id).name}`); renderMineCard(id); updateHUD(); }
+function upgradeMine(id)      { const s=getState(id); const c=costMineUpgrade(s); if(G.coins<c)return; G.coins-=c; s.mineLevel++;  addLog(`🏔️ ${getDef(id).name} Mine Lv.${s.mineLevel}`); renderMineCard(id); updateHUD(); checkAchievements(); }
+function hireManager(id)      { const s=getState(id); if(s.hasManager)return; const c=costManager(s); if(G.coins<c)return; G.coins-=c; s.hasManager=true; addLog(`🧑‍💼 Manager hired at ${getDef(id).name}!`); renderMineCard(id); updateHUD(); checkAchievements(); }
+function upgradeShaftDepth(id){ const s=getState(id); if(s.shaftDepth>=5)return; const c=costShaftDepth(s); if(G.coins<c)return; G.coins-=c; s.shaftDepth++; addLog(`🕳️ Shaft deepened to tier ${s.shaftDepth} at ${getDef(id).name}`); renderMineCard(id); updateHUD(); checkAchievements(); }
+function upgradeOreCart(id)   { const s=getState(id); if(s.oreCart>=5)return; const c=costOreCart(s); if(G.coins<c)return; G.coins-=c; s.oreCart++;     addLog(`🛒 Ore Cart Lv.${s.oreCart} at ${getDef(id).name}`); renderMineCard(id); updateHUD(); }
+function upgradeVentilation(id){ const s=getState(id); if(s.ventilation>=4)return; const c=costVentilation(s); if(G.coins<c)return; G.coins-=c; s.ventilation++; addLog(`💨 Ventilation Lv.${s.ventilation} at ${getDef(id).name}`); renderMineCard(id); updateHUD(); }
+function upgradeBlastDrill(id){ const s=getState(id); if(s.blastDrill>=3)return; const c=costBlastDrill(s); if(G.coins<c)return; G.coins-=c; s.blastDrill++;
+  // Blast: instant burst + permanent bonus
+  const burst = mineIncome(s) * 30;
+  G.coins += burst; G.totalEarned += burst;
+  addLog(`💣 Blast Drill Lv.${s.blastDrill}! Burst: <span class="amount">+${fmt(burst)} coins</span>`);
+  renderMineCard(id); updateHUD(); }
+function upgradeAssayLab(id)  { const s=getState(id); if(s.assayLab>=4)return; const c=costAssayLab(s); if(G.coins<c)return; G.coins-=c; s.assayLab++;   addLog(`🔬 Assay Lab Lv.${s.assayLab} at ${getDef(id).name}`); renderMineCard(id); updateHUD(); }
+
+function unlockMine(id) {
+  const def = getDef(id);
+  const s   = getState(id);
+  if (G.coins < def.unlockCost) return;
+  G.coins  -= def.unlockCost;
+  s.unlocked = true;
+  s.workers  = 1;
+  addLog(`🔓 Unlocked <span class="amount">${def.name}</span>!`);
+  renderMineCard(id);
+  updateHUD();
+  checkAchievements();
+}
+
+function collectOffline() {
+  G.coins += offlineCoins; G.totalEarned += offlineCoins;
+  addLog(`⏰ Offline: <span class="amount">+${fmt(offlineCoins)} coins</span>`);
+  offlineCoins = 0;
+  document.getElementById('offline-banner').classList.add('hidden');
+  updateHUD(); checkAchievements();
+}
+
+// ─────────────────────────────────────────
+// ACHIEVEMENTS
+// ─────────────────────────────────────────
+function checkAchievements() {
+  let dirty = false;
+  ACHIEVEMENT_DEFS.forEach(def => {
+    if (G.achievements[def.id]) return;
+    if (def.cond(G)) {
+      G.achievements[def.id] = Date.now();
+      dirty = true;
+      if (def.reward === 'coins') { G.coins += def.rVal; G.totalEarned += def.rVal; }
+      if (def.reward === 'de')    { G.deepEssence += def.rVal; G.totalDE += def.rVal; }
+      addLog(`🏆 Achievement: <span class="amount">${def.name}</span> — Reward: ${def.reward==='de'?def.rVal+' DE':fmt(def.rVal)+' coins'}`);
+      showToast('🏆 Achievement Unlocked!', `${def.icon} ${def.name}: ${def.desc}`, 'achievement');
+    }
+  });
+  if (dirty) { renderAchievements(); updateHUD(); }
+}
+
+// ─────────────────────────────────────────
+// HUD UPDATE
+// ─────────────────────────────────────────
+function updateHUD() {
+  document.getElementById('disp-coins').textContent   = fmt(G.coins);
+  document.getElementById('disp-income').textContent  = fmt(totalIncome());
+  document.getElementById('disp-total').textContent   = fmt(G.totalEarned);
+  document.getElementById('disp-rebirths').textContent= G.rebirths;
+  document.getElementById('disp-de').textContent      = fmt(G.deepEssence);
+  // Rebirth button
+  const rBtn = document.getElementById('btn-rebirth-top');
+  if (canRebirth()) {
+    rBtn.style.display = '';
+    rBtn.className = 'btn-top rebirth-pulse';
+    const pendDE = Math.max(0, calcDE(G.totalEarned) - G.totalDE);
+    rBtn.textContent = `♻️ REBIRTH (+${fmt(pendDE)} DE)`;
+  } else {
+    rBtn.style.display = 'none';
+  }
+}
+
+// ─────────────────────────────────────────
+// SHAFT CANVAS ANIMATION
+// ─────────────────────────────────────────
+const shaftAnim = {};
+
+function initShaft(id) {
+  shaftAnim[id] = {
+    elevY: 0, elevDir: 1,
+    t: Math.random() * 100,
+    particles: [],
+  };
+}
+
+function drawShaft(id) {
+  const canvas = document.getElementById('shaft-'+id);
+  if (!canvas || !canvas.getContext) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width || canvas.offsetWidth || 360;
+  const H = canvas.height || 130;
+  canvas.width  = canvas.offsetWidth || W;
+  canvas.height = H;
+  const W2 = canvas.width;
+
+  const def = getDef(id);
+  const s   = getState(id);
+  if (!s || !s.unlocked) return;
+  const sa  = shaftAnim[id];
+  if (!sa) return;
+
+  const rate = mineRate(s);
+  sa.t += 0.016;
+  const elevSpeed = Math.max(0.004, Math.min(0.025, 0.004 + rate * 0.003));
+  sa.elevY += sa.elevDir * elevSpeed;
+  if (sa.elevY >= 1) { sa.elevY = 1; sa.elevDir = -1; }
+  if (sa.elevY <= 0) { sa.elevY = 0; sa.elevDir = 1; }
+
+  // Particles
+  if (rate > 0 && Math.random() < Math.min(1, rate * 0.15 + 0.05)) {
+    sa.particles.push({ x: W2*0.4 + Math.random()*W2*0.2, y: H*0.85, vx:(Math.random()-.5)*.6, vy:-(0.4+Math.random()*1.2), life:1, size:1.5+Math.random()*2 });
+  }
+  sa.particles = sa.particles.filter(p => { p.x+=p.vx; p.y+=p.vy; p.life-=0.018; return p.life>0 && p.y>-5; });
+
+  ctx.clearRect(0, 0, W2, H);
+
+  // ── ROCK WALLS ──
+  const shaftL = W2 * 0.32;
+  const shaftR = W2 * 0.68;
+
+  const rg = ctx.createLinearGradient(0, 0, 0, H);
+  rg.addColorStop(0, def.rockColor || '#1e1508');
+  rg.addColorStop(1, shiftColor(def.rockColor || '#1e1508', -20));
+  ctx.fillStyle = rg;
+  ctx.fillRect(0, 0, shaftL, H);
+  ctx.fillRect(shaftR, 0, W2-shaftR, H);
+
+  // Rock layer lines
+  for (let ly = 0; ly < 5; ly++) {
+    const lyY = ly * (H / 5);
+    ctx.fillStyle = 'rgba(0,0,0,0.12)';
+    ctx.fillRect(0, lyY, shaftL, 1);
+    ctx.fillRect(shaftR, lyY, W2-shaftR, 1);
+  }
+
+  // ── ORE VEINS ──
+  const numVeins = 4 + Math.floor(s.mineLevel * 1.2) + s.shaftDepth * 2;
+  for (let i = 0; i < numVeins; i++) {
+    // Procedural but stable positions
+    const seed = i * 7.3 + id.charCodeAt(0);
+    const side  = i % 2;
+    const vx    = side === 0
+      ? 8  + pseudoRand(seed) * (shaftL - 20)
+      : shaftR + 6 + pseudoRand(seed + 1) * (W2 - shaftR - 20);
+    const vy    = 5 + pseudoRand(seed + 2) * (H - 15);
+    const glow  = 0.4 + Math.sin(sa.t * 1.5 + i * 0.8) * 0.25;
+    ctx.save();
+    ctx.shadowBlur = 6 + Math.sin(sa.t + i) * 3;
+    ctx.shadowColor = def.color;
+    ctx.globalAlpha = glow;
+    ctx.fillStyle = def.color;
+    ctx.beginPath();
+    ctx.ellipse(vx, vy, 3 + pseudoRand(seed+3)*3, 2 + pseudoRand(seed+4)*2, pseudoRand(seed+5)*Math.PI, 0, Math.PI*2);
+    ctx.fill();
+    // Thin vein line
+    if (i % 3 !== 0) {
+      ctx.strokeStyle = def.color;
+      ctx.lineWidth = 0.8;
+      ctx.globalAlpha = 0.25;
+      ctx.beginPath();
+      ctx.moveTo(vx, vy);
+      ctx.lineTo(vx + (side?1:-1) * 10 + pseudoRand(seed+6)*8, vy + pseudoRand(seed+7)*12 - 6);
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // ── SHAFT CAVITY ──
+  const cg = ctx.createLinearGradient(shaftL, 0, shaftR, 0);
+  cg.addColorStop(0,   '#06060c');
+  cg.addColorStop(0.5, '#030306');
+  cg.addColorStop(1,   '#06060c');
+  ctx.fillStyle = cg;
+  ctx.fillRect(shaftL, 0, shaftR-shaftL, H);
+
+  // Edge shadows on cavity walls
+  for (let ex = 0; ex < 6; ex++) {
+    ctx.fillStyle = `rgba(0,0,0,${0.1 - ex * 0.015})`;
+    ctx.fillRect(shaftL + ex, 0, 1, H);
+    ctx.fillRect(shaftR - ex - 1, 0, 1, H);
+  }
+
+  // ── SUPPORT BEAMS ──
+  const beams = 3 + s.shaftDepth;
+  for (let b = 0; b < beams; b++) {
+    const by = (b + 1) * H / (beams + 1);
+    // Main beam
+    ctx.fillStyle = '#2a1c0c';
+    ctx.fillRect(shaftL, by-2, shaftR-shaftL, 4);
+    // Grain
+    ctx.fillStyle = '#3a2812';
+    ctx.fillRect(shaftL, by-1, shaftR-shaftL, 1);
+    // Notch brackets
+    ctx.fillStyle = '#444';
+    ctx.fillRect(shaftL-3, by-3, 4, 6);
+    ctx.fillRect(shaftR-1, by-3, 4, 6);
+  }
+
+  // ── RAILS ──
+  const railL = shaftL + (shaftR-shaftL)*0.28;
+  const railR = shaftL + (shaftR-shaftL)*0.72;
+  ctx.strokeStyle = '#403858';
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(railL, 0); ctx.lineTo(railL, H);
+  ctx.moveTo(railR, 0); ctx.lineTo(railR, H);
+  ctx.stroke();
+  // Tie bars
+  ctx.strokeStyle = '#2a2035';
+  ctx.lineWidth = 1;
+  for (let t = 0; t < 10; t++) {
+    const ty = t * H / 10 + H / 20;
+    ctx.beginPath(); ctx.moveTo(railL, ty); ctx.lineTo(railR, ty); ctx.stroke();
+  }
+
+  // ── ELEVATOR CAR ──
+  const eH = 18, eW = railR - railL + 10;
+  const eX = railL - 5;
+  const eY = sa.elevY * (H - eH - 2) + 1;
+  // Shadow under car
+  ctx.fillStyle = 'rgba(0,0,0,0.4)';
+  ctx.fillRect(eX, eY + eH, eW, 3);
+  // Car body
+  const eg = ctx.createLinearGradient(eX, eY, eX, eY+eH);
+  eg.addColorStop(0, def.color + 'cc');
+  eg.addColorStop(1, def.color + '44');
+  ctx.fillStyle = eg;
+  ctx.fillRect(eX, eY, eW, eH);
+  // Car border
+  ctx.strokeStyle = def.color;
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(eX, eY, eW, eH);
+  // Ore fill inside
+  if (s.stored > 0.01) {
+    const fillRatio = Math.min(s.stored / maxStorage(s), 1);
+    ctx.fillStyle = def.color + 'aa';
+    ctx.fillRect(eX+2, eY + eH - 2 - fillRatio*(eH-4), eW-4, fillRatio*(eH-4));
+  }
+  // Car cable
+  ctx.strokeStyle = '#555';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(eX + eW/2, eY); ctx.lineTo(eX + eW/2, 0);
+  ctx.stroke();
+
+  // ── PARTICLES ──
+  ctx.save();
+  sa.particles.forEach(p => {
+    ctx.globalAlpha = p.life * 0.8;
+    ctx.fillStyle = def.color;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+    ctx.fill();
+  });
+  ctx.restore();
+
+  // ── MINERS ──
+  const minerCount = Math.min(s.workers, 6);
+  const cw = shaftR - shaftL;
+  for (let m = 0; m < minerCount; m++) {
+    const mx = shaftL + cw * (0.1 + (m / Math.max(minerCount-1, 1)) * 0.8);
+    const base = H - 10;
+    const my = base + Math.sin(sa.t * 2.5 + m * 1.4) * 2.5;
+    // Body
+    ctx.fillStyle = '#d4a860';
+    ctx.beginPath(); ctx.arc(mx, my - 4, 3, 0, Math.PI*2); ctx.fill();
+    // Helmet
+    ctx.fillStyle = '#e8c870';
+    ctx.beginPath(); ctx.arc(mx, my - 6, 2.5, Math.PI, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(mx+1, my-6.5, 0.8, 0, Math.PI*2); ctx.fill();
+    // Body
+    ctx.fillStyle = '#5a7090';
+    ctx.fillRect(mx-2.5, my-2, 5, 5);
+    // Pickaxe swing
+    const swing = Math.sin(sa.t * 4 + m * 1.7);
+    ctx.save();
+    ctx.translate(mx+3, my-1);
+    ctx.rotate(swing * 0.4 - 0.2);
+    ctx.strokeStyle = '#aaa'; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(5, 3); ctx.stroke();
+    ctx.fillStyle = '#ccc'; ctx.beginPath(); ctx.arc(5,3,1.5,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  // ── DEPTH LABEL ──
+  const depth = Math.floor(def.baseDepth * (1 + (s.mineLevel-1)*0.5 + s.shaftDepth*0.4));
+  ctx.fillStyle = 'rgba(0,0,0,0.55)';
+  ctx.fillRect(shaftR-54, H-16, 52, 14);
+  ctx.fillStyle = def.color;
+  ctx.font = `9px 'Share Tech Mono', monospace`;
+  ctx.textAlign = 'right';
+  ctx.fillText(`⬇ ${fmt(depth)}m`, shaftR-4, H-5);
+  ctx.textAlign = 'left';
+}
+
+function pseudoRand(seed) {
+  const x = Math.sin(seed + 1) * 43758.5453;
+  return x - Math.floor(x);
+}
+
+function shiftColor(hex, amount) {
+  const num = parseInt(hex.replace('#',''), 16);
+  const r = Math.max(0, Math.min(255, (num>>16) + amount));
+  const g = Math.max(0, Math.min(255, ((num>>8)&0xff) + amount));
+  const b = Math.max(0, Math.min(255, (num&0xff) + amount));
+  return '#' + [r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+
+// RAF loop for shaft animation
+let shaftRAF;
+function startShaftLoop() {
+  if (shaftRAF) cancelAnimationFrame(shaftRAF);
+  function loop() {
+    MINE_DEFS.forEach(def => {
+      const s = getState(def.id);
+      if (s && s.unlocked) drawShaft(def.id);
+    });
+    shaftRAF = requestAnimationFrame(loop);
+  }
+  shaftRAF = requestAnimationFrame(loop);
+}
+
+// ─────────────────────────────────────────
+// GAME LOOP (TICK)
+// ─────────────────────────────────────────
+let lastTick = Date.now();
+const TICK_MS = 150;
+
+function tick() {
+  const now = Date.now();
+  const dt  = Math.min((now - lastTick) / 1000, 1.0);
+  lastTick  = now;
+
+  G.mines.forEach(s => {
+    if (!s.unlocked || s.workers === 0) return;
+    const rate = mineRate(s);
+    const ms   = maxStorage(s);
+    s.stored = Math.min(s.stored + rate * dt, ms);
+    if (s.hasManager && s.stored >= ms * 0.7) {
+      collectMine(s.id, false);
+    }
+  });
+
+  // Assay Lab passive: +x% coin value permanently (already via formula), but gives periodic bonus coins
+  G.mines.forEach(s => {
+    if (!s.unlocked || s.assayLab === 0) return;
+    // Assay lab adds 20% value per level (already in buildUnlockedCard as display; applied in mineIncome)
+  });
+
+  updateHUD();
+}
+
+// ─────────────────────────────────────────
+// DISPLAY TICK (buttons, storage bars)
+// ─────────────────────────────────────────
+let displayTickN = 0;
+function displayTick() {
+  displayTickN++;
+  MINE_DEFS.forEach(def => {
+    const s = getState(def.id);
+    if (!s || !s.unlocked) {
+      // Update unlock button
+      const ub = document.getElementById('unlock-'+def.id);
+      if (ub) ub.disabled = G.coins < def.unlockCost;
+      return;
+    }
+    // Fast update storage bar + collect btn
+    const ms = maxStorage(s);
+    const pct = ms > 0 ? Math.min(s.stored / ms * 100, 100) : 0;
+    const bar = document.getElementById('bar-'+def.id);
+    if (bar) bar.style.width = pct + '%';
+    const cbtn = document.getElementById('cbtn-'+def.id);
+    if (cbtn) {
+      cbtn.disabled = s.stored < 0.01;
+      const def2 = getDef(def.id);
+      const rm = researchMults(); const rb = rebirthBonus();
+      const coins = s.stored * def2.coinValue * rm.valueMult * rb.valueMult * rm.incomeMult;
+      cbtn.textContent = `⛏ COLLECT  🪙 ${fmt(coins)} coins`;
+    }
+  });
+  // Full re-render every 2s to refresh upgrade costs
+  if (displayTickN % 13 === 0) {
+    MINE_DEFS.forEach(def => { const s=getState(def.id); if(s&&s.unlocked) renderMineCard(def.id); });
+    checkAchievements();
+  }
+  updateButtonStates();
+}
+
+function updateButtonStates() {
+  MINE_DEFS.forEach(def => {
+    const s = getState(def.id);
+    if (!s) return;
+    if (!s.unlocked) {
+      const ub = document.getElementById('unlock-'+def.id);
+      if (ub) ub.disabled = G.coins < def.unlockCost;
+      return;
+    }
+    const card = document.getElementById('card-'+def.id);
+    if (!card) return;
+    // Update all upgrade btns quickly
+    const btns = card.querySelectorAll('.upgrade-btn:not(.owned):not(.max)');
+    const costs = [
+      costHireWorker(s), costWorkerUpgrade(s), costMineUpgrade(s), costManager(s),
+      costShaftDepth(s), costOreCart(s), costVentilation(s), costBlastDrill(s), costAssayLab(s)
+    ];
+    btns.forEach((btn, i) => {
+      if (costs[i] !== undefined) btn.disabled = G.coins < costs[i];
+    });
+  });
+}
+
+// ─────────────────────────────────────────
+// RENDER — MINES
+// ─────────────────────────────────────────
+function renderAll() {
+  const grid = document.getElementById('mines-grid');
+  grid.innerHTML = '';
+  MINE_DEFS.forEach(def => renderMineCard(def.id));
+}
+
+function renderMineCard(id) {
+  const def = getDef(id);
+  const s   = getState(id);
+  const grid = document.getElementById('mines-grid');
+  const existing = document.getElementById('card-'+id);
+  if (existing) existing.remove();
+
+  const card = document.createElement('div');
+  card.className = 'mine-card' + (s.unlocked ? '' : ' locked');
+  card.id = 'card-'+id;
+  card.style.setProperty('--mine-color', def.color);
+
+  if (!s.unlocked) {
+    card.innerHTML = `
+      <div class="mine-header">
+        <div class="mine-icon">${def.emoji}</div>
+        <div class="mine-title-block"><div class="mine-name">${def.name}</div><div class="mine-subtitle">${def.subtitle}</div></div>
+      </div>
+      <div class="locked-overlay">
+        <div class="locked-icon">${def.emoji}</div>
+        <div class="locked-title">${def.name.toUpperCase()}</div>
+        <div style="color:var(--text-dim);font-size:10px;margin-top:4px;line-height:1.6">
+          ${def.resource} • ${def.baseRate}/s base • ${fmt(def.coinValue)} coins/unit<br>
+          <span style="color:${def.color}">${def.subtitle}</span>
+        </div>
+        <button class="unlock-btn" id="unlock-${id}" onclick="unlockMine('${id}')" ${G.coins<def.unlockCost?'disabled':''}>
+          🪙 Unlock — ${fmt(def.unlockCost)} coins
+        </button>
+      </div>`;
+  } else {
+    card.innerHTML = buildUnlockedCard(id);
+    // Init shaft animation state if needed
+    if (!shaftAnim[id]) initShaft(id);
+  }
+
+  // Insert in definition order
+  const defIdx = MINE_DEFS.findIndex(d => d.id === id);
+  const cards  = grid.children;
+  let inserted = false;
+  for (let i = 0; i < cards.length; i++) {
+    const cIdx = MINE_DEFS.findIndex(d => d.id === cards[i].id.replace('card-',''));
+    if (cIdx > defIdx) { grid.insertBefore(card, cards[i]); inserted = true; break; }
+  }
+  if (!inserted) grid.appendChild(card);
+
+  // Re-set canvas dimensions after DOM insert (next frame)
+  if (s.unlocked) {
+    requestAnimationFrame(() => {
+      const cv = document.getElementById('shaft-'+id);
+      if (cv) { cv.width = cv.offsetWidth || 360; cv.height = 130; }
+    });
+  }
+}
+
+function buildUnlockedCard(id) {
+  const def = getDef(id);
+  const s   = getState(id);
+  const rate    = mineRate(s);
+  const income  = mineIncome(s);
+  const stored  = s.stored;
+  const ms      = maxStorage(s);
+  const pct     = ms > 0 ? Math.min(stored/ms*100, 100) : 0;
+
+  const assayMult = (1 + 0.2 * s.assayLab).toFixed(1);
+
+  const upg = (label, sublabel, onclick, cost, maxed, owned) => {
+    const btnClass = maxed ? 'upgrade-btn max' : (owned ? 'upgrade-btn owned' : 'upgrade-btn');
+    const btnText  = maxed ? '✅ MAX' : (owned ? '✅ Owned' : `🪙 ${fmt(cost)}`);
+    const disabled = (maxed || owned || G.coins < cost) ? 'disabled' : '';
+    return `<div class="upgrade-row">
+      <div class="upgrade-label"><strong>${label}</strong>${sublabel}</div>
+      <button class="${btnClass}" onclick="${onclick}" ${disabled}>${btnText}</button>
+    </div>`;
+  };
+
+  return `
+    <div class="mine-header">
+      <div class="mine-icon">${def.emoji}</div>
+      <div class="mine-title-block">
+        <div class="mine-name">${def.name}</div>
+        <div class="mine-subtitle">${s.workers}w · Mine Lv.${s.mineLevel} · Worker Lv.${s.workerLevel}</div>
+      </div>
+      <div class="mine-rate-badge">${rate.toFixed(2)}/s · 🪙${fmt(income)}/s</div>
+    </div>
+
+    <div class="shaft-wrap">
+      <canvas class="shaft-canvas" id="shaft-${id}" height="130"></canvas>
+      <div class="shaft-overlay">SHAFT DEPTH ${Math.floor(def.baseDepth*(1+(s.mineLevel-1)*0.5+s.shaftDepth*0.4))}m</div>
+      <div class="shaft-overlay-right">SD Lv.${s.shaftDepth}/5</div>
+    </div>
+
+    <div class="storage-section">
+      <div class="storage-header"><span>${def.resource} Storage</span><span>${fmt(stored)} / ${fmt(ms)}</span></div>
+      <div class="storage-bar-bg"><div class="storage-bar-fill" id="bar-${id}" style="width:${pct}%"></div></div>
+      ${s.hasManager
+        ? `<button class="collect-btn managed" disabled>✅ Manager Active — Auto-Collecting</button>`
+        : `<button class="collect-btn" id="cbtn-${id}" onclick="collectMine('${id}',true,event)" ${stored<0.01?'disabled':''}>
+            ⛏ COLLECT  🪙 ${fmt(stored * def.coinValue)} coins
+           </button>`}
+    </div>
+
+    <div class="upgrades-section">
+      ${upg(`👷 Hire Worker`,`${s.workers} active · next: +1 worker`,`hireWorker('${id}')`,costHireWorker(s),false,false)}
+      ${upg(`⬆️ Worker Mastery`,`Lv.${s.workerLevel} · +50% output/level`,`upgradeWorker('${id}')`,costWorkerUpgrade(s),false,false)}
+      ${upg(`🏔️ Mine Expansion`,`Lv.${s.mineLevel} · +100% output & storage`,`upgradeMine('${id}')`,costMineUpgrade(s),false,false)}
+      ${upg(`🧑‍💼 Manager`,s.hasManager?'Auto-collecting active':'Automate collection',s.hasManager?'':(`hireManager('${id}')`),costManager(s),false,s.hasManager)}
+      ${upg(`🕳️ Shaft Depth`,`Tier ${s.shaftDepth}/5 · +30% rate/tier`,`upgradeShaftDepth('${id}')`,costShaftDepth(s),s.shaftDepth>=5,false)}
+      ${upg(`🛒 Ore Cart`,`Lv.${s.oreCart}/5 · +50% storage/level`,`upgradeOreCart('${id}')`,costOreCart(s),s.oreCart>=5,false)}
+      ${upg(`💨 Ventilation`,`Lv.${s.ventilation}/4 · +25% speed/level`,`upgradeVentilation('${id}')`,costVentilation(s),s.ventilation>=4,false)}
+      ${upg(`💣 Blast Drill`,`Lv.${s.blastDrill}/3 · burst+perm bonus`,`upgradeBlastDrill('${id}')`,costBlastDrill(s),s.blastDrill>=3,false)}
+      ${upg(`🔬 Assay Lab`,`Lv.${s.assayLab}/4 · ×${assayMult} coin value`,`upgradeAssayLab('${id}')`,costAssayLab(s),s.assayLab>=4,false)}
+    </div>`;
+}
+
+function updateMineCard(id) {
+  const s = getState(id);
+  if (!s || !s.unlocked) return;
+  const def = getDef(id);
+  const bar  = document.getElementById('bar-'+id);
+  const ms   = maxStorage(s);
+  const pct  = ms>0 ? Math.min(s.stored/ms*100,100) : 0;
+  if (bar) bar.style.width = pct+'%';
+  if (!s.hasManager) {
+    const cbtn = document.getElementById('cbtn-'+id);
+    if (cbtn) {
+      cbtn.disabled = s.stored < 0.01;
+      const rm = researchMults(); const rb = rebirthBonus();
+      const coins = s.stored * def.coinValue * rm.valueMult * rb.valueMult * rm.incomeMult;
+      cbtn.textContent = `⛏ COLLECT  🪙 ${fmt(coins)} coins`;
+    }
+  }
+}
+
+// ─────────────────────────────────────────
+// RENDER — RESEARCH
+// ─────────────────────────────────────────
+function renderResearch() {
+  const panel = document.getElementById('research-panel');
+  panel.innerHTML = '';
+  RESEARCH_BRANCHES.forEach(br => {
+    const el = document.createElement('div');
+    el.className = 'research-branch';
+    el.style.setProperty('--node-color', br.color);
+
+    const nodesHTML = br.nodes.map((node, idx) => {
+      const owned     = !!G.research[node.id];
+      const reqMet    = !node.req || !!G.research[node.req];
+      const canBuy    = reqMet && !owned && G.coins >= node.cost;
+      const cls       = owned ? 'research-node res-owned' : (reqMet ? (canBuy?'research-node res-available':'research-node') : 'research-node res-locked');
+      const costText  = owned ? '✅ Researched' : (reqMet ? `🪙 ${fmt(node.cost)}` : `🔒 Requires prev.`);
+      const arrow     = idx < br.nodes.length-1 ? `<div class="res-arrow">→</div>` : '';
+      return `<div class="${cls}" style="--node-color:${br.color}" onclick="buyResearch('${node.id}')">
+        <span class="res-node-icon">${node.icon}</span>
+        <div class="res-node-name">${node.name}</div>
+        <div class="res-node-desc">${node.desc}</div>
+        <div class="res-node-cost ${owned?'owned':(!reqMet?'locked':'')}">${costText}</div>
+      </div>${arrow}`;
+    }).join('');
+
+    el.innerHTML = `
+      <div class="branch-header">
+        <div class="branch-icon">${br.icon}</div>
+        <div><div class="branch-title" style="color:${br.color}">${br.name}</div><div class="branch-desc">${br.desc}</div></div>
+      </div>
+      <div class="research-grid" style="flex-wrap:nowrap;overflow-x:auto">${nodesHTML}</div>`;
+    panel.appendChild(el);
+  });
+}
+
+// ─────────────────────────────────────────
+// RENDER — REBIRTH
+// ─────────────────────────────────────────
+function openRebirthTab() { switchTab('rebirth'); renderRebirth(); }
+
+function renderRebirth() {
+  const panel = document.getElementById('rebirth-panel');
+  const pendDE = Math.max(0, calcDE(G.totalEarned) - G.totalDE);
+
+  panel.innerHTML = `
+    <div class="rebirth-info-card">
+      <div class="rebirth-title">⟳ DEEP REBIRTH</div>
+      <div class="rebirth-desc">
+        Reset your mines and research in exchange for <strong style="color:var(--purple)">Deep Essence (DE)</strong> — a permanent currency
+        used to buy powerful cross-run upgrades. Your rebirths count, achievements, and Essence are kept forever.
+      </div>
+      <div class="rebirth-stats">
+        <div class="rebirth-stat"><span class="rs-val">${G.rebirths}</span><span class="rs-lab">REBIRTHS</span></div>
+        <div class="rebirth-stat"><span class="rs-val" style="color:var(--gold)">${fmt(G.deepEssence)}</span><span class="rs-lab">ESSENCE BANKED</span></div>
+        <div class="rebirth-stat"><span class="rs-val" style="color:#a3e635">+${fmt(pendDE)}</span><span class="rs-lab">ESSENCE THIS RUN</span></div>
+        <div class="rebirth-stat"><span class="rs-val">${fmt(G.totalEarned)}</span><span class="rs-lab">TOTAL EARNED</span></div>
+      </div>
+      <div style="font-size:11px;color:var(--text-dim);margin-bottom:14px">
+        ${canRebirth() ? `DE formula: √(totalEarned / 500) × bonuses = <strong style="color:var(--purple)">+${fmt(pendDE)} DE</strong>` : `<span style="color:var(--red)">Requirement: Earn 10,000 total coins first (${fmt(G.totalEarned)} / 10,000)</span>`}
+      </div>
+      <button class="btn-rebirth" onclick="confirmRebirthModal()" ${canRebirth()?'':'disabled'}>
+        ♻️ REBIRTH NOW (+${fmt(pendDE)} DE)
+      </button>
+    </div>
+
+    <div class="rebirth-shop-title">💠 REBIRTH SHOP — Permanent Upgrades</div>
+    <div class="rebirth-shop-grid">
+      ${REBIRTH_UPGRADES.map(ru => {
+        const lv   = G.rebirthUpgrades[ru.id] || 0;
+        const cost = rebirthUpgCost(ru.id);
+        const maxed = lv >= ru.maxLv;
+        const can   = !maxed && G.deepEssence >= cost;
+        return `<div class="rebirth-upgrade ${maxed?'ru-maxed':''}" onclick="${maxed?'':(`buyRebirthUpgrade('${ru.id}')`)}" style="${can&&!maxed?'border-color:rgba(167,139,250,0.5)':''}">
+          <div class="ru-icon">${ru.icon}</div>
+          <div class="ru-name">${ru.name}</div>
+          <div class="ru-desc">${ru.desc}</div>
+          <div class="ru-footer">
+            <div class="ru-cost">${maxed?'✅ MAXED':`💠 ${cost} DE`}</div>
+            <div class="ru-level">Lv.${lv}/${ru.maxLv}</div>
+          </div>
+          <div class="ru-progress"><div class="ru-progress-fill" style="width:${lv/ru.maxLv*100}%"></div></div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function confirmRebirthModal() {
+  const pendDE = Math.max(0, calcDE(G.totalEarned) - G.totalDE);
+  document.getElementById('modal-title').textContent = '♻️ Confirm Rebirth';
+  document.getElementById('modal-body').innerHTML = `You will gain <strong style="color:#a78bfa">+${fmt(pendDE)} Deep Essence</strong>.<br><br>Your mines, coins, and research will be reset, but all Essence, achievements, and rebirth upgrades are kept.<br><br>Your run multipliers apply immediately.`;
+  document.getElementById('modal-confirm-btn').textContent = 'Rebirth!';
+  document.getElementById('modal-confirm-btn').onclick = () => { doRebirth(); closeModal(); };
+  document.getElementById('modal-overlay').classList.remove('hidden');
+}
+
+// ─────────────────────────────────────────
+// RENDER — ACHIEVEMENTS
+// ─────────────────────────────────────────
+function renderAchievements() {
+  const panel = document.getElementById('achievements-panel');
+  panel.innerHTML = ACHIEVEMENT_DEFS.map(def => {
+    const unlocked = !!G.achievements[def.id];
+    const t = unlocked ? new Date(G.achievements[def.id]).toLocaleDateString() : null;
+    return `<div class="achievement ${unlocked?'ach-unlocked':'ach-locked'}">
+      <div class="ach-icon">${def.icon}</div>
+      <div class="ach-body">
+        <div class="ach-name">${def.name}</div>
+        <div class="ach-desc">${def.desc}</div>
+        <div class="ach-reward">Reward: ${def.reward==='de'?`+${def.rVal} Deep Essence`:`+${fmt(def.rVal)} coins`}</div>
+        ${unlocked?`<div class="ach-unlock-time">Unlocked ${t}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  // Update tab label
+  const cnt = Object.keys(G.achievements).length;
+  const tabBtn = document.querySelector('[data-tab="achievements"]');
+  if (tabBtn) tabBtn.textContent = `🏆 ACHIEVEMENTS (${cnt}/${ACHIEVEMENT_DEFS.length})`;
+}
+
+// ─────────────────────────────────────────
+// TABS
+// ─────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'tab-'+name));
+  if (name === 'research') renderResearch();
+  if (name === 'rebirth')  renderRebirth();
+}
+
+// ─────────────────────────────────────────
+// TOASTS
+// ─────────────────────────────────────────
+function showToast(title, body, type='') {
+  const c = document.getElementById('toast');
+  const el = document.createElement('div');
+  el.className = `toast-item${type?` toast-${type}`:''}`;
+  el.innerHTML = `<div class="toast-title">${title}</div><div class="toast-body">${body}</div>`;
+  c.appendChild(el);
+  setTimeout(() => el.style.opacity='0', 3500);
+  setTimeout(() => el.remove(), 4000);
+}
+
+// ─────────────────────────────────────────
+// LOG & COIN POP
+// ─────────────────────────────────────────
+const logEl = document.getElementById('event-log');
+const LOG_MAX = 40;
+function addLog(msg) {
+  const t = new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const div = document.createElement('div');
+  div.className = 'log-entry';
+  div.innerHTML = `<span class="time">${t}</span>${msg}`;
+  logEl.prepend(div);
+  while (logEl.children.length > LOG_MAX) logEl.lastChild.remove();
+}
+function spawnPop(text, x, y) {
+  const el = document.createElement('div');
+  el.className = 'coin-pop';
+  el.textContent = text;
+  el.style.left = (x-20)+'px'; el.style.top = (y-10)+'px';
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 900);
+}
+
+// ─────────────────────────────────────────
+// AUTO-SAVE
+// ─────────────────────────────────────────
+setInterval(() => saveGame(true), 30000);
+
+// ─────────────────────────────────────────
+// INIT
+// ─────────────────────────────────────────
+(function init() {
+  const loaded = loadGame();
+  if (loaded) {
+    offlineCoins = calcOffline();
+    if (offlineCoins > 1) {
+      const elapsed = (Date.now() - G.lastSave) / 3600000;
+      document.getElementById('offline-msg').textContent = `Away for ${elapsed.toFixed(1)}h — earned +${fmt(offlineCoins)} coins`;
+      document.getElementById('offline-banner').classList.remove('hidden');
+    }
+    addLog('💾 Game loaded from save.');
+  } else {
+    addLog('⛏ Welcome to Deep Earth Mining Co.! Start digging!');
+    addLog('💡 Tip: Collect resources manually, or hire a Manager to automate!');
+  }
+
+  // Init shaft states
+  MINE_DEFS.forEach(def => initShaft(def.id));
+
+  renderAll();
+  renderResearch();
+  renderRebirth();
+  renderAchievements();
+  updateHUD();
+  checkAchievements();
+
+  setInterval(tick, TICK_MS);
+  setInterval(displayTick, 200);
+  startShaftLoop();
+})();
+</script>
+</body>
+</html>
