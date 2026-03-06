@@ -129,7 +129,7 @@ function tickParts(){for(let i=PARTS.length-1;i>=0;i--){const p=PARTS[i];p.x+=p.
 function drawParts(){for(const p of PARTS){g.globalAlpha=p.life/p.max;g.fillStyle=p.col;g.fillRect(ri(p.x),ri(p.y),Math.ceil(p.sz),Math.ceil(p.sz));}g.globalAlpha=1;}
 
 // ─── STATES ──────────────────────────────────────────────────
-const ST={IDLE:0,WALK:1,JUMP:2,CROUCH:3,LPUNCH:4,HPUNCH:10,KICK:5,SPECIAL:6,BLOCK:7,HIT:8,KO:9,STUN:11};
+const ST={IDLE:0,WALK:1,JUMP:2,CROUCH:3,LPUNCH:4,HPUNCH:10,KICK:5,SPECIAL:6,BLOCK:7,HIT:8,KO:9,STUN:11,DROPDICK:12,DASHR:13,DASHL:14,GRAB:15};
 const SW=64,SH=136;
 
 // ─── SPRITE RENDERER ─────────────────────────────────────────
@@ -142,6 +142,9 @@ function drawSprite(ch,state,frame,t){
 
   let bob=0,lean=0,cr=0,ll=0,lr=0,alx=0,arx=0,aly=0,ary=0;
   if(state===ST.IDLE){bob=Math.sin(frame*1.57)*3;aly=Math.sin(frame*1.57+1)*2.4;}
+  else if(state===ST.DROPDICK){bob=-10+frame*6;ll=frame>=2?60:frame*20;lr=frame>=2?-20:0;lean=frame>=2?18:6;arx=frame>=2?12:0;ary=frame>=2?-12:0;}
+  else if(state===ST.DASHR||state===ST.DASHL){bob=-4;lean=state===ST.DASHR?16:-16;arx=frame>=2?28:8;ary=-10;ll=8;lr=-8;}
+  else if(state===ST.GRAB){lean=frame>=2?-14:4;arx=frame>=2?32:14;aly=frame>=2?-24:-8;ary=frame>=2?-24:-8;alx=frame>=2?20:4;}
   else if(state===ST.WALK){bob=-Math.abs(Math.sin(frame*1.57))*1.8;ll=Math.sin(frame*1.57)*20;lr=-ll;aly=-ll*.32;ary=-lr*.32;}
   else if(state===ST.JUMP){bob=frame<2?-6:4;ll=-28+frame*7;lr=28-frame*7;}
   else if(state===ST.CROUCH){cr=30;ll=14;lr=-14;}
@@ -243,6 +246,7 @@ class Fighter{
     // per-move cooldown timers (counts down in frames)
     this.cdHpunch=0;this.cdKick=0;this.cdSpec=0;
     this.pendingCdMove=null; // which move's cooldown to refund if interrupted before landing
+    this.dashStartX=0; // x position when dash started
     this.blockDisabledTimer=0; // frames until block re-enabled after special break
     this.stunTimer=0; // frames remaining frozen (ST.STUN)
   }
@@ -255,12 +259,16 @@ class Fighter{
       [ST.HPUNCH]: Math.max(22,36-a*1.4)|0,
       [ST.KICK]:   Math.max(18,32-a*1.4)|0,
       [ST.SPECIAL]:Math.max(26,42-a)|0,
+      [ST.DROPDICK]:Math.max(20,34-a)|0,
+      [ST.DASHR]:Math.max(14,24-a)|0,
+      [ST.DASHL]:Math.max(14,24-a)|0,
+      [ST.GRAB]:Math.max(28,44-a)|0,
       [ST.HIT]:    this.sv.hitStun,
     }[this.state]??-1;
   }
   tickAnim(){
-    const SPD={[ST.IDLE]:10,[ST.WALK]:6,[ST.JUMP]:7,[ST.CROUCH]:9,[ST.LPUNCH]:4,[ST.HPUNCH]:4,[ST.KICK]:4,[ST.SPECIAL]:3,[ST.HIT]:5,[ST.STUN]:8,[ST.BLOCK]:10,[ST.KO]:9};
-    const CNT={[ST.IDLE]:4, [ST.WALK]:4,[ST.JUMP]:3,[ST.CROUCH]:2,[ST.LPUNCH]:4,[ST.HPUNCH]:4,[ST.KICK]:4,[ST.SPECIAL]:5,[ST.HIT]:3, [ST.STUN]:4, [ST.BLOCK]:2, [ST.KO]:4};
+    const SPD={[ST.IDLE]:10,[ST.WALK]:6,[ST.JUMP]:7,[ST.CROUCH]:9,[ST.LPUNCH]:4,[ST.HPUNCH]:4,[ST.KICK]:4,[ST.SPECIAL]:3,[ST.HIT]:5,[ST.STUN]:8,[ST.BLOCK]:10,[ST.KO]:9,[ST.DROPDICK]:4,[ST.DASHR]:3,[ST.DASHL]:3,[ST.GRAB]:5};
+    const CNT={[ST.IDLE]:4, [ST.WALK]:4,[ST.JUMP]:3,[ST.CROUCH]:2,[ST.LPUNCH]:4,[ST.HPUNCH]:4,[ST.KICK]:4,[ST.SPECIAL]:5,[ST.HIT]:3, [ST.STUN]:4, [ST.BLOCK]:2, [ST.KO]:4,[ST.DROPDICK]:4,[ST.DASHR]:4,[ST.DASHL]:4,[ST.GRAB]:5};
     this.animT++;
     if(this.animT>=(SPD[this.state]||9)){this.animT=0;this.animF=(this.animF+1)%(CNT[this.state]||4);}
     if(this.hitFlash>0)this.hitFlash--;
@@ -280,6 +288,18 @@ class Fighter{
   tickPhysics(){
     // While stunned: completely frozen in place
     if(this.state===ST.STUN){this.vx=0;this.vy=0;return;}
+    // Dash propulsion: travel up to 1/5 of arena (154px) then end
+    const DASH_DIST=154;
+    if(this.state===ST.DASHR){
+      this.vx=22; // constant fast dash speed
+      if(Math.abs(this.x-this.dashStartX)>=DASH_DIST)this.setState(ST.IDLE);
+    }
+    if(this.state===ST.DASHL){
+      this.vx=-22;
+      if(Math.abs(this.x-this.dashStartX)>=DASH_DIST)this.setState(ST.IDLE);
+    }
+    // Drop kick: launch in facing direction at start
+    if(this.state===ST.DROPDICK&&this.stTimer<4&&this.onGround){this.vy=-10;this.vx=this.facing*16;this.onGround=false;}
     if(!this.onGround)this.vy=clamp(this.vy+GRAV,-30,22);
     this.y+=this.vy;this.x+=this.vx;
     if(this.y>=FLOOR){
@@ -294,11 +314,27 @@ class Fighter{
   getAtkBox(){
     if(this.atkLanded)return null;
     const isLP=this.state===ST.LPUNCH,isHP=this.state===ST.HPUNCH;
-    const active=(isLP||isHP||this.state===ST.KICK||this.state===ST.SPECIAL)&&this.animF>=2;
+    const isSpecialMove=this.state===ST.DROPDICK||this.state===ST.DASHR||this.state===ST.DASHL||this.state===ST.GRAB;
+    const active=(isLP||isHP||this.state===ST.KICK||this.state===ST.SPECIAL||isSpecialMove)&&this.animF>=2;
     if(!active)return null;
     const boss=this.ch.isBoss;
     const reach=this.state===ST.SPECIAL?(boss?132:112):this.state===ST.KICK?104:isHP?80:72;
     const ah=(this.state===ST.KICK?56:44),ay=(this.state===ST.KICK?28:20);
+    // Special moves override
+    if(this.state===ST.DROPDICK){
+      const dmg=this.sv.kickDmg*1.4;
+      return{x:this.x-SW*.7,y:this.y-SH*.6,w:SW*1.4,h:SH*.5,dmg,kb:8*this.facing,type:ST.DROPDICK};
+    }
+    if(this.state===ST.DASHR||this.state===ST.DASHL){
+      const dmg=this.sv.hpunchDmg*1.2;
+      const dir=this.state===ST.DASHR?1:-1;
+      // KB = twice kick distance: kick KB=7*facing, so 14 * dir
+      return{x:this.x+(dir>0?SW*.3:-SW*1.3),y:this.y-SH+20,w:SW,h:SH*.55,dmg,kb:14*dir,type:this.state};
+    }
+    if(this.state===ST.GRAB){
+      const dmg=this.sv.hpunchDmg*2.0;
+      return{x:this.x-SW*.8,y:this.y-SH*.85,w:SW*1.6,h:SH*.8,dmg,kb:this.facing,type:ST.GRAB};
+    }
     const dmg=isLP?this.sv.lpunchDmg:isHP?this.sv.hpunchDmg:this.state===ST.KICK?this.sv.kickDmg:this.sv.specDmg;
     const kb=this.state===ST.SPECIAL?10:this.state===ST.KICK?7:isHP?6:4;
     return{x:this.facing>0?this.x+SW/2:this.x-SW/2-reach,y:this.y-SH+ay,w:reach,h:ah,dmg,kb:kb*this.facing,type:this.state};
@@ -332,6 +368,37 @@ class Fighter{
     }
     this.hp=Math.max(0,this.hp-reduced);
     this.hitFlash=8;this.invFrames=18;
+    if(atkType===ST.DASHR||atkType===ST.DASHL){
+      // Dash hit: fly far with loft, attacker stops
+      this.vx=clamp(kbx*2.0,-30,30);this.vy=-8;
+      this.hitFlash=8;this.invFrames=18;
+      spark(this.cx,this.y-SH*.5,'#ffaa00',18,8);
+      S.hit();S.hurt();
+      if(this.hp<=0){this.setState(ST.KO);this.vy=-5;}
+      else this.setState(ST.HIT);
+      return true;
+    }
+    if(atkType===ST.GRAB){
+      // Counter-grab: throw at dash distance (kb passed is 0 from getAtkBox, use facing)
+      this.vx=clamp(kbx!==0?kbx*14:14,- 30,30);this.vy=-10;
+      this.hitFlash=12;this.invFrames=30;
+      spark(this.cx,this.y-SH*.5,'#ff6600',24,8);
+      S.hit();S.hurt();
+      if(this.hp<=0){this.setState(ST.KO);this.vy=-5;}
+      else this.setState(ST.HIT);
+      return true;
+    }
+    if(atkType===ST.DROPDICK){
+      // Drop kick: knock back + 1s stun
+      this.vx=clamp(kbx*2.0,-14,14);this.vy=-5;
+      this.stunTimer=60;
+      this.hitFlash=12;this.invFrames=20;
+      spark(this.cx,this.y-SH*.5,'#ffcc00',18,7);
+      S.kick();S.hurt();
+      if(this.hp<=0){this.setState(ST.KO);}
+      else this.setState(ST.STUN);
+      return true;
+    }
     if(atkType===ST.KICK){
       // Kick sends them flying far horizontally
       this.vx=clamp(kbx*2.2,-18,18);
@@ -372,8 +439,8 @@ class AI{
   update(player){
     const ai=this.f;
     const dp=DIFF_PARAMS[this.diff];
-    if(ai.state===ST.KO||ai.state===ST.HIT||ai.state===ST.STUN)return;
-    if(ai.state===ST.LPUNCH||ai.state===ST.HPUNCH||ai.state===ST.KICK||ai.state===ST.SPECIAL)return;
+    if(ai.state===ST.KO||ai.state===ST.HIT||ai.state===ST.STUN||ai.state===ST.DROPDICK||ai.state===ST.DASHR||ai.state===ST.DASHL||ai.state===ST.GRAB)return;
+    if(ai.state===ST.LPUNCH||ai.state===ST.HPUNCH||ai.state===ST.KICK||ai.state===ST.SPECIAL||ai.state===ST.DROPDICK||ai.state===ST.DASHR||ai.state===ST.DASHL||ai.state===ST.GRAB)return;
     this.timer++;
     const dx=player.cx-ai.cx,dist=Math.abs(dx);
     const lowHp=ai.hp<ai.sv.maxHp*.22;
@@ -382,11 +449,11 @@ class AI{
     const reactDist=dp.reactDist;
     if(this.timer>=rate){
       this.timer=0;const r=Math.random();
-      if(lowHp){this.act=r<.42?'retreat':r<.62?'block':'approach';}
+      if(lowHp){this.act=r<(0.3+dp.blockChance)?'retreat':r<(0.5+dp.blockChance)?'block':'approach';}
       else if(dist<reactDist){
         if(r<.22)this.act='lpunch';else if(r<.40)this.act='hpunch';
         else if(r<.56)this.act='kick';else if(r<.66)this.act='special';
-        else if(r<.76)this.act='block';else if(r<.88)this.act='jump_atk';
+        else if(r<(.60+dp.blockChance))this.act='block';else if(r<(.75+dp.blockChance*.5))this.act='jump_atk';
         else this.act='retreat';
       } else if(dist<reactDist*1.8){this.act=r<.6?'approach':r<.78?'jump_atk':'kick';}
       else this.act=r<.8?'approach':'jump_atk';
@@ -415,7 +482,16 @@ function checkCombat(atk,def){
     let dmg=atk.onGround?box.dmg:box.dmg*1.8;
     // AI (p2) attacks get difficulty damage multiplier
     if(!atk.isP1)dmg*=DIFF_PARAMS[GM.difficulty].dmgMul;
-    if(def.takeHit(dmg,box.kb,box.type)){atk.atkLanded=true;atk.pendingCdMove=null;atk.combo++;atk.comboT=60;}
+    // GRAB counter: only connects if defender is actively punching
+    if(box.type===ST.GRAB){
+      const defPunching=def.state===ST.LPUNCH||def.state===ST.HPUNCH;
+      if(!defPunching)return; // whiff
+    }
+    if(def.takeHit(dmg,box.kb,box.type)){
+      atk.atkLanded=true;atk.pendingCdMove=null;atk.combo++;atk.comboT=60;
+      // Stop dash attacker after connecting
+      if(atk.state===ST.DASHR||atk.state===ST.DASHL){atk.vx=0;atk.setState(ST.IDLE);}
+    }
   }
 }
 
@@ -534,7 +610,7 @@ function loadGame(){
 
 // ─── GAME STATE ──────────────────────────────────────────────
 // difficulty: 0=Easy, 1=Normal, 2=Hard, 3=Extreme
-const GS={TITLE:0,CHAR:1,CHARAI:12,DIFFSEL:8,INTRO:2,FIGHT:3,KO:4,WIN:5,LOSE:6,UNLOCK:7,UPGRADE:9,MATCHWIN:10,MATCHLOSE:11};
+const GS={TITLE:0,CHAR:1,CHARAI:12,DIFFSEL:8,MOVEGUIDE:13,INTRO:2,FIGHT:3,KO:4,WIN:5,LOSE:6,UNLOCK:7,UPGRADE:9,MATCHWIN:10,MATCHLOSE:11};
 const GM={
   state:GS.TITLE,tick:0,round:1,p1Wins:0,cpuWins:0,
   stageIdx:0,timer:99,timerTick:0,introT:0,koT:0,flashT:0,
@@ -548,10 +624,10 @@ const GM={
 };
 // Difficulty tweaks: {aiRateMul, aiDmgMul, aiReactDist}
 const DIFF_PARAMS=[
-  {name:'EASY',    col:'#44ff88', aiRate:0.4, dmgMul:0.65, reactDist:80},
-  {name:'NORMAL',  col:'#ffff44', aiRate:0.7, dmgMul:1.0,  reactDist:120},
-  {name:'HARD',    col:'#ff8800', aiRate:1.1, dmgMul:1.3,  reactDist:160},
-  {name:'EXTREME', col:'#ff2222', aiRate:1.6, dmgMul:1.6,  reactDist:200},
+  {name:'EASY',    col:'#44ff88', aiRate:0.35, dmgMul:0.55, reactDist:70,  blockChance:0.05, retreatThresh:0.10},
+  {name:'NORMAL',  col:'#ffff44', aiRate:0.7,  dmgMul:1.0,  reactDist:120, blockChance:0.25, retreatThresh:0.22},
+  {name:'HARD',    col:'#ff8800', aiRate:1.6,  dmgMul:1.5,  reactDist:180, blockChance:0.50, retreatThresh:0.35},
+  {name:'EXTREME', col:'#ff2222', aiRate:2.8,  dmgMul:2.0,  reactDist:260, blockChance:0.70, retreatThresh:0.45},
 ];
 
 function getOpp(stage){
@@ -575,8 +651,30 @@ function handlePlayer(p){
   p.blocking=isBlock()&&canBlock;
   if(p.blocking){p.setState(ST.BLOCK);return;}
   if(p.state===ST.BLOCK)p.setState(ST.IDLE);
-  const notAttacking=p.state!==ST.LPUNCH&&p.state!==ST.HPUNCH&&p.state!==ST.KICK&&p.state!==ST.SPECIAL&&p.state!==ST.HIT&&p.state!==ST.STUN;
+  const notAttacking=p.state!==ST.LPUNCH&&p.state!==ST.HPUNCH&&p.state!==ST.KICK&&p.state!==ST.SPECIAL&&p.state!==ST.HIT&&p.state!==ST.STUN&&p.state!==ST.DROPDICK&&p.state!==ST.DASHR&&p.state!==ST.DASHL&&p.state!==ST.GRAB;
   if(notAttacking){
+    // ── Special combo moves (S + button) ──
+    const sDown=isDn();
+    if(sDown&&jpI()&&p.cdSpec===0){
+      // S+I = Flying drop kick
+      p.setState(ST.DROPDICK);p.atkTimer=p.sv.atkCd+4;p.cdSpec=p.sv.specCd;p.pendingCdMove='spec';
+      S.kick();return;
+    }
+    if(sDown&&jpL()&&p.cdKick===0){
+      // S+L = Punch dash RIGHT
+      p.dashStartX=p.x;p.setState(ST.DASHR);p.atkTimer=p.sv.atkCd+2;p.cdKick=p.sv.kickCd;p.pendingCdMove='kick';
+      S.punch();return;
+    }
+    if(sDown&&jpJ()&&p.atkTimer===0){
+      // S+J = Punch dash LEFT
+      p.dashStartX=p.x;p.setState(ST.DASHL);p.atkTimer=p.sv.atkCd+2;
+      S.punch();return;
+    }
+    if(sDown&&jpK()&&p.cdHpunch===0){
+      // S+K = Grab slam
+      p.setState(ST.GRAB);p.atkTimer=p.sv.atkCd+6;p.cdHpunch=p.sv.hpunchCd;p.pendingCdMove='hpunch';
+      S.hpunch();return;
+    }
     if(jpJ()&&p.atkTimer===0){p.setState(ST.LPUNCH);p.atkTimer=p.sv.lpunchCd;S.punch();return;}
     if(jpK()&&p.atkTimer===0&&p.cdHpunch===0){p.setState(ST.HPUNCH);p.atkTimer=p.sv.atkCd+2;p.cdHpunch=p.sv.hpunchCd;p.pendingCdMove='hpunch';S.hpunch();return;}
     if(jpL()&&p.atkTimer===0&&p.cdKick===0){p.setState(ST.KICK);p.atkTimer=p.sv.atkCd;p.cdKick=p.sv.kickCd;p.pendingCdMove='kick';S.kick();return;}
@@ -588,8 +686,7 @@ function handlePlayer(p){
     else if(isRt()){p.vx=p.sv.speed;p.facing=1;if(p.state!==ST.CROUCH)p.setState(ST.WALK);}
     else if(p.state===ST.WALK)p.setState(ST.IDLE);
   }
-  if(isDn()&&p.onGround&&p.state!==ST.LPUNCH&&p.state!==ST.HPUNCH&&p.state!==ST.KICK&&p.state!==ST.SPECIAL)p.setState(ST.CROUCH);
-  else if(!isDn()&&p.state===ST.CROUCH)p.setState(ST.IDLE);
+  // S key is combo modifier only — no crouch
   if(jpUp()&&p.onGround&&p.state!==ST.LPUNCH&&p.state!==ST.HPUNCH&&p.state!==ST.KICK&&p.state!==ST.SPECIAL&&p.state!==ST.STUN){p.vy=p.sv.jumpVy;p.onGround=false;p.setState(ST.JUMP);S.jump();}
   if(GM.p2&&(p.state===ST.IDLE||p.state===ST.WALK))p.facing=GM.p2.cx>p.cx?1:-1;
 }
@@ -885,6 +982,113 @@ function drawCharSelect(mode='player'){
   scanlines();
 }
 
+// ─── MOVE GUIDE ──────────────────────────────────────────────
+function drawMoveGuide(){
+  const tick=GM.tick;
+  // Background
+  g.fillStyle='#02040a';g.fillRect(0,0,W,H);
+  const grad=g.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0,'#040816');grad.addColorStop(1,'#020408');
+  g.fillStyle=grad;g.fillRect(0,0,W,H);
+  // Subtle scanline grid
+  g.fillStyle='rgba(0,60,120,.07)';
+  for(let y=0;y<H;y+=20)g.fillRect(0,y,W,1);
+  for(let x=0;x<W;x+=40)g.fillRect(x,0,1,H);
+
+  // Header
+  g.save();g.shadowColor='#0088ff';g.shadowBlur=30;
+  txts('MOVES & CONTROLS',W/2,34,14,'#00ccff','center');
+  g.restore();
+  g.fillStyle='rgba(0,150,255,.3)';g.fillRect(20,40,W-40,2);
+
+  // Fighter previews
+  const p1ch=ROSTER[GM.selChar], p2ch=ROSTER[GM.selAI];
+  const previewSc=0.55;
+  // P1 left
+  g.save();g.globalAlpha=0.85;
+  g.translate(70-SW*previewSc/2, FLOOR*0.72);
+  g.scale(previewSc,previewSc);
+  drawSprite(p1ch,ST.IDLE,Math.floor(tick/10)%4,tick);
+  g.restore();
+  txts(p1ch.name,70,FLOOR*0.72+16,7,'#44ff88','center');
+  txt('YOU',70,FLOOR*0.72+30,5,'#44ff88','center');
+  // P2 right
+  g.save();g.globalAlpha=0.85;
+  g.translate(W-70+SW*previewSc/2, FLOOR*0.72);
+  g.scale(-previewSc,previewSc);
+  drawSprite(p2ch,ST.IDLE,Math.floor(tick/10)%4,tick);
+  g.restore();
+  txts(p2ch.name,W-70,FLOOR*0.72+16,7,'#ff6644','center');
+  txt('CPU',W-70,FLOOR*0.72+30,5,'#ff6644','center');
+
+  // Move table
+  const col1=130, col2=W/2+10;
+  const rowH=34, startY=58;
+
+  function moveRow(x,y,keys,name,desc,col){
+    // Key badge(s)
+    let kx=x;
+    keys.forEach((k,i)=>{
+      if(i>0){txt('+',kx,y+13,7,'#555555');kx+=14;}
+      const bw=k.length>2?k.length*7+8:24;
+      g.fillStyle='rgba(255,255,255,.07)';
+      g.strokeStyle=col;g.lineWidth=1.2;
+      g.fillRect(kx,y-1,bw,18);g.strokeRect(kx+.5,y-.5,bw-1,17);
+      txt(k,kx+bw/2,y+13,6,col,'center');
+      kx+=bw+4;
+    });
+    txt(name,x+108,y+13,7,'#ffffff');
+    txt(desc,x+108,y+26,5,'#666666');
+  }
+
+  // Column headers
+  txt('BASIC ATTACKS',col1,startY,6,'#888888');
+  txt('SPECIAL COMBOS  (hold S + button)',col2,startY,6,'#888888');
+  g.fillStyle='rgba(255,255,255,.08)';g.fillRect(col1-8,startY+4,W/2-col1+col2-W/2-8,1);
+  g.fillRect(col2-8,startY+4,W-col2-20,1);
+
+  const basics=[
+    {keys:['J'],      name:'Light Punch',  desc:'Fast hit, no cooldown',            col:'#ff9999'},
+    {keys:['K'],      name:'Heavy Punch',  desc:'High damage, 1s cooldown',         col:'#ffcc44'},
+    {keys:['L'],      name:'Kick',         desc:'Sends foe flying, 1s cooldown',    col:'#88bbff'},
+    {keys:['I'],      name:'Special',      desc:'Unblockable, 5s cooldown',         col:'#ee88ff'},
+    {keys:['SPACE'],  name:'Block',        desc:'Blocks all damage',                col:'#88ddff'},
+    {keys:['W/↑'],   name:'Jump',         desc:'Press during moves for jump combos',col:'#aaffaa'},
+    {keys:['S/↓'],   name:'Crouch',       desc:'Hold S to enable combo moves',     col:'#ffaa88'},
+  ];
+  basics.forEach(({keys,name,desc,col},i)=>{
+    moveRow(col1,startY+10+i*rowH,keys,name,desc,col);
+  });
+
+  const specials=[
+    {keys:['S','I'],  name:'Drop Kick',    desc:'Leaping kick — knocks back + 1s stun',  col:'#ffcc00'},
+    {keys:['S','L'],  name:'Dash Right',   desc:'Punch dash to the right',               col:'#00ffcc'},
+    {keys:['S','J'],  name:'Dash Left',    desc:'Punch dash to the left',                col:'#00ffcc'},
+    {keys:['S','K'],  name:'Grab Slam',    desc:'Grab & slam — massive damage, launches up',col:'#ff6644'},
+  ];
+  specials.forEach(({keys,name,desc,col},i)=>{
+    moveRow(col2,startY+10+i*rowH,keys,name,desc,col);
+  });
+
+  // Vertical divider
+  g.fillStyle='rgba(0,150,255,.2)';g.fillRect(W/2,startY-4,1,H-startY-40);
+
+  // Movement reminder at bottom
+  const mvY=H-44;
+  g.fillStyle='rgba(0,0,0,.6)';g.fillRect(20,mvY-4,W-40,38);
+  g.strokeStyle='rgba(0,150,255,.2)';g.lineWidth=1;g.strokeRect(20.5,mvY-3.5,W-41,37);
+  txt('MOVE: A/← = left   D/→ = right   W/↑ = jump   S/↓ = crouch / combo modifier',W/2,mvY+10,5,'#6688aa','center');
+  txt('AERIAL ATTACKS deal 1.8× damage!   Resistance stat reduces incoming damage',W/2,mvY+26,5,'#446655','center');
+
+  // Prompt
+  if(tick%60<40){
+    g.save();g.shadowColor='#00ffcc';g.shadowBlur=16;
+    txts('PRESS  J  OR  ENTER  TO  FIGHT!',W/2,H-6,8,'#00ffdd','center');
+    g.restore();
+  }
+  scanlines();
+}
+
 function drawIntro(){
   drawBG(GM.tick);
   const t=GM.introT,al=t<20?t/20:t>80?Math.max(0,(100-t)/20):1;
@@ -1085,9 +1289,13 @@ function loop(ts){
     if(jpJ()||JP['Enter']){
       GM.difficulty=GM.diffSelIdx;
       GM.p1Wins=0;GM.cpuWins=0;GM.round=1;
-      saveGame();startRound();
+      saveGame();GM.state=GS.MOVEGUIDE;S.sel();
     }
     drawDiffSelect();
+  }
+  else if(GM.state===GS.MOVEGUIDE){
+    drawMoveGuide();
+    if(jpJ()||JP['Enter']){startRound();}
   }
   else if(GM.state===GS.INTRO){
     drawIntro();GM.introT++;
@@ -1099,11 +1307,11 @@ function loop(ts){
     if(GM.timer<=0){GM.timer=0;if(p1.hp>=p2.hp)GM.p1Wins++;else GM.cpuWins++;GM.state=GS.KO;GM.koT=0;S.ko();}
     handlePlayer(p1);GM.ai.update(p1);
     p1.stTimer++;p2.stTimer++;
-    if(p1.stDur>0&&p1.stTimer>=p1.stDur)p1.setState(ST.IDLE);
+    if(p1.stDur>0&&p1.stTimer>=p1.stDur){if(p1.state===ST.DROPDICK)p1.onGround||(p1.vy=-2);p1.setState(ST.IDLE);}
     if(p2.stDur>0&&p2.stTimer>=p2.stDur)p2.setState(ST.IDLE);
     p1.tickAnim();p2.tickAnim();
     p1.tickPhysics();p2.tickPhysics();
-    const nf=s=>s===ST.LPUNCH||s===ST.HPUNCH||s===ST.KICK||s===ST.SPECIAL||s===ST.HIT||s===ST.JUMP||s===ST.STUN;
+    const nf=s=>s===ST.LPUNCH||s===ST.HPUNCH||s===ST.KICK||s===ST.SPECIAL||s===ST.HIT||s===ST.JUMP||s===ST.STUN||s===ST.DROPDICK||s===ST.DASHR||s===ST.DASHL||s===ST.GRAB;
     if(!nf(p1.state))p1.facing=p2.cx>p1.cx?1:-1;
     checkCombat(p1,p2);checkCombat(p2,p1);
     // Solid collision: if either fighter is blocking, they can't be walked through
