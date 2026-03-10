@@ -1,0 +1,2472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Frontier Wanderer</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#000;display:flex;align-items:center;justify-content:center;min-height:100vh;overflow:hidden;font-family:'Courier New',monospace;}
+#c{image-rendering:pixelated;cursor:crosshair;display:block;}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+// ════════════════════════════════════════════
+//  FRONTIER WANDERER  –  full game engine
+// ════════════════════════════════════════════
+const CV=document.getElementById('c');
+const ctx=CV.getContext('2d');
+const SW=800,SH=520;
+CV.width=SW;CV.height=SH;
+
+// ── PALETTE ──────────────────────────────────
+const P={
+  // terrain
+  sand:'#d4aa58',sand2:'#c49a44',dune:'#e0ba68',
+  dirt:'#b08858',dirt2:'#907040',
+  grass:'#78a840',grass2:'#648c30',tallgrass:'#8ab848',
+  pine:'#336020',pine2:'#224414',
+  rock:'#888070',rock2:'#6a6458',
+  water:'#4888c8',water2:'#3068a8',
+  snow:'#dce8f0',
+  mud:'#6a5038',
+  // entities
+  skin:'#c89050',skin2:'#a87040',
+  coat:'#6a3818',coat2:'#4a2810',
+  hatDark:'#201408',
+  banditRed:'#801010',
+  lawBlue:'#203060',
+  // fx
+  fire1:'#ff8000',fire2:'#ffc000',fire3:'#ff4000',
+  smoke:'rgba(180,160,120,0.5)',
+  blood:'#cc1818',
+  gold:'#d4a020',
+  parchment:'#f0d890',
+  // ui
+  uiBg:'rgba(10,6,2,0.78)',
+  uiBorder:'#6a4010',
+  hpGreen:'#308840',
+  hpRed:'#c02020',
+  foodAmber:'#c07020',
+  stamBlue:'#2060a0',
+  night:'rgba(4,4,20,',
+  dawn:'rgba(180,80,10,',
+  dusk:'rgba(120,30,80,',
+};
+
+// ── CONSTANTS ─────────────────────────────────
+const TILE=16;
+const MW=180,MH=140; // world tiles  (smaller than spec but still huge)
+const WW=MW*TILE,WH=MH*TILE;
+const WALK_SPD=1.2, JOG_SPD=1.6, SPRINT_SPD=2.4;
+const HORSE_TROT=2.8,HORSE_GALLOP=4.2;
+
+// ── INPUT ─────────────────────────────────────
+const K={};
+const mouse={x:SW/2,y:SH/2,down:false};
+document.addEventListener('keydown',e=>{K[e.code]=true;onKey(e.code);e.preventDefault();});
+document.addEventListener('keyup',e=>{K[e.code]=false;});
+CV.addEventListener('mousemove',e=>{
+  const r=CV.getBoundingClientRect();
+  mouse.x=e.clientX-r.left;mouse.y=e.clientY-r.top;
+  if(typeof buildSelected!=='undefined'&&buildSelected&&typeof cam!=='undefined'){
+    buildGhost.x=mouse.x+cam.x;
+    buildGhost.y=mouse.y+cam.y;
+  }
+});
+CV.addEventListener('mousedown',()=>{mouse.down=true;onMouseDown();});
+CV.addEventListener('mouseup',()=>{mouse.down=false;});
+
+// ── WORLD DATA ────────────────────────────────
+let tileMap=[];      // tile type per cell
+let heightMap=[];    // 0-255 elevation
+let moistMap=[];     // 0-255 moisture
+let treeMap=[];      // bool
+let discovered=new Set(); // discovered chunk keys
+let placedTowns=[];
+let entities=[];     // npcs, animals, enemies
+let bullets=[];
+let particles=[];
+let camps=[];        // player-placed camps
+let discoveredTownSet=new Set();
+
+// ── TILE TYPES ────────────────────────────────
+const T={
+  // Valley / Central
+  DRY_GRASS:0, DIRT:1, STREAM:2, BOULDER:3, SCRUB:4,
+  // Desert south
+  RED_SAND:5, DUNE:6, CRACKED:7, MESA:8, OASIS:9,
+  // Forest north
+  PINE:10, PINE_FLOOR:11, MOSS_ROCK:12, CREEK:13, FERN:14,
+  // Plains east
+  TALL_GRASS:15, PRAIRIE:16, POND:17, WILDFLOWER:18,
+  // Mountains west
+  CLIFF:19, SCREE:20, ALPINE:21, SNOW:22, CAVE:23,
+  // Water / shared
+  RIVER:24, MUD:25, REEDS:26, SAND_BANK:27,
+  // Road
+  TRAIL:28,
+};
+// Nothing is truly solid except hard geological features and tree trunks.
+// Water slows you but doesn't block — player wades through.
+const SOLID_TILES=new Set([T.CLIFF, T.CAVE, T.MESA]);
+const SOLID_WATER=new Set([]); // water slows but never fully blocks
+const SLOW_TILES={
+  [T.DRY_GRASS]:0.96,[T.SCRUB]:0.88,[T.RED_SAND]:0.88,[T.DUNE]:0.82,
+  [T.CRACKED]:0.93,[T.FERN]:0.90,[T.TALL_GRASS]:0.92,[T.MUD]:0.72,
+  [T.REEDS]:0.78,[T.SCREE]:0.84,[T.ALPINE]:0.90,[T.SNOW]:0.84,
+  [T.WILDFLOWER]:0.96,[T.PRAIRIE]:0.98,[T.STREAM]:0.70,[T.CREEK]:0.70,
+  [T.RIVER]:0.55,[T.POND]:0.65,[T.OASIS]:0.75,[T.PINE_FLOOR]:0.94,
+  [T.PINE]:0.85,[T.BOULDER]:0.72,[T.MOSS_ROCK]:0.80,
+};
+
+// ── NOISE (simple) ────────────────────────────
+function noise2(x,y,seed=0){
+  let n=Math.sin(x*127.1+y*311.7+seed)*43758.5453;
+  return n-Math.floor(n);
+}
+function smoothNoise(x,y,seed=0,octaves=4,persistence=0.5){
+  let val=0,amp=1,freq=0.008,max=0;
+  for(let i=0;i<octaves;i++){
+    let ix=Math.floor(x*freq),iy=Math.floor(y*freq);
+    let fx=x*freq-ix,fy=y*freq-iy;
+    let a=noise2(ix,iy,seed+i),b=noise2(ix+1,iy,seed+i);
+    let c=noise2(ix,iy+1,seed+i),d=noise2(ix+1,iy+1,seed+i);
+    val+=amp*(a+(b-a)*fx+(c-a)*fy+(a-b-c+d)*fx*fy);
+    max+=amp;amp*=persistence;freq*=2;
+  }
+  return val/max;
+}
+
+function generateWorld(){
+  // Generate base noise maps
+  for(let y=0;y<MH;y++){
+    heightMap[y]=[];moistMap[y]=[];treeMap[y]=[];tileMap[y]=[];
+    for(let x=0;x<MW;x++){
+      heightMap[y][x]=smoothNoise(x,y,1,5,0.55);
+      moistMap[y][x]=smoothNoise(x,y,2,4,0.6);
+      treeMap[y][x]=false;
+    }
+  }
+
+  // Biome regions by position (MW=180, MH=140)
+  // Center: valley (MW/2±30, MH/2±25)
+  // South (y > MH*0.65): desert
+  // North (y < MH*0.32): forest
+  // East (x > MW*0.65): plains
+  // West (x < MW*0.32): mountains
+  const CX=MW/2, CY=MH/2;
+
+  for(let y=0;y<MH;y++){
+    for(let x=0;x<MW;x++){
+      const h=heightMap[y][x];
+      const m=moistMap[y][x];
+      const det=noise2(x,y,77); // fine detail
+      const det2=noise2(x,y,33);
+
+      // Normalized position [0..1]
+      const nx=x/MW, ny=y/MH;
+
+      // Biome blend weights
+      const dCenter=Math.sqrt(((nx-0.5)*2.2)**2+((ny-0.5)*1.8)**2);
+      const wValley=Math.max(0,1-dCenter*1.6);
+      const wDesert=Math.max(0,(ny-0.58)*3.5)*(1-Math.max(0,(nx-0.65)*2));
+      const wForest=Math.max(0,(0.30-ny)*4.0)*(1-Math.max(0,(nx-0.68)*2));
+      const wPlains=Math.max(0,(nx-0.62)*3.5)*(1-Math.max(0,(ny-0.72)*3))*(1-Math.max(0,(0.25-ny)*4));
+      const wMountain=Math.max(0,(0.30-nx)*4.0)*(1-Math.max(0,(ny-0.75)*3))*(1-Math.max(0,(0.25-ny)*4));
+      const total=wValley+wDesert+wForest+wPlains+wMountain+0.001;
+      const bV=wValley/total, bD=wDesert/total, bF=wForest/total, bP=wPlains/total, bM=wMountain/total;
+
+      // Pick dominant biome
+      const dominant=[[bV,'valley'],[bD,'desert'],[bF,'forest'],[bP,'plains'],[bM,'mountain']]
+        .sort((a,b)=>b[0]-a[0])[0][1];
+
+      let t;
+
+      // River from west mountains across to east — runs roughly at y=MH*0.48-0.52, snaking with noise
+      const riverY=CY+smoothNoise(x,0,88,2,0.5)*8-4;
+      const riverDist=Math.abs(y-riverY);
+      const isRiver=riverDist<1.5+smoothNoise(x,y,44,2)*1.0;
+      const isRiverBank=riverDist<3.5 && !isRiver;
+
+      // Small stream through valley at slightly different angle
+      const streamY=CY+5+smoothNoise(x,0,77,2,0.6)*6-3;
+      const streamDist=Math.abs(y-streamY);
+      const isStream=streamDist<1.0 && dCenter<0.7 && !isRiver;
+      const isStreamBank=streamDist<2.5 && !isStream && !isRiver && dCenter<0.8;
+
+      if(isRiver){ t=T.RIVER; }
+      else if(isRiverBank){ t=T.SAND_BANK; }
+      else if(isStream){ t=T.STREAM; }
+      else if(isStreamBank){ t=T.DRY_GRASS; }
+      else if(dominant==='valley'){
+        // Mostly open dry grass — only rare boulders and scrub for character
+        if(det>0.96) t=T.BOULDER;          // 4% boulders
+        else if(det>0.88) t=T.SCRUB;       // 8% scrub
+        else if(m>0.62) t=T.DRY_GRASS;
+        else t=T.DIRT;
+      }
+      else if(dominant==='desert'){
+        // Open sand with occasional dunes, very rare mesa
+        if(det>0.97) t=T.MESA;             // 3% mesa (solid)
+        else if(det>0.80) t=T.DUNE;        // 17% dunes (walkable, just slow)
+        else if(h<0.32) t=T.CRACKED;
+        else t=T.RED_SAND;
+        // Rare oasis
+        if(m>0.82&&h>0.40&&h<0.55&&det2>0.90) t=T.OASIS;
+      }
+      else if(dominant==='forest'){
+        // Mostly walkable floor with trees as scenery, not walls
+        if(det>0.92) t=T.PINE;             // 8% actual tree tiles (slower)
+        else if(det>0.75) t=T.FERN;        // 17% ferns
+        else if(det>0.60) t=T.PINE_FLOOR;  // 15% needle floor
+        else if(h<0.35) t=T.CREEK;         // creeks in low spots
+        else t=T.PINE_FLOOR;
+        if(t===T.PINE) treeMap[y][x]=true;
+      }
+      else if(dominant==='plains'){
+        // Vast open grasslands — almost nothing blocking
+        if(det>0.95) t=T.BOULDER;          // 5% boulders
+        else if(det>0.80) t=T.TALL_GRASS;  // 15% tall grass
+        else if(det>0.65) t=T.WILDFLOWER;  // 15% flowers
+        else t=T.PRAIRIE;
+        // Very rare small ponds
+        if(m>0.85&&h<0.38&&det2>0.88) t=T.POND;
+      }
+      else if(dominant==='mountain'){
+        // Mostly scree/alpine — cliffs only on very high or sharp noise
+        if(h>0.78||det>0.97) t=T.CLIFF;    // solid cliffs rare
+        else if(h>0.68) t=T.SNOW;
+        else if(det>0.80) t=T.SCREE;
+        else t=T.ALPINE;
+        if(det>0.97&&h>0.55) t=T.CAVE;
+      }
+      else {t=T.DRY_GRASS;}
+
+      tileMap[y][x]=t;
+    }
+  }
+
+  // Lake/delta at south-east edge
+  const lakeX=Math.floor(MW*0.82), lakeY=Math.floor(MH*0.80);
+  for(let dy=-8;dy<=8;dy++) for(let dx=-12;dx<=12;dx++){
+    const dist=Math.sqrt((dx/12)**2+(dy/8)**2);
+    const nx2=lakeX+dx, ny2=lakeY+dy;
+    if(nx2<0||ny2<0||nx2>=MW||ny2>=MH) continue;
+    if(dist<0.6+noise2(dx,dy,9)*0.3){tileMap[ny2][nx2]=T.RIVER;}
+    else if(dist<1.0){tileMap[ny2][nx2]=T.REEDS;}
+    else if(dist<1.2){tileMap[ny2][nx2]=T.SAND_BANK;}
+  }
+
+  placeTowns();
+  spawnInitialEntities();
+}
+
+const TOWN_DEFS=[
+  {name:'Millhaven',   region:'valley'},
+  {name:'Ashrock',     region:'desert'},
+  {name:'Redcreek',    region:'desert'},
+  {name:'Pinehaven',   region:'forest'},
+  {name:'Coldwater',   region:'forest'},
+  {name:'Duskfall',    region:'plains'},
+  {name:'Ironpass',    region:'mountain'},
+];
+
+const TOWN_BAD=new Set([T.RIVER,T.STREAM,T.CREEK,T.POND,T.OASIS,T.CLIFF,T.CAVE,T.MESA,T.BOULDER,T.SNOW,T.MUD,T.REEDS]);
+
+function placeTowns(){
+  placedTowns=[];
+  const attempts=300;
+  for(const def of TOWN_DEFS){
+    for(let a=0;a<attempts;a++){
+      const tx=12+Math.floor(Math.random()*(MW-24));
+      const ty=12+Math.floor(Math.random()*(MH-24));
+      if(TOWN_BAD.has(tileMap[ty]?.[tx])) continue;
+      let ok=true;
+      for(const pt of placedTowns){
+        if(Math.sqrt((tx-pt.tx)**2+(ty-pt.ty)**2)<20){ok=false;break;}
+      }
+      if(!ok) continue;
+      placedTowns.push({...def,tx,ty,wx:tx*TILE,wy:ty*TILE,discovered:false});
+      // Clear area to dirt/trail
+      for(let dy=-4;dy<=4;dy++) for(let dx=-4;dx<=4;dx++){
+        const nx=tx+dx,ny=ty+dy;
+        if(nx<0||nx>=MW||ny<0||ny>=MH) continue;
+        if(TOWN_BAD.has(tileMap[ny][nx])) continue;
+        const d=Math.max(Math.abs(dx),Math.abs(dy));
+        if(d<=2) tileMap[ny][nx]=T.DIRT;
+        else tileMap[ny][nx]=T.DIRT;
+      }
+      break;
+    }
+  }
+  // Carve wagon trails between towns
+  for(let i=0;i<placedTowns.length-1;i++){
+    const a=placedTowns[i],b=placedTowns[(i+1)%placedTowns.length];
+    carvePath(a.tx,a.ty,b.tx,b.ty);
+  }
+}
+
+function carvePath(x0,y0,x1,y1){
+  let cx=x0,cy=y0;
+  const steps=(Math.abs(x1-x0)+Math.abs(y1-y0))*3;
+  for(let i=0;i<steps&&(cx!==x1||cy!==y1);i++){
+    if(Math.random()<0.5&&cx!==x1) cx+=cx<x1?1:-1;
+    else if(cy!==y1) cy+=cy<y1?1:-1;
+    if(cx<0||cx>=MW||cy<0||cy>=MH) continue;
+    if(!TOWN_BAD.has(tileMap[cy][cx])) tileMap[cy][cx]=T.TRAIL;
+  }
+}
+
+// ── ENTITY SYSTEM ─────────────────────────────
+let eid=0;
+function mkEnt(type,x,y,extra={}){
+  return {id:eid++,type,x,y,vx:0,vy:0,w:12,h:18,hp:100,maxHp:100,
+    facing:Math.random()*Math.PI*2,walkFrame:0,walkTimer:0,
+    state:'idle',stateTimer:0,alertTo:null,...extra};
+}
+
+function spawnInitialEntities(){
+  entities=[];
+  // Animals across map — sparse, world feels empty/wild
+  for(let i=0;i<40;i++) spawnAnimal(['deer','deer','wolf','bison','coyote','rattlesnake','vulture'][Math.floor(Math.random()*7)]);
+  // Very few travelers — rare encounters
+  for(let i=0;i<4;i++) spawnNPC('traveler');
+  // Bandits — only a handful, scattered far out
+  for(let i=0;i<5;i++) spawnNPC('bandit');
+  // One trapper, one rancher
+  for(let i=0;i<2;i++) spawnNPC('trapper');
+  for(let i=0;i<2;i++) spawnNPC('rancher');
+  // Town NPCs — just 2-3 per town, not a crowd
+  for(const town of placedTowns){
+    for(let i=0;i<3;i++) spawnTownNPC(town);
+  }
+}
+
+function spawnAnimal(type){
+  const x=Math.random()*WW, y=Math.random()*WH;
+  const defs={
+    deer:  {hp:40, spd:2.2,fearDist:120,atkDist:0, dmg:0,  w:14,h:12,color:'#c09050',predator:false,reward:30,meat:3},
+    wolf:  {hp:60, spd:2.0,fearDist:0,  atkDist:80, dmg:12, w:14,h:10,color:'#706050',predator:true, reward:40,meat:2},
+    bison: {hp:120,spd:1.4,fearDist:60, atkDist:50, dmg:20, w:22,h:14,color:'#503820',predator:false,reward:60,meat:8},
+    coyote:{hp:35, spd:2.4,fearDist:150,atkDist:60, dmg:8,  w:10,h:8, color:'#b08040',predator:true, reward:20,meat:1},
+    rattlesnake:{hp:20,spd:1.0,fearDist:0,atkDist:30,dmg:30,w:8,h:4,color:'#8a7030',predator:true,reward:15,meat:1},
+    vulture:{hp:25,spd:2.8,fearDist:200,atkDist:0,  dmg:0,  w:16,h:8,color:'#303030',predator:false,reward:5,meat:1},
+  };
+  const d=defs[type]||defs.deer;
+  const tx=Math.floor(x/TILE), ty=Math.floor(y/TILE);
+  const tile=tileMap[ty]?.[tx]??T.DRY_GRASS;
+  if(SOLID_TILES.has(tile)) return;
+  entities.push(mkEnt('animal',x,y,{animalType:type,...d,pack:[],migDir:Math.random()*Math.PI*2,migTimer:Math.random()*600}));
+}
+
+function spawnNPC(role){
+  const tries=20;
+  for(let t=0;t<tries;t++){
+    const x=Math.random()*WW, y=Math.random()*WH;
+    const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);
+    const tile=tileMap[ty]?.[tx]??T.DRY_GRASS;
+    if(SOLID_TILES.has(tile)) continue;
+    const c={traveler:'#6a4020',bandit:'#2a1808',trapper:'#4a3018',rancher:'#5a3820'}[role]||'#5a3820';
+    entities.push(mkEnt('npc',x,y,{role,coat:c,
+      hat:role==='bandit'?'#100808':'#201408',
+      hostile:role==='bandit',
+      spd:role==='traveler'?1.6:1.2,
+      dmg:role==='bandit'?18:0,
+      hp:role==='bandit'?70:50,maxHp:70,
+      shootCd:0,
+      dialog:npcDialog(role),
+      onHorse:role==='traveler'&&Math.random()<0.4,
+    }));
+    break;
+  }
+}
+
+function spawnTownNPC(town){
+  const ex=town.wx+(Math.random()-0.5)*80;
+  const ey=town.wy+(Math.random()-0.5)*80;
+  entities.push(mkEnt('npc',ex,ey,{role:'townfolk',coat:'#7a5030',hat:'#201810',
+    hostile:false,spd:0.8,dmg:0,hp:50,maxHp:50,shootCd:0,dialog:npcDialog('townfolk'),
+    homeTown:town,onHorse:false}));
+}
+
+function npcDialog(role){
+  const lines={
+    traveler:["Long road ahead, friend.","Watch for wolves at night.","Pinehaven's a week's ride east.","Careful out in the desert."],
+    bandit:["Your money, now.","This is our territory.","Don't make me ask twice."],
+    trapper:["Good pelts this season.","Bear tracks north of here.","Trade your pelts for ammo."],
+    rancher:["Cattle need grazing space.","Rain's been scarce.","Keep away from my herd."],
+    townfolk:["Welcome to town.","Quiet day, praise be.","Heard gunshots east last night."],
+    sheriff:["Keep your iron holstered.","Trouble follows outlaws.","Wanted posters on the board."],
+  };
+  return lines[role]||lines.townfolk;
+}
+
+// ── PLAYER ────────────────────────────────────
+const pl={
+  x:0,y:0,vx:0,vy:0,w:12,h:20,
+  hp:100,maxHp:100,
+  food:60,maxFood:100,
+  stamina:100,maxStamina:100,
+  facing:0,
+  walkFrame:0,walkTimer:0,
+  sprinting:false,
+  onHorse:false,
+  horse:{x:0,y:0,spd:HORSE_GALLOP,stamina:100,frame:0,frameTimer:0},
+  weapons:[
+    {name:'Revolver',ammo:3,maxAmmo:6,reloadTime:2400,dmg:35,range:260,spread:0.06,color:P.gold},
+    {name:'Rifle',   ammo:0,maxAmmo:12,reloadTime:220, dmg:50,range:420,spread:0.025,color:'#807050'},
+  ],
+  curWep:0,
+  reloading:false,reloadProg:0,
+  shootCd:0,
+  invTimer:0,
+  crimeLevel:0,
+  crimeCooldown:0,
+  money:0,
+  meat:0,pelts:0,
+  interactTarget:null,
+};
+
+function cw(){return pl.weapons[pl.curWep];}
+
+// ── CAMERA ────────────────────────────────────
+const cam={x:0,y:0};
+
+// ── GAME STATE ────────────────────────────────
+let gameState='title';
+let time=0.3;
+let timeSpeed=0.000005;
+let weather='clear';
+let weatherTimer=3000;
+let msgQueue=[];
+let msgTimer=0;
+let msgText='';
+let campPlacing=false;
+let discoverText='';
+let discoverTimer=0;
+let lastTime=0;
+let frameCount=0;
+let showControls=true;
+
+// ── VILLAGE SYSTEM ────────────────────────────
+// Player's settlement
+const village={
+  founded:false,
+  x:0, y:0,           // world position of village center
+  name:'Your Settlement',
+  level:1,             // 1-5
+  buildings:[],        // placed building objects
+  gold:0,              // village treasury (separate from pocket money)
+  population:0,        // settlers living here
+  maxPop:0,
+  defense:0,           // 0-100, how well it resists raids
+  food:0,              // village food stockpile
+  maxFood:200,
+  happiness:80,        // 0-100
+  nextRaidIn:1800,     // frames until next raid wave
+  raidWarning:0,       // countdown frames for warning flash
+  daysSurvived:0,
+};
+
+// Building blueprints available to place
+const BLDG_DEFS={
+  tent:      {label:'Tent',       cost:0,   w:24,h:20, color:'#8a7040', pop:2,  defense:0,  foodBonus:0,  desc:'Free starter shelter. +2 pop cap.'},
+  cabin:     {label:'Cabin',      cost:80,  w:32,h:28, color:'#7a5030', pop:4,  defense:2,  foodBonus:0,  desc:'Sturdy wood cabin. +4 pop.'},
+  farm:      {label:'Farm',       cost:60,  w:44,h:36, color:'#6a8830', pop:0,  defense:0,  foodBonus:8,  desc:'Grows food each day. +8 food/day.'},
+  watchtower:{label:'Watchtower', cost:100, w:18,h:18, color:'#504030', pop:0,  defense:15, foodBonus:0,  desc:'Early warning & defense boost.'},
+  storehouse:{label:'Storehouse', cost:120, w:36,h:28, color:'#906040', pop:0,  defense:0,  foodBonus:0,  maxFoodBonus:150, desc:'Increases max food storage.'},
+  saloon:    {label:'Saloon',     cost:200, w:48,h:38, color:'#804020', pop:6,  defense:0,  foodBonus:0,  happyBonus:15, desc:'Attracts settlers. +happiness.'},
+  blacksmith:{label:'Blacksmith', cost:180, w:36,h:32, color:'#503828', pop:0,  defense:5,  foodBonus:0,  desc:'Enables weapon upgrades.'},
+  wall:      {label:'Wall',       cost:30,  w:16,h:8,  color:'#706050', pop:0,  defense:8,  foodBonus:0,  desc:'Defensive wall segment.'},
+  stable:    {label:'Stable',     cost:150, w:48,h:36, color:'#8a5828', pop:0,  defense:0,  foodBonus:0,  desc:'Lets you buy a horse.'},
+  well:      {label:'Well',       cost:70,  w:16,h:16, color:'#506878', pop:0,  defense:0,  foodBonus:3,  happyBonus:5, desc:'Clean water. +food +happiness.'},
+};
+
+// Build menu state
+let buildMenuOpen=false;
+let buildSelected=null;  // key of BLDG_DEFS currently being placed
+let buildGhost={x:0,y:0};
+
+// Raid system
+let activeRaid=null; // {raiders:[], phase:'incoming'|'attacking'|'retreating'}
+let raidersKilled=0;
+
+// Shop menu when near a discovered town
+let shopMenuOpen=false;
+let shopTown=null;
+
+// ── TITLE ─────────────────────────────────────
+function drawTitle(){
+  // Sky gradient
+  const g=ctx.createLinearGradient(0,0,0,SH);
+  g.addColorStop(0,'#0a0808');g.addColorStop(0.5,'#301010');g.addColorStop(1,'#804020');
+  ctx.fillStyle=g;ctx.fillRect(0,0,SW,SH);
+
+  // Stars
+  ctx.fillStyle='rgba(255,240,200,0.7)';
+  [[80,40],[150,20],[300,60],[450,30],[600,50],[700,20],[750,70],[200,80],[550,15]].forEach(([x,y])=>{
+    ctx.fillRect(x,y,1,1);ctx.fillRect(x+1,y,1,1);
+  });
+
+  // Ground silhouette
+  ctx.fillStyle='#1a0e06';
+  ctx.beginPath();ctx.moveTo(0,SH);
+  for(let x=0;x<=SW;x+=20){
+    const h=SH-80-Math.sin(x*0.04)*20-Math.sin(x*0.013)*30+noise2(x,0,7)*15;
+    ctx.lineTo(x,h);
+  }
+  ctx.lineTo(SW,SH);ctx.closePath();ctx.fill();
+
+  // Cactus silhouettes
+  [[120,SH-110],[450,SH-130],[680,SH-105]].forEach(([cx,cy])=>{
+    ctx.fillStyle='#1a1008';
+    ctx.fillRect(cx-4,cy,8,50);
+    ctx.fillRect(cx-16,cy+10,12,6);ctx.fillRect(cx-16,cy+6,5,14);
+    ctx.fillRect(cx+4,cy+15,12,6);ctx.fillRect(cx+9,cy+11,5,14);
+  });
+
+  // Title text
+  ctx.save();
+  ctx.shadowColor='#c04000';ctx.shadowBlur=30;
+  ctx.fillStyle='#d4a020';
+  ctx.font='bold 54px Georgia,serif';
+  ctx.textAlign='center';
+  ctx.fillText('FRONTIER',SW/2,SH/2-50);
+  ctx.fillStyle='#f0c040';
+  ctx.font='bold 38px Georgia,serif';
+  ctx.fillText('WANDERER',SW/2,SH/2-8);
+  ctx.restore();
+
+  ctx.fillStyle='#c09050';
+  ctx.font='13px Courier New,monospace';
+  ctx.textAlign='center';
+  ctx.fillText('A  P I X E L  W E S T E R N',SW/2,SH/2+22);
+
+  // Blinking start
+  if(Math.floor(Date.now()/600)%2===0){
+    ctx.fillStyle='#d4a020';
+    ctx.font='14px Courier New,monospace';
+    ctx.fillText('PRESS  ENTER  TO  RIDE',SW/2,SH/2+60);
+  }
+
+  ctx.fillStyle='rgba(160,120,60,0.7)';
+  ctx.font='10px Courier New,monospace';
+  ctx.fillText('WASD: Move   Mouse: Aim   Click/Space: Shoot   R: Reload   E: Interact   F: Camp   1-2: Weapon   Shift: Sprint',SW/2,SH-14);
+}
+
+// ── WORLD GEN ─────────────────────────────────
+function initPlayer(){
+  // Find a spawn far from towns/NPCs AND with open walkable tiles around it
+  // Everything except hard solid tiles is walkable
+  const BAD_SPAWN=new Set([T.CLIFF,T.CAVE,T.MESA,T.RIVER,T.STREAM,T.CREEK,T.POND]);
+  let sx, sy, found=false;
+  for(let attempt=0;attempt<800;attempt++){
+    sx=25+Math.floor(Math.random()*(MW-50));
+    sy=25+Math.floor(Math.random()*(MH-50));
+    const tile=tileMap[sy]?.[sx];
+    if(BAD_SPAWN.has(tile)) continue;
+
+    // Check a 5x5 area — must be mostly open
+    let blocked=0;
+    for(let dy=-2;dy<=2;dy++) for(let dx=-2;dx<=2;dx++){
+      if(BAD_SPAWN.has(tileMap[sy+dy]?.[sx+dx])) blocked++;
+    }
+    if(blocked>4) continue;
+
+    // Must be far from every town
+    let tooClose=false;
+    for(const town of placedTowns){
+      if(Math.sqrt((sx-town.tx)**2+(sy-town.ty)**2)<40){tooClose=true;break;}
+    }
+    if(tooClose) continue;
+
+    // Must be far from any NPC/animal
+    for(const e of entities){
+      if(Math.sqrt((sx*TILE-e.x)**2+(sy*TILE-e.y)**2)<500){tooClose=true;break;}
+    }
+    if(tooClose) continue;
+
+    found=true;
+    break;
+  }
+  if(!found){
+    outer:for(let fy=20;fy<MH-20;fy+=2){
+      for(let fx=20;fx<MW-20;fx+=2){
+        if(!BAD_SPAWN.has(tileMap[fy]?.[fx])){sx=fx;sy=fy;found=true;break outer;}
+      }
+    }
+  }
+  pl.x=sx*TILE+8; pl.y=sy*TILE+8;
+  pl.horse.x=pl.x; pl.horse.y=pl.y;
+  cam.x=pl.x-SW/2; cam.y=pl.y-SH/2;
+  clampCam();
+}
+
+// ── TILE RENDERING ────────────────────────────
+function drawTile(tx,ty,px,py){
+  const t=tileMap[ty]?.[tx]??T.DRY_GRASS;
+  const det=noise2(tx,ty,7);  // stable per-tile variation
+  const det2=noise2(tx,ty,42);
+
+  // ── Base fill ──────────────────────────────
+  const BASE={
+    [T.DRY_GRASS]: det>0.5?'#b8a858':'#c4b468',
+    [T.DIRT]:      det>0.55?'#9a7848':'#aa8858',
+    [T.TRAIL]:     det>0.55?'#9a7040':'#8a6030',
+    [T.SCRUB]:     det>0.5?'#8a8040':'#787030',
+    [T.STREAM]:    '#4880c0',
+    [T.BOULDER]:   det>0.5?'#888070':'#706860',
+    [T.MUD]:       det>0.5?'#7a5838':'#6a4828',
+    [T.RED_SAND]:  det>0.55?'#c86848':'#b85838',
+    [T.DUNE]:      det>0.55?'#d07848':'#c06838',
+    [T.CRACKED]:   det>0.5?'#a06040':'#906030',
+    [T.MESA]:      det>0.5?'#a85030':'#983020',
+    [T.OASIS]:     '#3870a0',
+    [T.PINE]:      treeMap[ty]?.[tx]?(det>0.5?'#1e4010':'#2a5018'):(det>0.5?'#3a5820':'#2e4818'),
+    [T.PINE_FLOOR]:det>0.5?'#4a5028':'#3a4020',
+    [T.MOSS_ROCK]: det>0.5?'#607040':'#506030',
+    [T.CREEK]:     '#3878b0',
+    [T.FERN]:      det>0.5?'#507838':'#406830',
+    [T.TALL_GRASS]:det>0.5?'#7a9830':'#6a8828',
+    [T.PRAIRIE]:   det>0.55?'#a8a040':'#989030',
+    [T.POND]:      '#3870a8',
+    [T.WILDFLOWER]:det>0.5?'#9a9838':'#8a8830',
+    [T.CLIFF]:     det>0.5?'#706858':'#605848',
+    [T.SCREE]:     det>0.5?'#808070':'#707060',
+    [T.ALPINE]:    det>0.5?'#5a7848':'#4a6838',
+    [T.SNOW]:      det>0.5?'#d8e8f0':'#c8d8e8',
+    [T.CAVE]:      '#181410',
+    [T.RIVER]:     det>0.5?'#3070b8':'#2860a8',
+    [T.REEDS]:     det>0.5?'#4a6828':'#3a5820',
+    [T.SAND_BANK]: det>0.5?'#c0a858':'#b09848',
+  }[t]||'#908050';
+
+  ctx.fillStyle=BASE;
+  ctx.fillRect(px,py,TILE,TILE);
+
+  // ── Detail pass ────────────────────────────
+  if(t===T.DRY_GRASS){
+    // Dry grass tufts and occasional wildflower dot
+    ctx.fillStyle='#a09040';
+    ctx.fillRect(px+2,py+9,1,5); ctx.fillRect(px+7,py+7,1,6); ctx.fillRect(px+12,py+10,1,4);
+    if(det2>0.82){ctx.fillStyle='#e06060';ctx.fillRect(px+9,py+4,2,2);}
+    if(det2>0.91){ctx.fillStyle='#e0d060';ctx.fillRect(px+3,py+3,2,2);}
+    // Dust patch
+    if(det>0.88){ctx.fillStyle='rgba(180,150,80,0.35)';ctx.fillRect(px+4,py+10,8,4);}
+  }
+  else if(t===T.DIRT){
+    ctx.fillStyle='#7a5838';
+    ctx.fillRect(px,py+5,TILE,1); ctx.fillRect(px,py+11,TILE,1);
+    ctx.fillRect(px+4,py,1,TILE);
+    // Small pebbles
+    ctx.fillStyle='#c0a878';
+    if(det2>0.75){ctx.fillRect(px+2,py+3,2,1);ctx.fillRect(px+10,py+11,2,1);}
+  }
+  else if(t===T.TRAIL){
+    // Wagon rut lines
+    ctx.fillStyle='#785028';
+    ctx.fillRect(px+2,py,2,TILE); ctx.fillRect(px+11,py,2,TILE);
+    // Dusty center
+    ctx.fillStyle='rgba(200,170,100,0.2)';ctx.fillRect(px+4,py,7,TILE);
+    if(det2>0.8){ctx.fillStyle='#a08050';ctx.fillRect(px+5+Math.floor(det*6),py+3,3,2);}
+  }
+  else if(t===T.SCRUB){
+    // Thorny shrub shapes
+    ctx.fillStyle='#606030';
+    ctx.fillRect(px+1,py+8,5,6); ctx.fillRect(px+4,py+5,4,9);
+    ctx.fillRect(px+9,py+7,5,7); ctx.fillRect(px+11,py+4,3,10);
+    ctx.fillStyle='#504820';
+    ctx.fillRect(px+2,py+9,2,4); ctx.fillRect(px+10,py+8,2,5);
+    // Thorns
+    ctx.fillStyle='#807040';
+    ctx.fillRect(px,py+10,2,1);ctx.fillRect(px+14,py+9,2,1);
+  }
+  else if(t===T.STREAM||t===T.CREEK){
+    const wave=Math.floor(Date.now()/300)%3;
+    ctx.fillStyle='rgba(120,180,230,0.5)';
+    ctx.fillRect(px+wave*2,py+3,5,3); ctx.fillRect(px+(wave*2+6)%14,py+9,5,3);
+    ctx.fillStyle='rgba(200,230,255,0.25)';
+    ctx.fillRect(px,py+1,TILE,2); ctx.fillRect(px,py+TILE-3,TILE,2);
+  }
+  else if(t===T.BOULDER){
+    ctx.fillStyle='#908878';ctx.fillRect(px+1,py+3,10,8);
+    ctx.fillStyle='#a09888';ctx.fillRect(px+2,py+2,6,4);
+    ctx.fillStyle='#504840';ctx.fillRect(px+8,py+9,5,4);
+    ctx.fillStyle='rgba(0,0,0,0.2)';ctx.fillRect(px+3,py+10,10,4);
+  }
+  else if(t===T.MUD){
+    ctx.fillStyle='#584028';
+    ctx.fillRect(px+2,py+4,4,3);ctx.fillRect(px+9,py+9,4,3);
+    if(det2>0.7){ctx.fillStyle='rgba(60,140,180,0.3)';ctx.fillRect(px+3,py+5,3,2);ctx.fillRect(px+10,py+10,3,2);}
+  }
+  else if(t===T.RED_SAND){
+    ctx.fillStyle='#d07058';
+    ctx.fillRect(px+2,py+2,1,1);ctx.fillRect(px+9,py+10,1,1);ctx.fillRect(px+13,py+5,1,1);
+    // Ripple marks
+    ctx.fillStyle='rgba(180,70,40,0.3)';
+    ctx.fillRect(px,py+7,TILE,1); ctx.fillRect(px,py+12,TILE,1);
+    // Bone fragment
+    if(det2>0.90){ctx.fillStyle='#e0d8c0';ctx.fillRect(px+5,py+4,6,2);ctx.fillRect(px+8,py+2,2,5);}
+    // Tumbleweed
+    if(det>0.93){ctx.fillStyle='#807040';ctx.fillRect(px+10,py+7,5,5);ctx.fillStyle='#606030';ctx.fillRect(px+11,py+8,3,3);}
+  }
+  else if(t===T.DUNE){
+    ctx.fillStyle='#d08058';
+    // Dune crest lines
+    ctx.fillRect(px,py+4,TILE,2); ctx.fillRect(px,py+11,TILE,2);
+    ctx.fillStyle='rgba(255,200,140,0.2)'; ctx.fillRect(px,py,TILE,4);
+    // Shadow on dune face
+    ctx.fillStyle='rgba(120,50,20,0.25)'; ctx.fillRect(px,py+6,TILE,5);
+    // Cactus spine tops on dunes occasionally
+    if(det>0.89){
+      ctx.fillStyle='#507040';ctx.fillRect(px+7,py+1,3,10);
+      ctx.fillStyle='#406030';ctx.fillRect(px+3,py+4,6,3);ctx.fillRect(px+3,py+2,3,5);
+      ctx.fillRect(px+8,py+5,6,2);ctx.fillRect(px+11,py+3,3,5);
+    }
+  }
+  else if(t===T.CRACKED){
+    ctx.fillStyle='#784030';
+    // Crack lines
+    ctx.fillRect(px,py+5,TILE,1);ctx.fillRect(px+5,py,1,TILE);
+    ctx.fillRect(px+10,py+8,1,8);ctx.fillRect(px+2,py+2,5,1);
+    // Dried pool glint
+    if(det2>0.85){ctx.fillStyle='rgba(60,100,150,0.2)';ctx.fillRect(px+4,py+6,6,4);}
+  }
+  else if(t===T.MESA){
+    // Flat top with layered cliff side
+    ctx.fillStyle='#b86050';ctx.fillRect(px,py,TILE,4);   // top
+    ctx.fillStyle='#904030';ctx.fillRect(px,py+4,TILE,6); // mid
+    ctx.fillStyle='#702818';ctx.fillRect(px,py+10,TILE,6);// base
+    ctx.fillStyle='rgba(0,0,0,0.15)';ctx.fillRect(px+10,py,6,TILE); // shadow edge
+    // Jagged top edge
+    ctx.fillStyle='#c07060';ctx.fillRect(px+2,py-2,4,3);ctx.fillRect(px+9,py-3,5,4);
+  }
+  else if(t===T.OASIS){
+    const wave=Math.floor(Date.now()/400)%3;
+    ctx.fillStyle='rgba(80,150,200,0.5)';ctx.fillRect(px+wave,py+wave,TILE-wave*2,TILE-wave*2);
+    // Palm fronds
+    ctx.fillStyle='#406820';
+    ctx.fillRect(px+6,py,2,8);
+    ctx.fillRect(px+2,py+2,5,3);ctx.fillRect(px+9,py+1,5,3);
+    ctx.fillStyle='#507828';ctx.fillRect(px+3,py,3,3);ctx.fillRect(px+10,py,3,4);
+  }
+  else if(t===T.PINE){
+    if(treeMap[ty]?.[tx]){
+      // Tall pine tree — drawn above tile
+      ctx.fillStyle='#3a2808';ctx.fillRect(px+6,py+6,4,TILE); // trunk
+      ctx.fillStyle='#1e3a10';ctx.fillRect(px+2,py+2,12,8);   // lower boughs
+      ctx.fillStyle='#254818';ctx.fillRect(px+3,py-4,10,8);
+      ctx.fillStyle='#2e5820';ctx.fillRect(px+4,py-10,8,8);
+      ctx.fillStyle='#387028';ctx.fillRect(px+5,py-14,6,6);
+      // Light shaft through canopy
+      ctx.fillStyle='rgba(255,230,160,0.06)';ctx.fillRect(px+7,py-14,2,TILE+14);
+    } else {
+      // Ground under pine — pine needles
+      ctx.fillStyle='#3a4020';ctx.fillRect(px,py,TILE,TILE);
+      ctx.fillStyle='#2a3018';ctx.fillRect(px+1,py+1,6,3);ctx.fillRect(px+9,py+9,5,3);
+      ctx.fillStyle='rgba(180,160,100,0.15)';ctx.fillRect(px+3,py+6,10,4);
+    }
+  }
+  else if(t===T.PINE_FLOOR){
+    // Pine needle carpet
+    ctx.fillStyle='#3a3e18';ctx.fillRect(px+2,py+3,5,3);ctx.fillRect(px+9,py+9,5,2);
+    ctx.fillStyle='rgba(180,160,100,0.2)';ctx.fillRect(px+4,py+8,8,5);
+    // Fallen log
+    if(det>0.85){ctx.fillStyle='#604820';ctx.fillRect(px,py+6,TILE,4);ctx.fillStyle='#806040';ctx.fillRect(px,py+6,TILE,2);}
+  }
+  else if(t===T.MOSS_ROCK){
+    ctx.fillStyle='#708060';ctx.fillRect(px+1,py+2,10,9);
+    ctx.fillStyle='#8a9870';ctx.fillRect(px+2,py+1,6,4);
+    ctx.fillStyle='#506040';ctx.fillRect(px+8,py+9,5,5);
+    ctx.fillStyle='rgba(0,0,0,0.18)';ctx.fillRect(px+2,py+10,10,4);
+  }
+  else if(t===T.FERN){
+    // Fern fronds
+    ctx.fillStyle='#507840';
+    ctx.fillRect(px+1,py+4,3,10);ctx.fillRect(px+4,py+2,3,12);
+    ctx.fillRect(px+8,py+3,3,11);ctx.fillRect(px+12,py+5,3,9);
+    ctx.fillStyle='#406830';
+    ctx.fillRect(px+2,py+5,2,8);ctx.fillRect(px+9,py+4,2,9);
+  }
+  else if(t===T.TALL_GRASS){
+    ctx.fillStyle='#688820';
+    ctx.fillRect(px+1,py+3,2,11);ctx.fillRect(px+4,py+1,2,13);
+    ctx.fillRect(px+7,py+4,2,10);ctx.fillRect(px+10,py+2,2,12);ctx.fillRect(px+13,py+5,2,9);
+    ctx.fillStyle='#507018';
+    ctx.fillRect(px+2,py+5,1,9);ctx.fillRect(px+8,py+6,1,8);
+    // Seed heads
+    ctx.fillStyle='#a0a050';
+    ctx.fillRect(px+1,py+2,2,2);ctx.fillRect(px+4,py,2,2);ctx.fillRect(px+10,py+1,2,2);
+  }
+  else if(t===T.PRAIRIE){
+    ctx.fillStyle='#888030';
+    ctx.fillRect(px+2,py+10,1,5);ctx.fillRect(px+7,py+8,1,7);ctx.fillRect(px+11,py+11,1,4);ctx.fillRect(px+14,py+9,1,6);
+    // Rolling hill shimmer
+    if(det>0.8){ctx.fillStyle='rgba(255,240,180,0.08)';ctx.fillRect(px,py,TILE,6);}
+    // Prairie shrub
+    if(det2>0.86){ctx.fillStyle='#607030';ctx.fillRect(px+4,py+5,5,7);ctx.fillRect(px+6,py+3,3,9);}
+  }
+  else if(t===T.POND){
+    const wave=Math.floor(Date.now()/350)%4;
+    ctx.fillStyle='rgba(100,170,220,0.55)';ctx.fillRect(px+(wave%2)*2,py+(wave%2)*2,TILE-4,TILE-4);
+    ctx.fillStyle='rgba(180,220,255,0.2)';ctx.fillRect(px+2,py+2,6,3);
+    // Reeds at edge
+    ctx.fillStyle='#508040';ctx.fillRect(px,py+4,2,TILE-4);ctx.fillRect(px+14,py+6,2,TILE-6);
+  }
+  else if(t===T.WILDFLOWER){
+    ctx.fillStyle='#908828';ctx.fillRect(px+2,py+8,1,7);ctx.fillRect(px+7,py+6,1,9);ctx.fillRect(px+12,py+7,1,8);
+    // Flower heads
+    const fc=['#e06060','#d0d050','#e080c0','#60a0e0','#e0a040'];
+    ctx.fillStyle=fc[Math.floor(det*fc.length)];ctx.fillRect(px+1,py+5,3,3);
+    ctx.fillStyle=fc[Math.floor(det2*fc.length)];ctx.fillRect(px+6,py+3,3,3);
+    ctx.fillStyle=fc[Math.floor((det+det2)*fc.length/2)%fc.length];ctx.fillRect(px+11,py+4,3,3);
+  }
+  else if(t===T.CLIFF){
+    ctx.fillStyle='#605050';ctx.fillRect(px,py,TILE,TILE);
+    ctx.fillStyle='#504040';ctx.fillRect(px,py+6,TILE,3);ctx.fillRect(px,py+11,TILE,3);
+    ctx.fillStyle='#807070';ctx.fillRect(px+1,py+1,5,4);ctx.fillRect(px+9,py+7,4,3);
+    // Cliff face crack
+    ctx.fillStyle='#302020';ctx.fillRect(px+5,py,2,TILE);
+    // Dark overhang shadow
+    ctx.fillStyle='rgba(0,0,0,0.25)';ctx.fillRect(px,py+13,TILE,3);
+    // Cave mouth
+    if(det2>0.88){ctx.fillStyle='#181010';ctx.fillRect(px+3,py+8,8,6);}
+  }
+  else if(t===T.SCREE){
+    ctx.fillStyle='#787068';ctx.fillRect(px,py,TILE,TILE);
+    // Loose rock fragments
+    ctx.fillStyle='#909088';ctx.fillRect(px+1,py+2,4,3);ctx.fillRect(px+8,py+7,5,3);
+    ctx.fillStyle='#585048';ctx.fillRect(px+5,py+1,3,4);ctx.fillRect(px+11,py+9,3,4);
+    ctx.fillStyle='rgba(0,0,0,0.1)';ctx.fillRect(px+3,py+4,4,2);ctx.fillRect(px+10,py+11,4,2);
+  }
+  else if(t===T.ALPINE){
+    ctx.fillStyle='#4a6838';ctx.fillRect(px,py,TILE,TILE);
+    // Hardy low scrub
+    ctx.fillStyle='#3a5028';ctx.fillRect(px+2,py+8,5,6);ctx.fillRect(px+9,py+6,5,8);
+    ctx.fillStyle='#607848';ctx.fillRect(px+3,py+6,3,4);ctx.fillRect(px+10,py+4,3,5);
+    // Rock poke-through
+    ctx.fillStyle='#808070';if(det>0.8){ctx.fillRect(px+5,py+2,6,5);}
+  }
+  else if(t===T.SNOW){
+    ctx.fillStyle='#e0eff8';
+    // Snow texture drifts
+    ctx.fillStyle='rgba(255,255,255,0.4)';ctx.fillRect(px+1,py+2,7,3);ctx.fillRect(px+9,py+9,5,3);
+    ctx.fillStyle='rgba(180,210,230,0.4)';ctx.fillRect(px+3,py+8,6,4);
+    // Sparkle
+    if(det>0.88){ctx.fillStyle='rgba(255,255,255,0.9)';ctx.fillRect(px+6,py+5,1,1);}
+    // Snow-capped rock peak through
+    if(det2>0.8){ctx.fillStyle='#909098';ctx.fillRect(px+4,py+6,6,6);}
+  }
+  else if(t===T.CAVE){
+    ctx.fillStyle='rgba(0,0,0,0.9)';ctx.fillRect(px,py,TILE,TILE);
+    // Cave entrance glow hint
+    ctx.fillStyle='rgba(60,40,20,0.4)';ctx.fillRect(px+2,py+2,TILE-4,TILE-4);
+  }
+  else if(t===T.RIVER){
+    const wave=Math.floor(Date.now()/250)%4;
+    ctx.fillStyle='rgba(60,130,200,0.7)';ctx.fillRect(px,py,TILE,TILE);
+    ctx.fillStyle='rgba(150,210,255,0.3)';
+    ctx.fillRect(px+(wave*3)%10,py+2,6,2);ctx.fillRect(px+(wave*3+8)%12,py+9,5,2);
+    // Riverbank glint
+    ctx.fillStyle='rgba(200,235,255,0.15)';ctx.fillRect(px,py,TILE,3);
+  }
+  else if(t===T.REEDS){
+    ctx.fillStyle='#507838';ctx.fillRect(px+1,py+2,2,TILE);ctx.fillRect(px+5,py,2,TILE);
+    ctx.fillRect(px+9,py+3,2,TILE);ctx.fillRect(px+13,py+1,2,TILE);
+    // Reed tufts
+    ctx.fillStyle='#806040';ctx.fillRect(px+1,py,2,3);ctx.fillRect(px+5,py-2,2,4);
+    ctx.fillRect(px+9,py+1,2,3);ctx.fillRect(px+13,py-1,2,4);
+    // Muddy water between
+    ctx.fillStyle='rgba(50,100,160,0.3)';ctx.fillRect(px+3,py+4,4,8);ctx.fillRect(px+11,py+5,3,6);
+  }
+  else if(t===T.SAND_BANK){
+    ctx.fillStyle='#c8a850';
+    ctx.fillRect(px+1,py+1,5,3);ctx.fillRect(px+9,py+10,4,3);
+    ctx.fillStyle='rgba(100,160,200,0.2)';ctx.fillRect(px+3,py+8,7,4);
+    // Driftwood
+    if(det>0.8){ctx.fillStyle='#907050';ctx.fillRect(px+2,py+5,TILE-4,3);}
+  }
+}
+
+// ── ENTITY DRAWING ────────────────────────────
+function drawHumanoid(x,y,facing,frame,cfg){
+  const {hat,coat,skin,isPlayer,onHorse}=cfg;
+  const wx=x-cam.x, wy=y-cam.y;
+  const bob=frame%2;
+
+  // Shadow
+  ctx.fillStyle='rgba(0,0,0,0.25)';ctx.fillRect(wx+1,wy+19,14,4);
+
+  // Horse underneath
+  if(onHorse){
+    drawHorse(wx,wy+14,frame,cfg.horseColor||'#8a6030');
+    // adjust character up
+  }
+
+  const oy=onHorse?-14:0;
+
+  // Boots
+  ctx.fillStyle='#180808';
+  ctx.fillRect(wx+1,wy+18+oy+bob,4,4-bob);ctx.fillRect(wx+7,wy+18+oy+(1-bob),4,4-(1-bob));
+  // Legs
+  ctx.fillStyle='#1a1428';ctx.fillRect(wx+2,wy+12+oy,4,8);ctx.fillRect(wx+8,wy+12+oy,4,8);
+  // Coat
+  ctx.fillStyle=coat;ctx.fillRect(wx+1,wy+7+oy,12,7);
+  // Arms
+  const as=Math.sin(frame*0.9)*2;
+  ctx.fillStyle=coat;ctx.fillRect(wx-1,wy+8+oy+as,3,6);ctx.fillRect(wx+12,wy+8+oy-as,3,6);
+  // Head/skin
+  ctx.fillStyle=skin||P.skin;ctx.fillRect(wx+3,wy+2+oy,8,7);
+  // Hat
+  ctx.fillStyle=hat||P.hatDark;
+  ctx.fillRect(wx+1,wy+oy,12,2);ctx.fillRect(wx+3,wy-4+oy,8,6);
+  // Eyes
+  ctx.fillStyle='#000';
+  ctx.fillRect(wx+5,wy+4+oy,1,1);ctx.fillRect(wx+8,wy+4+oy,1,1);
+}
+
+function drawHorse(wx,wy,frame,color){
+  const bob=frame%2;
+  ctx.fillStyle=color;
+  // Body
+  ctx.fillRect(wx-6,wy-4,28,12);
+  // Head
+  ctx.fillRect(wx+20,wy-8,10,8);
+  ctx.fillRect(wx+28,wy-6,4,10);
+  // Legs
+  ctx.fillStyle='#5a3810';
+  ctx.fillRect(wx+1,wy+6,4,8+bob);ctx.fillRect(wx+7,wy+6,4,8-(bob));
+  ctx.fillRect(wx+15,wy+6,4,8+bob);ctx.fillRect(wx+21,wy+6,4,8-(bob));
+  // Mane
+  ctx.fillStyle='#3a2008';
+  ctx.fillRect(wx+18,wy-9,4,5);ctx.fillRect(wx+14,wy-7,4,3);
+  // Tail
+  ctx.fillRect(wx-8,wy-6,4,8);
+}
+
+function drawAnimal(e){
+  const wx=e.x-cam.x,wy=e.y-cam.y;
+  if(wx<-40||wx>SW+40||wy<-40||wy>SH+40) return;
+  const t=e.animalType;
+  const frame=e.walkFrame;
+  ctx.fillStyle=e.color;
+
+  if(t==='deer'||t==='coyote'){
+    const s=t==='deer'?1:0.7;
+    ctx.fillRect(wx,wy,14*s,8*s);
+    ctx.fillRect(wx+10*s,wy-5*s,5*s,8*s);
+    // Legs
+    ctx.fillStyle='#806040';
+    const b=frame%2;
+    ctx.fillRect(wx+1,wy+6*s,2,5+b);ctx.fillRect(wx+5,wy+6*s,2,5-b);
+    ctx.fillRect(wx+9*s,wy+6*s,2,5+b);ctx.fillRect(wx+12*s,wy+6*s,2,5-b);
+    if(t==='deer'){
+      ctx.fillStyle='#c0a050';
+      ctx.fillRect(wx+11,wy-8,2,5);ctx.fillRect(wx+13,wy-8,2,5);
+    }
+  } else if(t==='wolf'){
+    ctx.fillRect(wx,wy,18,10);
+    ctx.fillRect(wx+14,wy-4,6,8);
+    ctx.fillStyle='#504030';
+    ctx.fillRect(wx+1,wy+8,3,5+frame%2);ctx.fillRect(wx+6,wy+8,3,5-(frame%2));
+    ctx.fillRect(wx+11,wy+8,3,5+frame%2);ctx.fillRect(wx+16,wy+8,3,5-(frame%2));
+    // Tail
+    ctx.fillStyle=e.color;ctx.fillRect(wx-6,wy+2,7,4);
+  } else if(t==='bison'){
+    ctx.fillRect(wx,wy-4,28,14);
+    ctx.fillRect(wx+20,wy-8,8,10);
+    ctx.fillStyle='#382510';
+    const b=frame%2;
+    ctx.fillRect(wx+1,wy+8,4,7+b);ctx.fillRect(wx+8,wy+8,4,7-b);
+    ctx.fillRect(wx+15,wy+8,4,7+b);ctx.fillRect(wx+22,wy+8,4,7-b);
+    // Hump
+    ctx.fillStyle='#402810';ctx.fillRect(wx+2,wy-8,10,5);
+  } else if(t==='rattlesnake'){
+    ctx.fillStyle=e.color;
+    ctx.fillRect(wx,wy,20,4);ctx.fillRect(wx+4,wy+4,16,3);
+    ctx.fillStyle='#a08040';ctx.fillRect(wx+16,wy-2,6,6);
+    ctx.fillStyle='#ff2020';ctx.fillRect(wx+22,wy+1,3,1);
+  } else if(t==='vulture'){
+    ctx.fillStyle='#282828';ctx.fillRect(wx,wy,18,6);
+    // Wings spread
+    ctx.fillRect(wx-8,wy-2,10,4);ctx.fillRect(wx+18,wy-2,10,4);
+    ctx.fillStyle='#c04020';ctx.fillRect(wx+14,wy-4,6,8);
+  }
+}
+
+function drawPlayer(){
+  const wx=pl.x-cam.x, wy=pl.y-cam.y;
+  if(pl.invTimer>0&&Math.floor(pl.invTimer/6)%2===0) return;
+
+  if(pl.onHorse){
+    drawHorse(wx-8,wy+12,pl.walkFrame,'#8a5820');
+  }
+
+  const oy=pl.onHorse?-14:0;
+
+  // Shadow
+  ctx.fillStyle='rgba(0,0,0,0.3)';ctx.fillRect(wx+1,wy+20+oy,14,4);
+  // Boots
+  const bob=pl.walkFrame%2;
+  ctx.fillStyle='#180808';
+  ctx.fillRect(wx+1,wy+18+oy+bob,4,4-bob);ctx.fillRect(wx+7,wy+18+oy+(1-bob),4,4-(1-bob));
+  // Legs
+  ctx.fillStyle='#1a1428';ctx.fillRect(wx+2,wy+12+oy,4,8);ctx.fillRect(wx+8,wy+12+oy,4,8);
+  // Coat (brown duster)
+  ctx.fillStyle='#6a3818';ctx.fillRect(wx+1,wy+7+oy,12,7);
+  // Coat detail
+  ctx.fillStyle='#4a2810';ctx.fillRect(wx+1,wy+7+oy,2,7);ctx.fillRect(wx+11,wy+7+oy,2,7);
+  // Arms
+  const as=Math.sin(pl.walkFrame*0.9)*2;
+  ctx.fillStyle='#6a3818';ctx.fillRect(wx-1,wy+8+oy+as,3,6);ctx.fillRect(wx+12,wy+8+oy-as,3,6);
+  // Head
+  ctx.fillStyle=P.skin;ctx.fillRect(wx+3,wy+2+oy,8,7);
+  // Hat
+  ctx.fillStyle='#201408';ctx.fillRect(wx+1,wy+oy,12,2);ctx.fillRect(wx+3,wy-4+oy,8,6);
+  // Hat band
+  ctx.fillStyle=P.gold;ctx.fillRect(wx+3,wy+oy-1,8,1);
+  // Eyes
+  ctx.fillStyle='#000';ctx.fillRect(wx+5,wy+4+oy,1,1);ctx.fillRect(wx+8,wy+4+oy,1,1);
+
+  // Gun aim
+  const gx=wx+7+Math.cos(pl.facing)*8, gy=wy+11+oy+Math.sin(pl.facing)*6;
+  ctx.save();ctx.translate(wx+7,wy+11+oy);ctx.rotate(pl.facing);
+  ctx.fillStyle='#2a2020';ctx.fillRect(0,-1,16,3);
+  ctx.fillStyle='#404040';ctx.fillRect(1,0,12,2);
+  ctx.restore();
+}
+
+// ── LIGHTING ──────────────────────────────────
+function getLightAlpha(){
+  // time 0=midnight,0.25=dawn,0.5=noon,0.75=dusk
+  // Night is much shorter and less dark — max overlay 0.45 instead of 0.72
+  if(time<0.18) return 0.45;
+  if(time<0.27){const t=(time-0.18)/0.09;return 0.45*(1-t);}
+  if(time<0.62) return 0;  // long bright daytime window
+  if(time<0.70){const t=(time-0.62)/0.08;return t*0.35;}
+  if(time<0.80) return 0.35;
+  if(time<0.88){const t=(time-0.80)/0.08;return 0.35+t*0.1;}
+  return 0.45;
+}
+
+function getLightColor(){
+  if(time<0.2||time>0.9) return P.night;
+  if(time<0.3) return P.dawn;
+  if(time>0.7) return P.dusk;
+  return null; // day
+}
+
+function drawLighting(){
+  const alpha=getLightAlpha();
+  if(alpha<=0) return;
+  const col=getLightColor()||'rgba(4,4,20,';
+  // Dark overlay
+  ctx.fillStyle=col+alpha+')';
+  ctx.fillRect(0,0,SW,SH);
+
+  // Player lantern at night
+  if(alpha>0.2){
+    const lx=pl.x-cam.x+6,ly=pl.y-cam.y+10;
+    const rad=140+30*alpha;
+    const g=ctx.createRadialGradient(lx,ly,0,lx,ly,rad);
+    g.addColorStop(0,`rgba(220,180,100,${0.55*alpha})`);
+    g.addColorStop(0.5,`rgba(200,140,60,${0.25*alpha})`);
+    g.addColorStop(1,'transparent');
+    ctx.fillStyle=g;
+    ctx.globalCompositeOperation='lighter';
+    ctx.fillRect(lx-rad,ly-rad,rad*2,rad*2);
+    ctx.globalCompositeOperation='source-over';
+  }
+
+  // Campfire lights
+  for(const camp of camps){
+    const cx=camp.x-cam.x+8,cy=camp.y-cam.y+8;
+    if(cx<-120||cx>SW+120||cy<-120||cy>SH+120) continue;
+    const r=60;
+    const g=ctx.createRadialGradient(cx,cy,0,cx,cy,r);
+    g.addColorStop(0,`rgba(255,140,20,${0.6*alpha})`);
+    g.addColorStop(1,'transparent');
+    ctx.fillStyle=g;
+    ctx.globalCompositeOperation='lighter';
+    ctx.fillRect(cx-r,cy-r,r*2,r*2);
+    ctx.globalCompositeOperation='source-over';
+  }
+}
+
+// ── WEATHER ───────────────────────────────────
+function drawWeather(){
+  if(weather==='rain'){
+    ctx.strokeStyle='rgba(100,150,220,0.25)';ctx.lineWidth=1;
+    const offset=(Date.now()*0.4)%SH;
+    for(let i=0;i<80;i++){
+      const rx=(noise2(i,0,Math.floor(Date.now()/100))*SW);
+      const ry=(noise2(i,1,Math.floor(Date.now()/100))*SH+offset)%SH;
+      ctx.beginPath();ctx.moveTo(rx,ry);ctx.lineTo(rx-2,ry+10);ctx.stroke();
+    }
+  } else if(weather==='fog'){
+    ctx.fillStyle='rgba(180,190,200,0.2)';ctx.fillRect(0,0,SW,SH);
+    for(let i=0;i<5;i++){
+      const fx=(Date.now()*0.02+i*200)%SW;
+      const fy=SH*0.3+Math.sin(Date.now()*0.001+i)*80;
+      const g=ctx.createRadialGradient(fx,fy,0,fx,fy,150);
+      g.addColorStop(0,'rgba(180,190,200,0.18)');g.addColorStop(1,'transparent');
+      ctx.fillStyle=g;ctx.fillRect(0,0,SW,SH);
+    }
+  } else if(weather==='dust'){
+    ctx.fillStyle='rgba(180,130,50,0.18)';ctx.fillRect(0,0,SW,SH);
+    for(let i=0;i<40;i++){
+      const dx=((Date.now()*0.15+i*137)%SW);
+      const dy=(noise2(i,Math.floor(Date.now()/500),3)*SH);
+      ctx.fillStyle='rgba(200,160,80,0.3)';ctx.fillRect(dx,dy,3,1);
+    }
+  }
+}
+
+// ── TOWN DRAWING ──────────────────────────────
+function drawTown(town){
+  const wx=town.wx-cam.x, wy=town.wy-cam.y;
+  if(wx<-200||wx>SW+200||wy<-200||wy>SH+200) return;
+
+  // Buildings
+  const buildings=[
+    {ox:-60,oy:-40,w:50,h:40,label:'Saloon'},
+    {ox:20,oy:-40,w:40,h:35,label:'Sheriff'},
+    {ox:-60,oy:10,w:35,h:30,label:'Gunsmith'},
+    {ox:20,oy:10,w:40,h:30,label:'Hotel'},
+    {ox:-10,oy:-50,w:30,h:25,label:'General'},
+  ];
+  for(const b of buildings){
+    const bx=wx+b.ox, by=wy+b.oy;
+    // Shadow
+    ctx.fillStyle='rgba(0,0,0,0.2)';ctx.fillRect(bx+4,by+4,b.w,b.h);
+    // Wall
+    ctx.fillStyle='#a07848';ctx.fillRect(bx,by,b.w,b.h);
+    // Wall texture lines
+    ctx.fillStyle='#806038';
+    for(let ry=0;ry<b.h;ry+=8) ctx.fillRect(bx,by+ry,b.w,1);
+    // Roof
+    const rh=Math.min(14,b.h*0.3);
+    ctx.fillStyle='#7a3820';ctx.fillRect(bx,by,b.w,rh);
+    ctx.fillStyle='#501808';
+    for(let rx=0;rx<b.w;rx+=5) ctx.fillRect(bx+rx,by,1,rh);
+    // Door
+    ctx.fillStyle='#4a2808';ctx.fillRect(bx+b.w/2-5,by+b.h-14,10,14);
+    // Windows
+    ctx.fillStyle='#1a3050';ctx.fillRect(bx+4,by+rh+4,10,8);ctx.fillRect(bx+b.w-14,by+rh+4,10,8);
+    // Sign
+    ctx.fillStyle='#6a4020';ctx.fillRect(bx+b.w/2-18,by+rh-2,36,9);
+    ctx.fillStyle=P.parchment;ctx.font='5px monospace';ctx.textAlign='center';
+    ctx.fillText(b.label.toUpperCase(),bx+b.w/2,by+rh+4);
+    ctx.textAlign='left';
+  }
+
+  // Water trough
+  ctx.fillStyle='#3060a0';ctx.fillRect(wx-5,wy+5,20,8);
+  ctx.fillStyle='#7a5030';ctx.fillRect(wx-6,wy+4,22,3);ctx.fillRect(wx-6,wy+12,22,3);
+
+  // Hitching post
+  ctx.fillStyle='#6a4020';ctx.fillRect(wx-8,wy-16,4,20);ctx.fillRect(wx-14,wy-18,16,3);
+
+  // Town name (if discovered)
+  if(town.discovered){
+    ctx.fillStyle='rgba(0,0,0,0.5)';ctx.fillRect(wx-30,wy-70,60,14);
+    ctx.fillStyle=P.gold;ctx.font='bold 9px Courier New';ctx.textAlign='center';
+    ctx.fillText(town.name.toUpperCase(),wx,wy-60);ctx.textAlign='left';
+  }
+}
+
+// ── VILLAGE DRAWING ───────────────────────────
+function drawVillage(){
+  for(const b of village.buildings){
+    const wx=b.x-cam.x, wy=b.y-cam.y;
+    if(wx<-80||wx>SW+80||wy<-80||wy>SH+80) continue;
+    drawBuilding(b,wx,wy);
+  }
+
+  // Village name plate
+  const vx=village.x-cam.x, vy=village.y-cam.y;
+  if(vx>-200&&vx<SW+200&&vy>-200&&vy<SH+200){
+    ctx.fillStyle='rgba(0,0,0,0.55)';ctx.fillRect(vx-60,vy-80,120,16);
+    ctx.fillStyle=P.gold;ctx.font='bold 8px Courier New';ctx.textAlign='center';
+    ctx.fillText(`⭐ ${village.name.toUpperCase()} [Lv${village.level}]`,vx,vy-69);
+    ctx.textAlign='left';
+  }
+
+  // Build ghost — show where building will go
+  if(buildSelected){
+    const def=BLDG_DEFS[buildSelected];
+    if(def){
+      const gx=buildGhost.x-cam.x-def.w/2;
+      const gy=buildGhost.y-cam.y-def.h/2;
+      ctx.globalAlpha=0.5;
+      ctx.fillStyle=pl.money>=def.cost?def.color:'#c02020';
+      ctx.fillRect(gx,gy,def.w,def.h);
+      ctx.strokeStyle='#ffffff';ctx.lineWidth=1;ctx.strokeRect(gx,gy,def.w,def.h);
+      ctx.globalAlpha=1;
+      ctx.fillStyle='#fff';ctx.font='8px Courier New';ctx.textAlign='center';
+      ctx.fillText(`${def.label} $${def.cost}`,gx+def.w/2,gy-4);
+      ctx.textAlign='left';
+    }
+  }
+}
+
+function drawBuilding(b,wx,wy){
+  const hp=b.hp==null?100:b.hp;
+  const dmgAlpha=hp<50?0.3:0;
+
+  // Shadow
+  ctx.fillStyle='rgba(0,0,0,0.22)';ctx.fillRect(wx+4,wy+4,b.w,b.h);
+  // Body
+  ctx.fillStyle=b.color;ctx.fillRect(wx,wy,b.w,b.h);
+  // Plank lines
+  ctx.fillStyle='rgba(0,0,0,0.2)';
+  for(let ry=0;ry<b.h;ry+=7) ctx.fillRect(wx,wy+ry,b.w,1);
+  // Roof
+  const rh=Math.min(10,b.h*0.28);
+  ctx.fillStyle='#5a2808';ctx.fillRect(wx,wy,b.w,rh);
+  ctx.fillStyle='#401806';
+  for(let rx=0;rx<b.w;rx+=4) ctx.fillRect(wx+rx,wy,1,rh);
+  // Door
+  ctx.fillStyle='#3a1e08';ctx.fillRect(wx+b.w/2-4,wy+b.h-12,8,12);
+  // Windows (if wide enough)
+  if(b.w>24){
+    ctx.fillStyle='#1a2840';
+    ctx.fillRect(wx+4,wy+rh+3,8,6);
+    ctx.fillRect(wx+b.w-12,wy+rh+3,8,6);
+  }
+  // Label
+  ctx.fillStyle='#f0d880';ctx.font='5px monospace';ctx.textAlign='center';
+  ctx.fillText(b.label.toUpperCase(),wx+b.w/2,wy+rh+10);
+  ctx.textAlign='left';
+  // Damage fire
+  if(hp<80){
+    const f=Math.floor(Date.now()/120)%3;
+    ctx.fillStyle=f===0?'#ff8000':f===1?'#ffc000':'#ff4000';
+    ctx.fillRect(wx+b.w/2-4,wy+2+f,8,8-f);
+  }
+  // HP bar
+  if(b.hp!=null&&b.hp<100){
+    ctx.fillStyle='#400';ctx.fillRect(wx,wy-6,b.w,4);
+    ctx.fillStyle=b.hp>50?'#50c030':'#c03020';ctx.fillRect(wx,wy-6,b.w*(b.hp/100),4);
+  }
+}
+
+// ── SHOP UI ───────────────────────────────────
+function drawShopMenu(){
+  if(!shopMenuOpen||!shopTown) return;
+  const px=SW/2-160, py=40;
+  const pw=320, ph=SHOP_ITEMS.length*26+52;
+  ctx.fillStyle='rgba(6,3,1,0.95)';ctx.fillRect(px,py,pw,ph);
+  ctx.strokeStyle=P.gold;ctx.lineWidth=1;ctx.strokeRect(px,py,pw,ph);
+  ctx.fillStyle=P.gold;ctx.font='bold 10px Courier New';ctx.textAlign='center';
+  ctx.fillText(`${shopTown.name.toUpperCase()} — GENERAL STORE    $${pl.money}`,px+pw/2,py+16);
+  ctx.fillText('[1-9] Buy    [E] Close',px+pw/2,py+28);
+  ctx.textAlign='left';
+  for(let i=0;i<SHOP_ITEMS.length;i++){
+    const item=SHOP_ITEMS[i];
+    const iy=py+38+i*26;
+    ctx.fillStyle=pl.money>=item.cost?'rgba(180,130,40,0.15)':'rgba(80,20,20,0.15)';
+    ctx.fillRect(px+4,iy,pw-8,22);
+    ctx.fillStyle=pl.money>=item.cost?P.parchment:'#886060';
+    ctx.font='9px Courier New';
+    ctx.fillText(`${i+1}. ${item.label}`,px+10,iy+14);
+    ctx.textAlign='right';
+    ctx.fillStyle=P.gold;
+    ctx.fillText(`$${item.cost}`,px+pw-8,iy+14);
+    ctx.textAlign='left';
+    ctx.fillStyle='rgba(160,140,100,0.7)';ctx.font='7px Courier New';
+    ctx.fillText(item.desc,px+10,iy+22);
+  }
+}
+
+// ── BUILD MENU UI ─────────────────────────────
+function drawBuildMenu(){
+  if(!buildMenuOpen) return;
+  const keys=Object.keys(BLDG_DEFS);
+  const px=SW/2-180, py=SH-200;
+  const pw=360, ph=keys.length*22+44;
+  const actualPy=Math.max(40,py);
+  ctx.fillStyle='rgba(6,3,1,0.95)';ctx.fillRect(px,actualPy,pw,ph);
+  ctx.strokeStyle='#70b040';ctx.lineWidth=1;ctx.strokeRect(px,actualPy,pw,ph);
+  ctx.fillStyle='#70b040';ctx.font='bold 10px Courier New';ctx.textAlign='center';
+  ctx.fillText(`BUILD MENU — $${pl.money} available    [1-9/0] select   [E] place   [B] close`,px+pw/2,actualPy+14);
+  ctx.textAlign='left';
+  for(let i=0;i<keys.length;i++){
+    const key=keys[i];
+    const def=BLDG_DEFS[key];
+    const iy=actualPy+22+i*22;
+    const canAfford=pl.money>=def.cost;
+    const isSelected=buildSelected===key;
+    ctx.fillStyle=isSelected?'rgba(80,160,40,0.3)':canAfford?'rgba(60,80,30,0.15)':'rgba(80,20,20,0.1)';
+    ctx.fillRect(px+4,iy,pw-8,18);
+    ctx.fillStyle=isSelected?'#a0e050':canAfford?P.parchment:'#886060';
+    ctx.font='9px Courier New';
+    const numKey=i<9?(i+1).toString():'0';
+    ctx.fillText(`${numKey}. ${def.label}  [${def.w}x${def.h}]`,px+10,iy+13);
+    ctx.textAlign='right';
+    ctx.fillStyle=P.gold;ctx.fillText(`$${def.cost}`,px+pw-8,iy+13);
+    ctx.textAlign='left';
+    ctx.fillStyle='rgba(160,140,80,0.7)';ctx.font='7px Courier New';
+    ctx.fillText(def.desc,px+180,iy+13);
+  }
+}
+
+// ── VILLAGE HUD ───────────────────────────────
+function drawVillageHUD(){
+  if(!village.founded) return;
+  const vx=SW-145, vy=SH-195;
+  // Panel above minimap
+  ctx.fillStyle='rgba(6,3,1,0.88)';ctx.fillRect(vx,vy,137,58);
+  ctx.strokeStyle='#70b040';ctx.lineWidth=1;ctx.strokeRect(vx,vy,137,58);
+  ctx.fillStyle='#70b040';ctx.font='bold 8px Courier New';
+  ctx.fillText(`⭐ SETTLEMENT Lv${village.level}`,vx+6,vy+11);
+
+  // Pop bar
+  const popFrac=village.maxPop>0?village.population/village.maxPop:0;
+  ctx.fillStyle='rgba(0,0,0,0.4)';ctx.fillRect(vx+6,vy+15,125,8);
+  ctx.fillStyle='#60a8ff';ctx.fillRect(vx+6,vy+15,125*popFrac,8);
+  ctx.fillStyle='#cce';ctx.font='7px Courier New';ctx.fillText(`POP ${village.population}/${village.maxPop}`,vx+8,vy+22);
+
+  // Food bar
+  const foodFrac=village.maxFood>0?Math.min(1,village.food/village.maxFood):0;
+  ctx.fillStyle='rgba(0,0,0,0.4)';ctx.fillRect(vx+6,vy+26,125,8);
+  ctx.fillStyle=village.food<30?'#c03020':'#70b840';
+  ctx.fillRect(vx+6,vy+26,125*foodFrac,8);
+  ctx.fillStyle='#cec';ctx.font='7px Courier New';ctx.fillText(`FOOD ${Math.floor(village.food)}/${village.maxFood}`,vx+8,vy+33);
+
+  // Raid timer
+  const raidSecs=Math.max(0,Math.floor(village.nextRaidIn/60));
+  ctx.fillStyle=village.raidWarning>0?'#ff4040':village.nextRaidIn<1200?'#ff9040':'#c0a050';
+  ctx.font='7px Courier New';
+  const raidStr=village.raidWarning>0?'⚠ RAIDERS INCOMING!':`Next raid: ${raidSecs}s`;
+  ctx.fillText(raidStr,vx+6,vy+45);
+
+  // Defense + happiness
+  ctx.fillStyle='#a0c0a0';ctx.fillText(`DEF:${village.defense}  😊${Math.floor(village.happiness)}%`,vx+6,vy+54);
+}
+
+// ── CAMP DRAWING ──────────────────────────────
+function drawCamp(camp){
+  const wx=camp.x-cam.x, wy=camp.y-cam.y;
+  if(wx<-30||wx>SW+30||wy<-30||wy>SH+30) return;
+  // Ground ring
+  ctx.fillStyle='#502808';ctx.beginPath();ctx.arc(wx+8,wy+12,10,0,Math.PI*2);ctx.fill();
+  // Logs
+  ctx.fillStyle='#4a2808';ctx.fillRect(wx+2,wy+9,7,3);ctx.fillRect(wx+8,wy+9,7,3);
+  // Fire
+  const f=Math.floor(Date.now()/150)%3;
+  ctx.fillStyle=f===0?'#ff8000':f===1?'#ffc000':'#ff4000';
+  ctx.fillRect(wx+4,wy+3+f,8,9-f);
+  ctx.fillStyle='#ff2000';ctx.fillRect(wx+6,wy+2+f,4,5);
+  // Bedroll
+  ctx.fillStyle='#3a2850';ctx.fillRect(wx+18,wy+6,14,8);
+  ctx.fillStyle='#5a3870';ctx.fillRect(wx+18,wy+6,14,3);
+  // Cooking pot
+  ctx.fillStyle='#303030';ctx.fillRect(wx+34,wy+8,8,7);
+  ctx.fillStyle='#202020';ctx.fillRect(wx+33,wy+7,10,2);
+}
+
+// ── HUD ───────────────────────────────────────
+function drawHUD(){
+  // Left bars
+  const bars=[
+    {label:'HP',  val:pl.hp,    max:pl.maxHp,   color:P.hpGreen, x:8,y:8},
+    {label:'FOOD',val:pl.food,  max:pl.maxFood, color:P.foodAmber,x:8,y:28},
+    {label:'STA', val:pl.stamina,max:pl.maxStamina,color:P.stamBlue,x:8,y:48},
+  ];
+  for(const b of bars){
+    ctx.fillStyle=P.uiBg;ctx.fillRect(b.x,b.y,110,16);
+    ctx.fillStyle='#200';ctx.fillRect(b.x+1,b.y+1,106,14);
+    ctx.fillStyle=b.color;ctx.fillRect(b.x+1,b.y+1,106*(b.val/b.max),14);
+    ctx.fillStyle='rgba(255,255,255,0.6)';ctx.fillRect(b.x+1,b.y+1,106*(b.val/b.max),4);
+    ctx.fillStyle='#fff';ctx.font='8px Courier New';
+    ctx.fillText(`${b.label}: ${Math.ceil(b.val)}`,b.x+4,b.y+11);
+  }
+
+  // Money
+  ctx.fillStyle=P.uiBg;ctx.fillRect(8,68,80,14);
+  ctx.fillStyle=P.gold;ctx.font='9px Courier New';ctx.fillText(`$${pl.money}  🥩${pl.meat}`,12,79);
+
+  // Weapon + ammo (top right)
+  const w=cw();
+  ctx.fillStyle=P.uiBg;ctx.fillRect(SW-140,8,132,44);
+  ctx.strokeStyle=P.uiBorder;ctx.lineWidth=1;ctx.strokeRect(SW-140,8,132,44);
+  ctx.fillStyle=P.parchment;ctx.font='10px Courier New';ctx.textAlign='right';
+  ctx.fillText(w.name,SW-10,20);
+  ctx.fillStyle=w.ammo>0?P.gold:'#c02020';
+  ctx.fillText(`${w.ammo} / ${w.maxAmmo}`,SW-10,34);
+  for(let i=0;i<w.maxAmmo;i++){
+    ctx.fillStyle=i<w.ammo?w.color:'#2a1808';
+    ctx.fillRect(SW-130+i*(i<8?9:6),42,i<8?7:4,5);
+  }
+  ctx.textAlign='left';
+
+  if(pl.reloading){
+    ctx.fillStyle=P.uiBg;ctx.fillRect(SW-140,54,132,12);
+    ctx.fillStyle='#c07020';ctx.fillRect(SW-140,54,132*pl.reloadProg,12);
+    ctx.fillStyle='#fff';ctx.font='8px Courier New';ctx.textAlign='center';
+    ctx.fillText('RELOADING',SW-74,63);ctx.textAlign='left';
+  }
+
+  // Crime level
+  if(pl.crimeLevel>0){
+    ctx.fillStyle=P.uiBg;ctx.fillRect(SW/2-70,8,140,18);
+    ctx.strokeStyle='#c02020';ctx.strokeRect(SW/2-70,8,140,18);
+    ctx.fillStyle='#ff4040';ctx.font='bold 10px Courier New';ctx.textAlign='center';
+    ctx.fillText(pl.crimeLevel===1?'⚠ WANTED — Bandits hostile':'★ OUTLAW — All hostile',SW/2,20);ctx.textAlign='left';
+  }
+
+  // Mount hint
+  if(pl.onHorse){
+    ctx.fillStyle='rgba(0,0,0,0.4)';ctx.fillRect(SW/2-30,SH-28,60,16);
+    ctx.fillStyle='#c09050';ctx.font='8px Courier New';ctx.textAlign='center';
+    ctx.fillText('[H] DISMOUNT',SW/2,SH-18);ctx.textAlign='left';
+  }
+
+  // Message
+  if(msgTimer>0){
+    const alpha=Math.min(1,msgTimer/30);
+    ctx.fillStyle=`rgba(10,6,2,${alpha*0.85})`;
+    const tw=ctx.measureText(msgText).width;
+    ctx.fillRect(SW/2-tw/2-12,SH-64,tw+24,22);
+    ctx.strokeStyle=`rgba(180,130,30,${alpha})`;ctx.lineWidth=1;
+    ctx.strokeRect(SW/2-tw/2-12,SH-64,tw+24,22);
+    ctx.fillStyle=`rgba(240,210,120,${alpha})`;ctx.font='11px Courier New';ctx.textAlign='center';
+    ctx.fillText(msgText,SW/2,SH-50);ctx.textAlign='left';
+  }
+
+  // Day phase indicator
+  const phase=time<0.15?'NIGHT':time<0.3?'DAWN':time<0.65?'DAY':time<0.8?'DUSK':'NIGHT';
+  ctx.fillStyle=P.uiBg;ctx.fillRect(SW/2-28,SH-28,56,18);
+  ctx.fillStyle=phase==='DAY'?'#d4c040':phase==='DAWN'||phase==='DUSK'?'#e07030':'#8090c0';
+  ctx.font='8px Courier New';ctx.textAlign='center';ctx.fillText(phase,SW/2,SH-16);ctx.textAlign='left';
+
+  // Village HUD
+  drawVillageHUD();
+
+  // Shop menu
+  drawShopMenu();
+
+  // Build menu
+  drawBuildMenu();
+
+  // Minimap (bottom right)
+  drawMinimap();
+
+  // Discover banner
+  if(discoverTimer>0){
+    const a=Math.min(1,discoverTimer/30);
+    ctx.fillStyle=`rgba(0,0,0,${a*0.8})`;ctx.fillRect(SW/2-140,SH/2-26,280,52);
+    ctx.strokeStyle=`rgba(212,160,32,${a})`;ctx.strokeRect(SW/2-140,SH/2-26,280,52);
+    ctx.fillStyle=`rgba(212,160,32,${a})`;ctx.font='bold 11px Courier New';ctx.textAlign='center';
+    ctx.fillText('⭐  DISCOVERED',SW/2,SH/2-6);
+    ctx.fillStyle=`rgba(240,210,120,${a})`;ctx.font='bold 15px Georgia,serif';
+    ctx.fillText(discoverText,SW/2,SH/2+16);ctx.textAlign='left';
+  }
+
+  // Controls panel — press C to toggle, shown by default at start
+  if(showControls){
+    const cx=8,cy=68;
+    const rows=[
+      ['MOVE',      'W A S D  /  Arrow Keys'],
+      ['AIM',       'Mouse'],
+      ['SHOOT',     'Left Click  /  Space'],
+      ['RELOAD',    'R'],
+      ['WEAPON 1',  '1  —  Revolver'],
+      ['WEAPON 2',  '2  —  Rifle'],
+      ['SPRINT',    'Shift  (drains stamina)'],
+      ['MOUNT',     'H  —  get on / off horse'],
+      ['EAT MEAT',  'M  (restores HP + food)'],
+      ['CAMP',      'F  —  place campfire'],
+      ['INTERACT',  'E  —  talk / found base / shop'],
+      ['BUILD',     'B  —  open build menu'],
+      ['RAID TOWN', 'X  —  rob nearby town'],
+      ['DYNAMITE',  'Q  —  throw dynamite'],
+      ['CONTROLS',  'C  —  hide this panel'],
+    ];
+    const pw=198, ph=rows.length*14+22;
+    // Panel background
+    ctx.fillStyle='rgba(8,4,2,0.88)';ctx.fillRect(cx,cy,pw,ph);
+    ctx.strokeStyle='#7a5020';ctx.lineWidth=1;ctx.strokeRect(cx,cy,pw,ph);
+    ctx.strokeStyle='rgba(180,130,40,0.3)';ctx.strokeRect(cx+2,cy+2,pw-4,ph-4);
+    // Header
+    ctx.fillStyle='#d4a020';ctx.font='bold 9px Courier New';ctx.textAlign='left';
+    ctx.fillText('─── CONTROLS ───',cx+8,cy+13);
+    // Rows
+    for(let i=0;i<rows.length;i++){
+      const ry=cy+24+i*14;
+      ctx.fillStyle='rgba(180,130,40,0.18)';
+      if(i%2===0) ctx.fillRect(cx+3,ry-9,pw-6,13);
+      ctx.fillStyle='#b09060';ctx.font='8px Courier New';
+      ctx.fillText(rows[i][0],cx+8,ry);
+      ctx.fillStyle='#f0d880';
+      ctx.fillText(rows[i][1],cx+78,ry);
+    }
+  } else {
+    // Collapsed hint
+    ctx.fillStyle='rgba(8,4,2,0.7)';ctx.fillRect(8,68,120,16);
+    ctx.strokeStyle='#6a4010';ctx.lineWidth=1;ctx.strokeRect(8,68,120,16);
+    ctx.fillStyle='rgba(180,140,60,0.8)';ctx.font='8px Courier New';ctx.textAlign='left';
+    ctx.fillText('[C] Show Controls',12,79);
+  }
+}
+
+function drawMinimap(){
+  const mmW=130, mmH=130;
+  const mmX=SW-mmW-8, mmY=SH-mmH-8;
+
+  // Background + border
+  ctx.fillStyle='rgba(6,3,1,0.88)';ctx.fillRect(mmX,mmY,mmW,mmH);
+  ctx.strokeStyle='#8a6020';ctx.lineWidth=1;ctx.strokeRect(mmX,mmY,mmW,mmH);
+  ctx.strokeStyle='rgba(180,130,40,0.25)';ctx.strokeRect(mmX+2,mmY+2,mmW-4,mmH-4);
+
+  // Clip to minimap bounds
+  ctx.save();
+  ctx.beginPath();ctx.rect(mmX+1,mmY+1,mmW-2,mmH-2);ctx.clip();
+
+  // Player tile position = center of minimap
+  const pcx=pl.x/TILE, pcy=pl.y/TILE;
+  // How many world tiles fit across the minimap — view radius in tiles
+  const viewTiles=28; // tiles visible in each direction
+  const tileSize=mmW/(viewTiles*2+1); // px per tile on minimap
+
+  // Draw tiles centered on player
+  for(let dy=-viewTiles;dy<=viewTiles;dy++){
+    for(let dx=-viewTiles;dx<=viewTiles;dx++){
+      const tx=Math.floor(pcx)+dx;
+      const ty=Math.floor(pcy)+dy;
+      if(tx<0||ty<0||tx>=MW||ty>=MH) continue;
+      const t=tileMap[ty][tx];
+      const c={
+        [T.RIVER]:'#2858a8',[T.STREAM]:'#3870b0',[T.CREEK]:'#3070a8',
+        [T.POND]:'#3070a8',[T.OASIS]:'#2858a0',[T.REEDS]:'#3a5820',
+        [T.PINE]:'#1e4010',[T.PINE_FLOOR]:'#344018',[T.FERN]:'#3a5828',
+        [T.TALL_GRASS]:'#5a7820',[T.PRAIRIE]:'#787820',[T.WILDFLOWER]:'#708028',
+        [T.DRY_GRASS]:'#908840',[T.DIRT]:'#806038',[T.TRAIL]:'#705030',
+        [T.SCRUB]:'#606030',[T.RED_SAND]:'#a04030',[T.DUNE]:'#b05030',
+        [T.CRACKED]:'#783828',[T.MESA]:'#883020',[T.CLIFF]:'#504040',
+        [T.SCREE]:'#686058',[T.ALPINE]:'#3a5028',[T.SNOW]:'#90a8b8',
+        [T.CAVE]:'#181410',[T.MUD]:'#503820',[T.SAND_BANK]:'#a08830',
+        [T.BOULDER]:'#606058',[T.MOSS_ROCK]:'#506030',
+      }[t]||'#807040';
+      const px=mmX+mmW/2+(dx-(pcx-Math.floor(pcx)))*tileSize;
+      const py=mmY+mmH/2+(dy-(pcy-Math.floor(pcy)))*tileSize;
+      ctx.fillStyle=c;
+      ctx.fillRect(px,py,tileSize+0.5,tileSize+0.5);
+    }
+  }
+
+  // Dirt roads / paths show slightly brighter
+  // Town markers (all towns visible on map, discovered ones labeled)
+  for(const town of placedTowns){
+    const dx=town.tx-pcx, dy=town.ty-pcy;
+    if(Math.abs(dx)>viewTiles+2||Math.abs(dy)>viewTiles+2) continue;
+    const px=mmX+mmW/2+dx*tileSize;
+    const py=mmY+mmH/2+dy*tileSize;
+    if(town.discovered){
+      ctx.fillStyle=P.gold;
+      ctx.fillRect(px-3,py-3,6,6);
+      ctx.strokeStyle=P.gold;ctx.lineWidth=1;ctx.strokeRect(px-3,py-3,6,6);
+      ctx.fillStyle='#fff';ctx.font='6px Courier New';ctx.textAlign='center';
+      ctx.fillText(town.name,px,py-5);
+    } else {
+      // Undiscovered — faint grey dot
+      ctx.fillStyle='rgba(150,130,90,0.4)';
+      ctx.fillRect(px-1,py-1,3,3);
+    }
+  }
+
+  // Hostile NPC dots
+  for(const e of entities){
+    if(!e.hostile||e.type!=='npc') continue;
+    const dx=e.x/TILE-pcx, dy=e.y/TILE-pcy;
+    if(Math.abs(dx)>viewTiles||Math.abs(dy)>viewTiles) continue;
+    ctx.fillStyle='#e03020';
+    ctx.fillRect(mmX+mmW/2+dx*tileSize-1,mmY+mmH/2+dy*tileSize-1,3,3);
+  }
+
+  // Animal dots (nearby)
+  for(const e of entities){
+    if(e.type!=='animal') continue;
+    const dx=e.x/TILE-pcx, dy=e.y/TILE-pcy;
+    if(Math.abs(dx)>viewTiles||Math.abs(dy)>viewTiles) continue;
+    ctx.fillStyle=e.predator?'#c04020':'#80a040';
+    ctx.fillRect(mmX+mmW/2+dx*tileSize,mmY+mmH/2+dy*tileSize,2,2);
+  }
+
+  // Player dot — always dead center
+  ctx.fillStyle='#00ff88';
+  ctx.fillRect(mmX+mmW/2-3,mmY+mmH/2-3,6,6);
+  ctx.strokeStyle='#fff';ctx.lineWidth=1;ctx.strokeRect(mmX+mmW/2-3,mmY+mmH/2-3,6,6);
+
+  // Compass rose direction markers
+  ctx.fillStyle='rgba(200,160,60,0.7)';ctx.font='7px Courier New';ctx.textAlign='center';
+  ctx.fillText('N',mmX+mmW/2,mmY+9);
+  ctx.fillText('S',mmX+mmW/2,mmY+mmH-3);
+  ctx.fillText('W',mmX+8,mmY+mmH/2+3);
+  ctx.fillText('E',mmX+mmW-5,mmY+mmH/2+3);
+
+  ctx.restore();
+
+  // Label below
+  ctx.fillStyle='rgba(180,140,50,0.6)';ctx.font='7px Courier New';ctx.textAlign='center';
+  ctx.fillText('MAP  [you are here]',mmX+mmW/2,mmY+mmH+9);
+  ctx.textAlign='left';
+}
+
+// ── COLLISION ─────────────────────────────────
+function solidAt(x,y,w,h){
+  const tx1=Math.floor(x/TILE),ty1=Math.floor(y/TILE);
+  const tx2=Math.floor((x+w-1)/TILE),ty2=Math.floor((y+h-1)/TILE);
+  for(let ty=ty1;ty<=ty2;ty++) for(let tx=tx1;tx<=tx2;tx++){
+    if(tx<0||ty<0||tx>=MW||ty>=MH) return true;
+    if(SOLID_TILES.has(tileMap[ty]?.[tx])) return true;
+  }
+  return false;
+}
+
+function moveEnt(e,dx,dy){
+  if(!solidAt(e.x+dx,e.y,e.w,e.h)) e.x+=dx; else e.vx=0;
+  if(!solidAt(e.x,e.y+dy,e.w,e.h)) e.y+=dy; else e.vy=0;
+  e.x=Math.max(0,Math.min(WW-e.w,e.x));
+  e.y=Math.max(0,Math.min(WH-e.h,e.y));
+}
+
+function spdModAt(x,y){
+  const tx=Math.floor(x/TILE),ty=Math.floor(y/TILE);
+  return SLOW_TILES[tileMap[ty]?.[tx]]||1.0;
+}
+
+function overlap(ax,ay,aw,ah,bx,by,bw,bh){
+  return ax<bx+bw&&ax+aw>bx&&ay<by+bh&&ay+ah>by;
+}
+
+// ── PLAYER UPDATE ─────────────────────────────
+function updatePlayer(dt){
+  // Movement
+  let dx=0,dy=0;
+  if(K['ArrowLeft']||K['KeyA']) dx-=1;
+  if(K['ArrowRight']||K['KeyD']) dx+=1;
+  if(K['ArrowUp']||K['KeyW']) dy-=1;
+  if(K['ArrowDown']||K['KeyS']) dy+=1;
+
+  pl.sprinting=K['ShiftLeft']||K['ShiftRight'];
+  let spd;
+  if(pl.onHorse) spd=pl.sprinting?HORSE_GALLOP:HORSE_TROT;
+  else spd=pl.sprinting&&pl.stamina>2?SPRINT_SPD:dx!==0||dy!==0?JOG_SPD:0;
+
+  const smod=spdModAt(pl.x,pl.y);
+  spd*=smod;
+
+  if(dx!==0||dy!==0){
+    const len=Math.sqrt(dx*dx+dy*dy);
+    dx=dx/len*spd; dy=dy/len*spd;
+    moveEnt(pl,dx,dy);
+    if(pl.onHorse){pl.horse.x=pl.x;pl.horse.y=pl.y;}
+    pl.walkTimer++;
+    if(pl.walkTimer>8){pl.walkTimer=0;pl.walkFrame=(pl.walkFrame+1)%4;}
+  }
+
+  // Stamina drain/regen
+  if(pl.sprinting&&(dx!==0||dy!==0)&&!pl.onHorse){
+    pl.stamina=Math.max(0,pl.stamina-0.08*dt);
+  } else {
+    pl.stamina=Math.min(pl.maxStamina,pl.stamina+0.04*dt);
+  }
+
+  // Food drain
+  pl.food=Math.max(0,pl.food-0.003*dt);
+  if(pl.food<=0) pl.stamina=Math.max(0,pl.stamina-0.05*dt);
+
+  // Facing
+  pl.facing=Math.atan2(mouse.y-(pl.y+11-cam.y), mouse.x-(pl.x+7-cam.x));
+
+  // Shoot cooldown
+  if(pl.shootCd>0) pl.shootCd-=dt;
+
+  // Reload
+  if(pl.reloading){
+    pl.reloadProg+=dt/cw().reloadTime;
+    if(pl.reloadProg>=1){
+      pl.reloading=false; cw().ammo=cw().maxAmmo; pl.reloadProg=0;
+      showMsg(cw().name+' — Reloaded!');
+    }
+  }
+
+  // Invincibility
+  if(pl.invTimer>0) pl.invTimer-=dt;
+
+  // Crime cooldown
+  if(pl.crimeCooldown>0){
+    pl.crimeCooldown-=dt;
+    if(pl.crimeCooldown<=0&&pl.crimeLevel>0){ pl.crimeLevel--; showMsg('Heat cooled down...'); }
+  }
+
+  // Town discovery
+  for(const town of placedTowns){
+    if(town.discovered) continue;
+    const dx2=town.wx+30-pl.x, dy2=town.wy+30-pl.y;
+    if(Math.sqrt(dx2*dx2+dy2*dy2)<80){
+      town.discovered=true;
+      discoveredTownSet.add(town.name);
+      discoverText=town.name;
+      discoverTimer=240;
+      pl.money+=10;
+      showMsg(`Discovered: ${town.name}! +$10`);
+    }
+  }
+
+  // Health regen from meat
+  if(K['KeyM']&&pl.meat>0&&pl.hp<pl.maxHp){
+    pl.hp=Math.min(pl.maxHp,pl.hp+20);
+    pl.food=Math.min(pl.maxFood,pl.food+30);
+    pl.meat--;
+    showMsg('Ate meat. +20 HP, +30 Food.');
+  }
+}
+
+// ── ENTITY UPDATE ─────────────────────────────
+function updateEntities(dt){
+  for(let i=entities.length-1;i>=0;i--){
+    const e=entities[i];
+    if(e.type==='animal') updateAnimal(e,dt);
+    else if(e.type==='npc') updateNPC(e,dt);
+  }
+}
+
+function updateAnimal(e,dt){
+  const dx=pl.x-e.x, dy=pl.y-e.y;
+  const dist=Math.sqrt(dx*dx+dy*dy);
+
+  e.walkTimer++;
+  if(e.walkTimer>8){e.walkTimer=0;e.walkFrame=(e.walkFrame+1)%4;}
+
+  // Migration
+  e.migTimer-=dt;
+  if(e.migTimer<=0){e.migDir+=(Math.random()-0.5)*0.8;e.migTimer=600+Math.random()*600;}
+
+  if(e.predator){
+    // Predators: attack player if close
+    if(dist<e.atkDist&&dist>0){
+      e.vx=dx/dist*e.spd;e.vy=dy/dist*e.spd;
+      e.facing=Math.atan2(dy,dx);
+      // Melee damage
+      if(overlap(pl.x,pl.y,pl.w,pl.h,e.x,e.y,e.w,e.h)){
+        if(pl.invTimer<=0){
+          pl.hp=Math.max(0,pl.hp-e.dmg*0.08*dt);
+          pl.invTimer=60;
+          for(let k=0;k<5;k++) spawnPart(pl.x+6,pl.y+10,P.blood,3,15);
+          if(pl.hp<=0) playerDied();
+        }
+      }
+    } else {
+      // Patrol
+      e.vx=Math.cos(e.migDir)*e.spd*0.4;e.vy=Math.sin(e.migDir)*e.spd*0.4;
+    }
+  } else {
+    // Flee if scared
+    if(dist<e.fearDist&&dist>0){
+      e.vx=-dx/dist*e.spd;e.vy=-dy/dist*e.spd;
+      e.facing=Math.atan2(-dy,-dx);
+    } else {
+      e.vx=Math.cos(e.migDir)*e.spd*0.3;e.vy=Math.sin(e.migDir)*e.spd*0.3;
+      e.facing=e.migDir;
+    }
+  }
+
+  moveEnt(e,e.vx*dt/60,e.vy*dt/60);
+}
+
+function updateNPC(e,dt){
+  // Raiders are fully managed by updateRaid()
+  if(e.isRaider){
+    e.walkTimer=(e.walkTimer||0)+1;
+    if(e.walkTimer>8){e.walkTimer=0;e.walkFrame=(e.walkFrame+1)%4;}
+    return;
+  }
+
+  const dx=pl.x-e.x, dy=pl.y-e.y;
+  const dist=Math.sqrt(dx*dx+dy*dy);
+
+  e.walkTimer++;
+  if(e.walkTimer>8){e.walkTimer=0;e.walkFrame=(e.walkFrame+1)%4;}
+
+  e.stateTimer-=dt;
+
+  // Sheriffs (from town raids) always attack player; bandits attack only if crime > 0
+  const shouldAttack = e.hostile && (e.role==='sheriff' || pl.crimeLevel > 0) && dist < 450;
+
+  if(shouldAttack){
+    e.facing=Math.atan2(dy,dx);
+    if(dist>120){e.vx=dx/dist*e.spd;e.vy=dy/dist*e.spd;}
+    else {e.vx*=0.8;e.vy*=0.8;}
+    e.shootCd-=dt;
+    if(e.shootCd<=0&&dist<280){
+      fireBullet(e.x+6,e.y+10,e.facing+(Math.random()-0.5)*0.2,e.dmg,300,'enemy');
+      e.shootCd=140+Math.random()*100;
+    }
+    moveEnt(e,e.vx*dt/60,e.vy*dt/60);
+  } else {
+    if(e.stateTimer<=0){
+      e.stateTimer=300+Math.random()*500;
+      e.facing=Math.random()*Math.PI*2;
+      e.state=Math.random()<0.45?'idle':'walk';
+    }
+    if(e.state==='walk'){
+      e.vx=Math.cos(e.facing)*e.spd*0.4;e.vy=Math.sin(e.facing)*e.spd*0.4;
+      moveEnt(e,e.vx*dt/60,e.vy*dt/60);
+    } else {e.vx*=0.85;e.vy*=0.85;}
+  }
+}
+
+// ── BULLETS ───────────────────────────────────
+function fireBullet(bx,by,angle,dmg,range,owner){
+  bullets.push({x:bx,y:by,vx:Math.cos(angle)*10,vy:Math.sin(angle)*10,
+    dmg,range,dist:0,owner,angle});
+}
+
+function updateBullets(dt){
+  for(let i=bullets.length-1;i>=0;i--){
+    const b=bullets[i];
+    b.x+=b.vx;b.y+=b.vy;
+    b.dist+=Math.sqrt(b.vx*b.vx+b.vy*b.vy);
+    if(b.dist>b.range||b.x<0||b.y<0||b.x>WW||b.y>WH||solidAt(b.x,b.y,2,2)){
+      for(let j=0;j<3;j++) spawnPart(b.x,b.y,'#c0a050',2,8);
+      bullets.splice(i,1);continue;
+    }
+    if(b.owner==='player'){
+      // Hit animals
+      for(let j=entities.length-1;j>=0;j--){
+        const e=entities[j];
+        if(!overlap(b.x-3,b.y-3,6,6,e.x,e.y,e.w,e.h)) continue;
+        e.hp-=b.dmg;
+        for(let k=0;k<6;k++) spawnPart(b.x,b.y,P.blood,3,18);
+        if(e.hp<=0){
+          if(e.type==='animal'){pl.meat+=e.meat||1;pl.pelts+=1;pl.money+=e.reward;showMsg(`+${e.meat||1} meat, +$${e.reward}`);}
+          else if(e.type==='npc'&&e.hostile){
+            const reward=e.isRaider?15:e.role==='sheriff'?30:(Math.floor(Math.random()*20+5));
+            pl.money+=reward;
+            if(!e.isRaider){pl.crimeLevel=Math.min(2,pl.crimeLevel+1);pl.crimeCooldown=1800;}
+            showMsg(`Enemy down! +$${reward}`);
+          }
+          entities.splice(j,1);
+        }
+        bullets.splice(i,1);break;
+      }
+    } else {
+      // Hit player
+      if(overlap(b.x-3,b.y-3,6,6,pl.x,pl.y,pl.w,pl.h)&&pl.invTimer<=0){
+        pl.hp=Math.max(0,pl.hp-b.dmg);pl.invTimer=30;
+        for(let k=0;k<8;k++) spawnPart(b.x,b.y,P.blood,3,20);
+        if(pl.hp<=0) playerDied();
+        bullets.splice(i,1);
+      }
+    }
+  }
+}
+
+// ── PARTICLES ─────────────────────────────────
+function spawnPart(x,y,color,size,life){
+  particles.push({x,y,vx:(Math.random()-0.5)*3,vy:(Math.random()-0.5)*3-0.5,
+    life,maxLife:life,size,color,type:'spark'});
+}
+
+function updateParticles(dt){
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.x+=p.vx;p.y+=p.vy;p.vy+=0.12;p.life-=dt/16;
+    if(p.life<=0) particles.splice(i,1);
+  }
+}
+
+// ── MAIN UPDATE ───────────────────────────────
+function update(dt){
+  if(gameState!=='playing') return;
+
+  time=(time+timeSpeed*dt)%1;
+
+  weatherTimer-=dt;
+  if(weatherTimer<=0){
+    const ws=['clear','clear','clear','clear','rain','fog','dust'];
+    weather=ws[Math.floor(Math.random()*ws.length)];
+    weatherTimer=1800+Math.random()*4000;
+    if(weather!=='clear') showMsg('Weather: '+weather.toUpperCase());
+  }
+
+  updatePlayer(dt);
+  updateEntities(dt);
+  updateBullets(dt);
+  updateParticles(dt);
+  updateVillage(dt);
+
+  if(discoverTimer>0) discoverTimer-=dt/16;
+  if(msgTimer>0) msgTimer-=dt/16;
+
+  // Respawn animals occasionally
+  if(Math.random()<0.002) spawnAnimal(['deer','deer','wolf','coyote','bison'][Math.floor(Math.random()*5)]);
+
+  // Camera
+  const tx=pl.x+6-SW/2, ty=pl.y+10-SH/2;
+  cam.x+=(tx-cam.x)*0.08;cam.y+=(ty-cam.y)*0.08;
+  clampCam();
+}
+
+function clampCam(){
+  cam.x=Math.max(0,Math.min(WW-SW,cam.x));
+  cam.y=Math.max(0,Math.min(WH-SH,cam.y));
+}
+
+// ── MAIN RENDER ───────────────────────────────
+function render(){
+  // Sky
+  const skyColors={
+    night:['#0e0c22','#181430'],dawn:['#4a2030','#d87040'],
+    day:['#5aa0d0','#a8d0ec'],dusk:['#3a1840','#e05838']
+  };
+  const phase=time<0.2?'night':time<0.35?'dawn':time<0.65?'day':time<0.82?'dusk':'night';
+  const sc=skyColors[phase];
+  const sg=ctx.createLinearGradient(0,0,0,SH*0.25);
+  sg.addColorStop(0,sc[0]);sg.addColorStop(1,sc[1]);
+  ctx.fillStyle=sg;ctx.fillRect(0,0,SW,SH*0.25);
+
+  // Draw visible tiles
+  const tx0=Math.max(0,Math.floor(cam.x/TILE));
+  const ty0=Math.max(0,Math.floor(cam.y/TILE));
+  const tx1=Math.min(MW,tx0+Math.ceil(SW/TILE)+2);
+  const ty1=Math.min(MH,ty0+Math.ceil(SH/TILE)+2);
+
+  for(let ty=ty0;ty<ty1;ty++){
+    for(let tx=tx0;tx<tx1;tx++){
+      drawTile(tx,ty,tx*TILE-cam.x,ty*TILE-cam.y);
+    }
+  }
+
+  // Towns
+  for(const town of placedTowns) drawTown(town);
+
+  // Camps
+  for(const camp of camps) drawCamp(camp);
+
+  // Village buildings
+  if(village.founded) drawVillage();
+
+  // Entities (depth sorted)
+  const visEnts=entities.filter(e=>{
+    const wx=e.x-cam.x,wy=e.y-cam.y;
+    return wx>-50&&wx<SW+50&&wy>-50&&wy<SH+50;
+  });
+  visEnts.sort((a,b)=>a.y-b.y);
+  for(const e of visEnts){
+    if(e.type==='animal') drawAnimal(e);
+    else drawNPCEnt(e);
+  }
+
+  // Player
+  drawPlayer();
+
+  // Bullets
+  for(const b of bullets){
+    const wx=b.x-cam.x,wy=b.y-cam.y;
+    ctx.save();ctx.translate(wx,wy);ctx.rotate(b.angle);
+    ctx.fillStyle=b.owner==='player'?P.gold:'#ff8040';
+    ctx.fillRect(-5,-1,10,2);ctx.restore();
+  }
+
+  // Particles
+  for(const p of particles){
+    const wx=p.x-cam.x,wy=p.y-cam.y;
+    const a=Math.max(0,p.life/p.maxLife);
+    ctx.globalAlpha=a;ctx.fillStyle=p.color;
+    ctx.fillRect(wx-p.size/2,wy-p.size/2,p.size,p.size);
+  }
+  ctx.globalAlpha=1;
+
+  // Weather overlay
+  drawWeather();
+
+  // Lighting
+  drawLighting();
+
+  // HUD last
+  drawHUD();
+}
+
+function drawNPCEnt(e){
+  const wx=e.x-cam.x,wy=e.y-cam.y;
+  drawHumanoid(e.x,e.y,e.facing,e.walkFrame,{
+    hat:e.hat||P.hatDark,coat:e.coat||P.coat,
+    skin:e.role==='bandit'?'#906030':P.skin,
+    onHorse:e.onHorse,
+  });
+
+  // HP bar for hostiles
+  if(e.hostile&&e.hp<e.maxHp){
+    ctx.fillStyle='#400';ctx.fillRect(wx-4,wy-8,24,4);
+    ctx.fillStyle='#c02020';ctx.fillRect(wx-4,wy-8,24*(e.hp/e.maxHp),4);
+  }
+
+  // Role label
+  if(e.role==='bandit'){
+    ctx.fillStyle='rgba(200,30,30,0.8)';ctx.font='7px Courier New';ctx.textAlign='center';
+    ctx.fillText('BANDIT',wx+6,wy-10);ctx.textAlign='left';
+  }
+
+  // Interaction hint
+  const pdx=e.x-pl.x,pdy=e.y-pl.y;
+  if(Math.sqrt(pdx*pdx+pdy*pdy)<60&&!e.hostile){
+    ctx.fillStyle='rgba(0,0,0,0.6)';ctx.fillRect(wx-14,wy-22,36,12);
+    ctx.fillStyle=P.gold;ctx.font='8px Courier New';ctx.textAlign='center';
+    ctx.fillText('[E] Talk',wx+6,wy-13);ctx.textAlign='left';
+  }
+}
+
+// ── ACTIONS ───────────────────────────────────
+function onKey(code){
+  if(gameState==='title'&&code==='Enter'){
+    document.querySelector('canvas').style.cursor='crosshair';
+    startGame();return;
+  }
+  if(gameState!=='playing') return;
+  // Shop number keys
+  if(shopMenuOpen){
+    const digits=['Digit1','Digit2','Digit3','Digit4','Digit5','Digit6','Digit7','Digit8','Digit9'];
+    const idx=digits.indexOf(code);
+    if(idx>=0&&idx<SHOP_ITEMS.length){buyShopItem(SHOP_ITEMS[idx]);return;}
+    if(code==='Escape'){shopMenuOpen=false;shopTown=null;return;}
+  }
+
+  // Build menu number keys
+  if(buildMenuOpen){
+    const keys=Object.keys(BLDG_DEFS);
+    const digits=['Digit1','Digit2','Digit3','Digit4','Digit5','Digit6','Digit7','Digit8','Digit9','Digit0'];
+    const idx=digits.indexOf(code);
+    if(idx>=0&&idx<keys.length){
+      buildSelected=keys[idx];
+      showMsg(`Selected: ${BLDG_DEFS[keys[idx]].label} — move mouse to place, E to confirm`);
+      return;
+    }
+    if(code==='Escape'){buildMenuOpen=false;buildSelected=null;return;}
+  }
+
+  if(code==='KeyR') doReload();
+  if(code==='Digit1') {pl.curWep=0;showMsg(cw().name);}
+  if(code==='Digit2') {pl.curWep=1;showMsg(cw().name);}
+  if(code==='KeyE') doInteract();
+  if(code==='Space') doShoot();
+  if(code==='KeyC') showControls=!showControls;
+  if(code==='KeyH') pl.onHorse=!pl.onHorse;
+  if(code==='KeyF') doPlaceCamp();
+  if(code==='KeyM'&&pl.meat>0){
+    pl.hp=Math.min(pl.maxHp,pl.hp+20);pl.food=Math.min(pl.maxFood,pl.food+30);
+    pl.meat--;showMsg('Ate meat. +20 HP');
+  }
+  // Build menu cycle
+  if(code==='KeyB'){
+    if(!village.founded){showMsg('[E] on open land to found your settlement first!');return;}
+    buildMenuOpen=!buildMenuOpen;
+    buildSelected=null;
+  }
+  // Throw dynamite
+  if(code==='KeyQ'&&(pl.dynamite||0)>0){
+    pl.dynamite--;
+    const angle=pl.facing;
+    const tx=pl.x+Math.cos(angle)*120, ty=pl.y+Math.sin(angle)*120;
+    // Damage all entities nearby explosion
+    setTimeout(()=>{
+      for(let k=0;k<20;k++) spawnPart(tx,ty,'#ff8000',5,40);
+      for(const e of entities){
+        const dx=e.x-tx,dy=e.y-ty;
+        if(Math.sqrt(dx*dx+dy*dy)<80){e.hp-=80;if(e.hp<=0&&e.isRaider) pl.money+=15;}
+      }
+      showMsg('BOOM!');
+    },500);
+    showMsg(`Dynamite! (${pl.dynamite} left)`);
+  }
+  // Raid a nearby town
+  if(code==='KeyX'){
+    for(const town of placedTowns){
+      const dx=town.wx+30-pl.x,dy=town.wy+30-pl.y;
+      if(Math.sqrt(dx*dx+dy*dy)<120){doRaidTown(town);return;}
+    }
+    showMsg('No town nearby to raid. [X] near a town.');
+  }
+}
+
+function onMouseDown(){
+  if(gameState==='playing') doShoot();
+}
+
+function doShoot(){
+  if(pl.reloading) return;
+  const w=cw();
+  if(w.ammo<=0){showMsg('Empty! [R] to reload');return;}
+  if(pl.shootCd>0) return;
+  w.ammo--;
+  const angle=pl.facing;
+  if(w.name==='Shotgun'){
+    for(let i=0;i<5;i++) fireBullet(pl.x+7,pl.y+11,angle+(Math.random()-0.5)*0.45,w.dmg,w.range,'player');
+  } else {
+    fireBullet(pl.x+7,pl.y+11,angle+(Math.random()-0.5)*w.spread,w.dmg,w.range,'player');
+  }
+  pl.shootCd=w.name==='Rifle'?200:320;
+  for(let i=0;i<4;i++) spawnPart(pl.x+7+Math.cos(angle)*12,pl.y+11+Math.sin(angle)*12,P.gold,3,8);
+}
+
+function doReload(){
+  const w=cw();
+  if(pl.reloading||w.ammo===w.maxAmmo) return;
+  pl.reloading=true;pl.reloadProg=0;showMsg('Reloading...');
+}
+
+function doInteract(){
+  // Build menu placement confirm
+  if(buildSelected){
+    placeBuildingAt(buildGhost.x, buildGhost.y, buildSelected);
+    buildSelected=null;
+    return;
+  }
+
+  // Shop menu toggle near discovered town
+  for(const town of placedTowns){
+    const dx=town.wx+30-pl.x,dy=town.wy+30-pl.y;
+    if(Math.sqrt(dx*dx+dy*dy)<120){
+      if(!town.discovered){
+        town.discovered=true;
+        discoveredTownSet.add(town.name);
+        discoverText=town.name;discoverTimer=240;
+        showMsg(`Discovered: ${town.name}!`);
+        return;
+      }
+      shopMenuOpen=!shopMenuOpen;
+      shopTown=shopMenuOpen?town:null;
+      if(shopMenuOpen) showMsg(`${town.name} — [E] close shop`);
+      return;
+    }
+  }
+
+  // Talk to friendly NPC
+  for(const e of entities){
+    if(e.type!=='npc'||e.hostile) continue;
+    const dx=e.x-pl.x,dy=e.y-pl.y;
+    if(Math.sqrt(dx*dx+dy*dy)<60){
+      const line=e.dialog[Math.floor(Math.random()*e.dialog.length)];
+      showMsg(`[${e.role||'Stranger'}] "${line}"`);
+      return;
+    }
+  }
+
+  // Rest at camp / village tent
+  for(const c of camps){
+    const dx=c.x-pl.x,dy=c.y-pl.y;
+    if(Math.sqrt(dx*dx+dy*dy)<50){
+      pl.hp=pl.maxHp;pl.food=Math.min(pl.maxFood,pl.food+50);
+      showMsg('Rested. HP + Food restored.');return;
+    }
+  }
+
+  // Found village (if none yet and not near a town)
+  if(!village.founded){
+    foundVillage();
+    return;
+  }
+
+  // Interact with village buildings
+  if(village.founded){
+    const vdx=pl.x-village.x, vdy=pl.y-village.y;
+    if(Math.sqrt(vdx*vdx+vdy*vdy)<300){
+      buildMenuOpen=!buildMenuOpen;
+      if(buildMenuOpen) showMsg('Build menu open — B to cycle, E to place, Esc to close');
+      return;
+    }
+  }
+}
+
+function foundVillage(){
+  // Check not too close to existing towns
+  for(const town of placedTowns){
+    const dx=town.wx-pl.x,dy=town.wy-pl.y;
+    if(Math.sqrt(dx*dx+dy*dy)<300){
+      showMsg('Too close to a town. Find open land.');return;
+    }
+  }
+  village.founded=true;
+  village.x=pl.x;
+  village.y=pl.y;
+  // Place a free tent to start
+  village.buildings.push({type:'tent',x:pl.x-12,y:pl.y-20,...BLDG_DEFS.tent});
+  recalcVillage();
+  showMsg('Settlement founded! You placed a tent. Now survive — raiders come!');
+  // First raid in ~3 real minutes
+  village.nextRaidIn=10800;
+}
+
+function placeBuildingAt(x,y,type){
+  const def=BLDG_DEFS[type];
+  if(!def){return;}
+  if(pl.money<def.cost){showMsg(`Need $${def.cost}. You have $${pl.money}.`);return;}
+  pl.money-=def.cost;
+  village.buildings.push({type,x:x-def.w/2,y:y-def.h/2,...def});
+  recalcVillage();
+  showMsg(`${def.label} built!`);
+  buildMenuOpen=false;
+}
+
+function recalcVillage(){
+  let pop=0,defense=0,food=0,maxFood=village.maxFood,happy=50;
+  for(const b of village.buildings){
+    pop+=b.pop||0;
+    defense+=b.defense||0;
+    food+=b.foodBonus||0;
+    maxFood+=b.maxFoodBonus||0;
+    happy+=b.happyBonus||0;
+  }
+  village.maxPop=pop;
+  village.population=Math.min(village.population,pop);
+  village.defense=Math.min(100,defense);
+  village.dailyFood=food;
+  village.maxFood=maxFood;
+  village.happiness=Math.min(100,happy);
+  // Level up based on buildings
+  const n=village.buildings.length;
+  village.level=n<=1?1:n<=3?2:n<=6?3:n<=10?4:5;
+}
+
+function doPlaceCamp(){
+  camps.push({x:pl.x+10,y:pl.y+10});
+  showMsg('Camp placed! [E] nearby to rest.');
+}
+
+// ── VILLAGE UPDATE ────────────────────────────
+function updateVillage(dt){
+  if(!village.founded) return;
+
+  // Food drain from population (harder with more people)
+  const drain=(village.population*0.4+1)*0.0006*dt;
+  village.food=Math.max(0,village.food-drain);
+
+  // Daily food from farms
+  village.food=Math.min(village.maxFood, village.food+(village.dailyFood||0)*0.0002*dt);
+
+  // Happiness drops when food is low
+  if(village.food<20) village.happiness=Math.max(0,village.happiness-0.01*dt);
+  else village.happiness=Math.min(100,village.happiness+0.002*dt);
+
+  // Settlers drift in if pop < maxPop and happiness > 60
+  if(village.population<village.maxPop && village.happiness>60 && Math.random()<0.00005*dt){
+    village.population++;
+    showMsg('A new settler arrived at your village!');
+  }
+
+  // Settlers leave if happiness < 30 or food=0
+  if((village.happiness<30||village.food<=0) && village.population>0 && Math.random()<0.0001*dt){
+    village.population=Math.max(0,village.population-1);
+    showMsg('A settler left your village...');
+  }
+
+  // Village generates a little income from population
+  if(village.population>0 && Math.random()<0.00002*dt){
+    const earn=village.population;
+    pl.money+=earn;
+  }
+
+  // Days survived counter (1 game day ≈ 1/timeSpeed * 1000ms)
+  village.daysSurvived+=timeSpeed*dt;
+
+  // Raid countdown
+  village.nextRaidIn-=dt;
+  if(village.nextRaidIn<=600 && village.raidWarning<=0){
+    village.raidWarning=600;
+    showMsg('⚠  RAIDERS approaching your settlement!',300);
+  }
+  if(village.raidWarning>0) village.raidWarning-=dt;
+
+  if(village.nextRaidIn<=0 && !activeRaid){
+    spawnRaid();
+    // Next raid comes sooner as level increases (harder over time)
+    village.nextRaidIn=Math.max(3600, 10800-village.level*1200-Math.floor(village.daysSurvived)*200);
+  }
+
+  // Update active raid
+  if(activeRaid) updateRaid(dt);
+
+  // Village destroyed if all buildings gone
+  if(village.buildings.length===0 && village.founded){
+    showMsg('Your settlement has been destroyed!',600);
+    village.founded=false;
+    village.population=0;
+  }
+}
+
+function spawnRaid(){
+  // Spawn raiders from a random direction outside view
+  const count=Math.min(2+village.level*2, 12);
+  const angle=Math.random()*Math.PI*2;
+  const dist=400;
+  const raiders=[];
+  for(let i=0;i<count;i++){
+    const spread=(Math.random()-0.5)*200;
+    const rx=village.x+Math.cos(angle)*dist+Math.cos(angle+Math.PI/2)*spread;
+    const ry=village.y+Math.sin(angle)*dist+Math.sin(angle+Math.PI/2)*spread;
+    const hp=40+village.level*20;
+    raiders.push(mkEnt('npc',rx,ry,{
+      role:'raider',coat:'#1a0808',hat:'#080404',
+      hostile:true,spd:1.6+village.level*0.15,
+      dmg:15+village.level*5,hp,maxHp:hp,shootCd:0,
+      dialog:['Die!','Burn it down!','Leave nothing!'],
+      isRaider:true, target:'village',
+    }));
+    entities.push(raiders[raiders.length-1]);
+  }
+  activeRaid={raiders,phase:'attacking'};
+  showMsg(`☠  RAID! ${count} raiders attacking your settlement!`,400);
+}
+
+function updateRaid(dt){
+  if(!activeRaid) return;
+  // Remove dead raiders
+  activeRaid.raiders=activeRaid.raiders.filter(r=>r.hp>0&&entities.includes(r));
+
+  // Raiders attack buildings
+  for(const r of activeRaid.raiders){
+    if(r.hp<=0) continue;
+    // Move toward nearest building
+    let nearestB=null,nearDist=Infinity;
+    for(const b of village.buildings){
+      const dx=b.x+b.w/2-r.x, dy=b.y+b.h/2-r.y;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d<nearDist){nearDist=d;nearestB=b;}
+    }
+    if(nearestB){
+      const dx=nearestB.x+nearestB.w/2-r.x, dy=nearestB.y+nearestB.h/2-r.y;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if(d>30){
+        r.vx=dx/d*r.spd; r.vy=dy/d*r.spd;
+        moveEnt(r,r.vx*dt/60,r.vy*dt/60);
+      } else {
+        // Damage building
+        if(!nearestB.hp) nearestB.hp=100;
+        nearestB.hp-=0.05*dt*(1-village.defense/150);
+        if(nearestB.hp<=0){
+          const idx=village.buildings.indexOf(nearestB);
+          if(idx>=0) village.buildings.splice(idx,1);
+          recalcVillage();
+          showMsg(`Your ${nearestB.label} was destroyed!`,300);
+          for(let k=0;k<12;k++) spawnPart(nearestB.x+nearestB.w/2,nearestB.y+nearestB.h/2,'#ff6000',4,30);
+        }
+      }
+    }
+    // Also attack player if close
+    const pdx=pl.x-r.x, pdy=pl.y-r.y;
+    const pdist=Math.sqrt(pdx*pdx+pdy*pdy);
+    if(pdist<300){
+      r.facing=Math.atan2(pdy,pdx);
+      r.shootCd-=dt;
+      if(r.shootCd<=0&&pdist<260){
+        fireBullet(r.x+6,r.y+10,r.facing+(Math.random()-0.5)*0.25,r.dmg,280,'enemy');
+        r.shootCd=160+Math.random()*120;
+      }
+    }
+  }
+
+  if(activeRaid.raiders.length===0){
+    showMsg('Raid repelled! +$'+(10+village.level*5),240);
+    pl.money+=10+village.level*5;
+    raidersKilled++;
+    activeRaid=null;
+  }
+}
+
+// ── SHOP SYSTEM ───────────────────────────────
+const SHOP_ITEMS=[
+  {id:'ammo_rev', label:'Revolver Ammo (6)',  cost:8,  desc:'Fills revolver.'},
+  {id:'ammo_rif', label:'Rifle Ammo (12)',    cost:15, desc:'Fills rifle.'},
+  {id:'food',     label:'Dried Meat (x5)',    cost:20, desc:'+5 meat, +50 food.'},
+  {id:'medkit',   label:'Medkit',             cost:35, desc:'+50 HP instantly.'},
+  {id:'horse',    label:'Horse',              cost:120,desc:'Mounts a horse.'},
+  {id:'rifle',    label:'Rifle (unlock)',     cost:80, desc:'Unlock the rifle weapon.'},
+  {id:'vil_food', label:'Sack of Grain',      cost:40, desc:'+80 village food.'},
+  {id:'dynamite', label:'Dynamite (x3)',      cost:60, desc:'Explosive. [Q] to throw.'},
+];
+
+function buyShopItem(item){
+  if(pl.money<item.cost){showMsg(`Need $${item.cost}. You have $${pl.money}.`);return;}
+  pl.money-=item.cost;
+  if(item.id==='ammo_rev'){pl.weapons[0].ammo=pl.weapons[0].maxAmmo;showMsg('Revolver loaded!');}
+  else if(item.id==='ammo_rif'){pl.weapons[1].ammo=pl.weapons[1].maxAmmo;showMsg('Rifle loaded!');}
+  else if(item.id==='food'){pl.meat+=5;pl.food=Math.min(pl.maxFood,pl.food+50);showMsg('+5 meat, +50 food.');}
+  else if(item.id==='medkit'){pl.hp=Math.min(pl.maxHp,pl.hp+50);showMsg('+50 HP!');}
+  else if(item.id==='horse'){pl.onHorse=true;showMsg('You got a horse!');}
+  else if(item.id==='rifle'){pl.weapons[1].ammo=6;showMsg('Rifle unlocked!');}
+  else if(item.id==='vil_food'){if(village.founded){village.food=Math.min(village.maxFood,village.food+80);showMsg('+80 village food.');}else showMsg('No settlement yet.');}
+  else if(item.id==='dynamite'){pl.dynamite=(pl.dynamite||0)+3;showMsg('+3 dynamite!');}
+}
+
+// ── RAIDING ENEMY TOWNS ───────────────────────
+function doRaidTown(town){
+  if(!town.discovered){showMsg('You need to discover this town first.');return;}
+  if(town.beenRaided&&Date.now()-town.lastRaidTime<60000){
+    showMsg('This town is on high alert. Wait before raiding again.');return;
+  }
+  // Spawn defenders that chase player
+  const count=3+Math.floor(Math.random()*4);
+  for(let i=0;i<count;i++){
+    const rx=town.wx+(Math.random()-0.5)*160;
+    const ry=town.wy+(Math.random()-0.5)*160;
+    entities.push(mkEnt('npc',rx,ry,{
+      role:'sheriff',coat:'#2a3860',hat:'#101830',
+      hostile:true,spd:1.8,dmg:25,hp:90,maxHp:90,shootCd:0,
+      dialog:['Stop right there!','You\'re under arrest!','Get him!'],
+    }));
+  }
+  // Loot
+  const loot=20+Math.floor(Math.random()*60)+Math.floor(Math.random()*town.buildings?.length||0)*10;
+  pl.money+=loot;
+  pl.crimeLevel=2;pl.crimeCooldown=3600;
+  town.beenRaided=true;town.lastRaidTime=Date.now();
+  showMsg(`You raided ${town.name}! +$${loot}. Lawmen on your trail!`,300);
+}
+
+function playerDied(){
+  gameState='dead';
+  setTimeout(()=>{
+    pl.hp=pl.maxHp;pl.food=50;
+    if(camps.length>0){pl.x=camps[camps.length-1].x;pl.y=camps[camps.length-1].y;}
+    else initPlayer();
+    showMsg('You came to. Respawned at last camp.');
+    gameState='playing';
+  },2000);
+}
+
+function showMsg(text,dur=180){msgText=text;msgTimer=dur;}
+
+// ── INIT ──────────────────────────────────────
+function startGame(){
+  generateWorld();
+  initPlayer();
+  gameState='playing';
+  showMsg('You arrive with nothing. Hunt, rob, survive — build your empire.',300);
+}
+
+// ── LOOP ──────────────────────────────────────
+function loop(ts){
+  const dt=Math.min(ts-lastTime,50);lastTime=ts;
+  if(gameState==='title'){
+    drawTitle();
+  } else if(gameState==='dead'){
+    render();
+    ctx.fillStyle='rgba(0,0,0,0.7)';ctx.fillRect(0,0,SW,SH);
+    ctx.fillStyle='#c02020';ctx.font='bold 28px Georgia,serif';ctx.textAlign='center';
+    ctx.fillText('YOU DIED',SW/2,SH/2);
+    ctx.fillStyle='#a08040';ctx.font='12px Courier New';ctx.fillText('Respawning at last camp...',SW/2,SH/2+28);
+    ctx.textAlign='left';
+  } else {
+    update(dt);render();
+  }
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(t=>{lastTime=t;requestAnimationFrame(loop);});
+</script>
+</body>
+</html>
