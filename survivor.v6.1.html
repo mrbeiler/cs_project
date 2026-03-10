@@ -1,0 +1,2157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SURVIVOR</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:#0a0a0f;display:flex;align-items:center;justify-content:center;height:100vh;overflow:hidden;font-family:'Share Tech Mono',monospace;}
+  #gameContainer{position:relative;width:800px;height:600px;}
+  canvas{display:block;border:1px solid #1a1a2e;box-shadow:0 0 40px rgba(0,200,255,0.15),0 0 80px rgba(0,200,255,0.05);}
+  #ui{position:absolute;top:0;left:0;width:100%;pointer-events:none;}
+  #hud{display:flex;justify-content:space-between;align-items:flex-start;padding:12px 16px;gap:12px;}
+  #healthBar{width:200px;}
+  #healthLabel{color:#ff4466;font-size:10px;letter-spacing:2px;margin-bottom:4px;font-family:'Orbitron',monospace;}
+  #healthOuter{background:#1a0a0a;border:1px solid #ff4466;height:10px;border-radius:2px;}
+  #healthInner{background:linear-gradient(90deg,#ff2244,#ff6688);height:100%;border-radius:2px;transition:width 0.1s;box-shadow:0 0 6px #ff4466;}
+  #xpBar{flex:1;}
+  #xpLabel{color:#44ffaa;font-size:10px;letter-spacing:2px;margin-bottom:4px;font-family:'Orbitron',monospace;}
+  #xpOuter{background:#0a1a0a;border:1px solid #44ffaa;height:10px;border-radius:2px;}
+  #xpInner{background:linear-gradient(90deg,#00cc66,#44ffaa);height:100%;border-radius:2px;transition:width 0.3s;box-shadow:0 0 6px #44ffaa;}
+  #stats{display:flex;gap:16px;align-items:center;}
+  .stat{text-align:center;}
+  .statVal{color:#00ccff;font-size:18px;font-family:'Orbitron',monospace;font-weight:700;}
+  .statLbl{color:#336688;font-size:9px;letter-spacing:1px;}
+  #timer{color:#ffcc00;font-family:'Orbitron',monospace;font-size:22px;font-weight:900;text-shadow:0 0 10px #ffcc00;}
+  #levelUpScreen{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:all;backdrop-filter:blur(4px);}
+  #levelUpTitle{font-family:'Orbitron',monospace;color:#ffcc00;font-size:28px;font-weight:900;letter-spacing:4px;margin-bottom:8px;text-shadow:0 0 20px #ffcc00;}
+  #levelUpSub{color:#666;font-size:12px;letter-spacing:2px;margin-bottom:32px;}
+  #choices{display:flex;gap:16px;}
+  .choice{background:#0d0d1a;border:1px solid #334;padding:20px;width:180px;cursor:pointer;transition:all 0.2s;border-radius:4px;pointer-events:all;}
+  .choice:hover{border-color:#00ccff;background:#0a1520;box-shadow:0 0 20px rgba(0,200,255,0.2);transform:translateY(-2px);}
+  .choiceIcon{font-size:32px;text-align:center;margin-bottom:10px;}
+  .choiceName{color:#00ccff;font-family:'Orbitron',monospace;font-size:11px;font-weight:700;letter-spacing:1px;margin-bottom:6px;}
+  .choiceDesc{color:#668;font-size:10px;line-height:1.5;}
+  .choiceRarity{font-size:9px;letter-spacing:2px;margin-bottom:8px;}
+  .rare{color:#44aaff;}.common{color:#88aacc;}.epic{color:#aa44ff;}.legendary{color:#ffaa00;text-shadow:0 0 8px #ffaa00;}
+  #startScreen,#gameOverScreen{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:all;}
+  #gameOverScreen{display:none;}
+  .screenTitle{font-family:'Orbitron',monospace;color:#00ccff;font-size:48px;font-weight:900;letter-spacing:6px;text-shadow:0 0 30px #00ccff,0 0 60px rgba(0,200,255,0.3);margin-bottom:8px;}
+  .screenSub{color:#446;font-size:12px;letter-spacing:4px;margin-bottom:40px;}
+  .bigBtn{background:transparent;border:1px solid #00ccff;color:#00ccff;font-family:'Orbitron',monospace;font-size:14px;letter-spacing:3px;padding:14px 40px;cursor:pointer;transition:all 0.2s;}
+  .bigBtn:hover{background:#00ccff;color:#000;box-shadow:0 0 30px rgba(0,200,255,0.5);}
+  #weapons{position:absolute;bottom:12px;left:92px;display:flex;gap:8px;pointer-events:none;}
+  .weaponSlot{width:36px;height:36px;border:1px solid #334;background:#0a0a14;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:16px;position:relative;}
+  .weaponSlot .wLvl{position:absolute;bottom:1px;right:3px;font-size:8px;color:#ffcc00;font-family:'Orbitron',monospace;}
+  #killCount{position:absolute;bottom:12px;right:12px;text-align:right;}
+  .killNum{color:#ff4466;font-family:'Orbitron',monospace;font-size:24px;font-weight:900;}
+  .killLbl{color:#446;font-size:9px;letter-spacing:2px;}
+  #goStats{color:#aaa;font-size:13px;line-height:2;margin-bottom:30px;text-align:center;}
+  #goStats span{color:#00ccff;font-family:'Orbitron',monospace;}
+
+  /* INVENTORY PANEL */
+  #inventoryPanel{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);display:none;flex-direction:column;align-items:center;pointer-events:all;backdrop-filter:blur(6px);z-index:20;overflow-y:auto;}
+  #invHeader{padding:20px 24px 0;text-align:center;width:100%;}
+  #invTitle{font-family:'Orbitron',monospace;color:#00ccff;font-size:22px;font-weight:900;letter-spacing:5px;text-shadow:0 0 20px #00ccff;}
+  #invSub{color:#446;font-size:10px;letter-spacing:3px;margin:4px 0 12px;}
+  #invGrid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:0 16px 16px;width:100%;max-width:780px;}
+  .invCard{background:#0d0d1a;border:1px solid #223;border-radius:5px;padding:10px;position:relative;transition:all 0.15s;display:flex;flex-direction:column;gap:6px;}
+  .invCard.equipped{border-color:#00ccff;box-shadow:0 0 12px rgba(0,200,255,0.25);}
+  .invCard:hover{background:#111628;}
+  .invCardIcon{font-size:28px;text-align:center;line-height:1.1;}
+  .invCardName{font-family:'Orbitron',monospace;font-size:9px;font-weight:700;letter-spacing:0.5px;text-align:center;line-height:1.3;}
+  .invCardRarity{font-size:8px;letter-spacing:2px;text-align:center;}
+  .invCardStats{color:#556;font-size:8px;line-height:1.6;border-top:1px solid #1a1a2e;padding-top:4px;}
+  .invCardEffect{font-size:8px;text-align:center;padding:2px 6px;border-radius:2px;background:#0a0a14;}
+  .invCardBtns{display:flex;gap:5px;margin-top:2px;}
+  .invBtn{flex:1;background:transparent;border:1px solid #334;color:#667;font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1px;padding:4px 2px;cursor:pointer;border-radius:2px;transition:all 0.15s;}
+  .invBtn:hover:not(:disabled){background:#1a2030;color:#aaa;border-color:#556;}
+  .invBtn.equipBtn{border-color:#00ccff44;color:#00ccff99;}
+  .invBtn.equipBtn:hover{background:#003344;color:#00ffff;border-color:#00ccff;}
+  .invBtn.equipBtn.active{background:#00334466;color:#00ffff;border-color:#00ccff;cursor:default;}
+  .invBtn.mergeBtn{border-color:#ffcc0044;color:#ffcc0099;}
+  .invBtn.mergeBtn:hover{background:#1a1400;color:#ffdd44;border-color:#ffcc00;}
+  .invCardCount{position:absolute;top:5px;right:7px;background:#ffcc00;color:#000;font-family:'Orbitron',monospace;font-size:8px;font-weight:700;padding:1px 5px;border-radius:8px;}
+  .invCardLevel{position:absolute;top:5px;left:7px;font-family:'Orbitron',monospace;font-size:8px;font-weight:700;}
+  .emptySlot{background:#080810;border:1px dashed #1a1a2e;border-radius:5px;display:flex;align-items:center;justify-content:center;color:#1a1a2e;font-size:22px;min-height:80px;}
+  #invFooter{padding:8px;text-align:center;width:100%;}
+  #invCloseBtn{background:transparent;border:1px solid #334;color:#446;font-family:'Orbitron',monospace;font-size:10px;letter-spacing:3px;padding:8px 28px;cursor:pointer;transition:all 0.2s;}
+  #invCloseBtn:hover{border-color:#ff4466;color:#ff4466;}
+  #invHint{color:#223;font-size:9px;letter-spacing:2px;margin-top:6px;}
+  #tabHint{position:absolute;bottom:14px;left:88px;color:#335;font-size:9px;letter-spacing:1px;pointer-events:none;}
+
+  /* RELOAD ANIMATION */
+  #reloadAnim{position:absolute;bottom:7px;left:12px;width:86px;height:86px;display:none;align-items:center;justify-content:center;pointer-events:none;}
+  #reloadAnim svg{position:absolute;top:0;left:0;width:86px;height:86px;transform:rotate(-90deg);}
+  #reloadAnim svg circle.track{fill:none;stroke:#1a1a1a;stroke-width:5;}
+  #reloadAnim svg circle.prog{fill:none;stroke:#ffcc00;stroke-width:5;stroke-linecap:round;stroke-dasharray:176;stroke-dashoffset:176;}
+  #reloadAnim::before{content:"";position:absolute;width:60px;height:60px;border-radius:50%;background:rgba(0,0,0,0.82);top:13px;left:13px;}
+  #reloadCenter{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;position:relative;z-index:1;}
+  #reloadIcon{font-size:16px;line-height:1;animation:reloadSpin 0.5s linear infinite;display:block;}
+  @keyframes reloadSpin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+  #reloadPct{font-family:'Orbitron',monospace;font-size:8px;color:#ffcc00;font-weight:700;letter-spacing:1px;}
+  #reloadWord{font-family:'Orbitron',monospace;font-size:7px;color:#aa8800;letter-spacing:2px;animation:reloadPulse 0.6s ease-in-out infinite alternate;}
+  @keyframes reloadPulse{from{opacity:0.5}to{opacity:1}}
+
+
+  /* SETTINGS */
+  #settingsBtn{position:absolute;bottom:53px;right:12px;background:transparent;border:1px solid #334;color:#446;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;padding:6px 12px;cursor:pointer;transition:all 0.2s;pointer-events:all;}
+  #settingsBtn:hover{border-color:#00ccff;color:#00ccff;}
+  .settingsScreen{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.96);display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:all;z-index:30;}
+  #settingsTitle{font-family:'Orbitron',monospace;color:#00ccff;font-size:24px;font-weight:900;letter-spacing:5px;margin-bottom:4px;text-shadow:0 0 20px #00ccff;}
+  #settingsSub{color:#334;font-size:9px;letter-spacing:3px;margin-bottom:24px;}
+  .settingsSection{width:520px;margin-bottom:18px;}
+  .sectionLabel{font-family:'Orbitron',monospace;color:#446;font-size:9px;letter-spacing:3px;margin-bottom:8px;border-bottom:1px solid #1a1a2e;padding-bottom:4px;}
+  .settingRow{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #0d0d1a;position:relative;z-index:1;}
+  .settingName{color:#889;font-size:11px;letter-spacing:1px;}
+  .settingDesc{color:#445;font-size:9px;margin-top:2px;}
+  /* Preset buttons */
+  .presetGroup{display:flex;gap:6px;flex-wrap:wrap;}
+  .presetBtn{background:transparent;border:1px solid #334;color:#556;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1px;padding:6px 12px;cursor:pointer;transition:all 0.15s;border-radius:2px;}
+  .presetBtn:hover{border-color:#00ccff;color:#00ccff;}
+  .presetBtn.active{color:#000;font-weight:700;}
+  .presetBtn.easy.active{background:#44ff88;border-color:#44ff88;color:#000;}
+  .presetBtn.medium.active{background:#ffcc00;border-color:#ffcc00;color:#000;}
+  .presetBtn.hard.active{background:#ff6600;border-color:#ff6600;color:#000;}
+  .presetBtn.hardcore.active{background:#ff0044;border-color:#ff0044;color:#fff;}
+  .presetBtn.custom.active{background:#aa44ff;border-color:#aa44ff;color:#fff;}
+  .triBtn{background:transparent;border:1px solid #334;color:#556;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1px;padding:5px 10px;cursor:pointer;transition:all 0.15s;}
+  .triBtn:hover{border-color:#00ccff;color:#00ccff;}
+  .triBtn.active{background:#00ccff;border-color:#00ccff;color:#000;font-weight:700;}
+  /* Toggle */
+  .toggle,.toggleWrap{position:relative;width:44px;height:22px;cursor:pointer;flex-shrink:0;z-index:2;}
+  .toggle input,.toggleWrap input{opacity:0;width:0;height:0;position:absolute;}
+  .toggleSlider{position:absolute;inset:0;background:#1a1a2e;border:1px solid #334;border-radius:11px;transition:all 0.2s;}
+  .toggleSlider::before{content:'';position:absolute;width:16px;height:16px;left:2px;top:2px;background:#446;border-radius:50%;transition:all 0.2s;}
+  .toggle input:checked + .toggleSlider,.toggleWrap input:checked + .toggleSlider{background:#003322;border-color:#44ffaa;}
+  .toggle input:checked + .toggleSlider::before,.toggleWrap input:checked + .toggleSlider::before{transform:translateX(22px);background:#44ffaa;box-shadow:0 0 6px #44ffaa;}
+  /* Slider */
+  .settingSlider{-webkit-appearance:none;appearance:none;width:200px;height:4px;background:#1a1a2e;border-radius:2px;outline:none;cursor:pointer;}
+  .settingSlider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#00ccff;cursor:pointer;box-shadow:0 0 6px #00ccff;}
+  .sliderVal{color:#00ccff;font-family:'Orbitron',monospace;font-size:10px;width:40px;text-align:right;}
+  /* Settings close */
+  #settingsCloseBtn,#settingsCloseBtn2,#settingsCloseBtn3{background:transparent;border:1px solid #334;color:#446;font-family:'Orbitron',monospace;font-size:10px;letter-spacing:3px;padding:10px 0;cursor:pointer;margin-top:8px;transition:all 0.2s;width:160px;}
+  #settingsCloseBtn:hover,#settingsCloseBtn2:hover,#settingsCloseBtn3:hover{border-color:#00ccff;color:#00ccff;}
+  .settingsStartBtn{background:transparent;border:1px solid #44ff88;color:#44ff88;font-family:'Orbitron',monospace;font-size:10px;letter-spacing:3px;padding:10px 0;cursor:pointer;margin-top:8px;transition:all 0.2s;width:160px;}
+  .settingsStartBtn:hover{background:#44ff8822;border-color:#88ffaa;color:#88ffaa;box-shadow:0 0 16px #44ff8844;}
+  .settingsStartBtn.danger{border-color:#ff4466;color:#ff4466;}
+  .settingsStartBtn.danger:hover{background:#ff446622;border-color:#ff6688;color:#ff6688;box-shadow:0 0 16px #ff446644;}
+  .settingsStartBtn.warning{border-color:#ff8800;color:#ff8800;}
+  .settingsStartBtn.warning:hover{background:#ff880022;border-color:#ffaa33;color:#ffaa33;box-shadow:0 0 16px #ff880044;}
+  #modeScreen{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.97);display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:all;z-index:10;}
+  #modeTitle{font-family:'Orbitron',monospace;color:#00ccff;font-size:22px;font-weight:900;letter-spacing:5px;margin-bottom:4px;text-shadow:0 0 20px #00ccff;}
+  #modeSub{color:#334;font-size:9px;letter-spacing:3px;margin-bottom:32px;}
+  .modeGrid{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;max-width:600px;}
+  .modeCard{width:160px;background:#07070f;border:1px solid #223;border-radius:6px;padding:20px 14px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:all 0.2s;position:relative;}
+  .modeCard:hover{border-color:#00ccff;box-shadow:0 0 20px #00ccff33;transform:translateY(-2px);}
+  .modeCard.locked{opacity:0.35;cursor:not-allowed;filter:grayscale(1);}
+  .modeCard.locked:hover{border-color:#223;box-shadow:none;transform:none;}
+  .modeIcon{font-size:32px;line-height:1;height:48px;display:flex;align-items:center;justify-content:center;}
+  .modeName{font-family:'Orbitron',monospace;font-size:10px;letter-spacing:2px;color:#aaccff;}
+  .modeDesc{font-size:9px;color:#446;text-align:center;line-height:1.5;}
+  .modeLockBadge{position:absolute;top:6px;right:8px;font-size:9px;color:#334;letter-spacing:1px;font-family:'Orbitron',monospace;}
+  .modePlayBtn{background:#00ccff22;border:1px solid #00ccff88;color:#00ccff;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1px;padding:5px 14px;cursor:pointer;border-radius:2px;transition:all 0.15s;flex:1;}
+  .modePlayBtn:hover{background:#00ccff44;}
+  .modeSetBtn{background:transparent;border:1px solid #334;color:#446;font-family:'Orbitron',monospace;font-size:11px;padding:5px 10px;cursor:pointer;border-radius:2px;transition:all 0.15s;}
+  .modeSetBtn:hover{border-color:#00ccff;color:#00ccff;}
+  #modeBackBtn{background:transparent;border:1px solid #223;color:#334;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;padding:8px 24px;cursor:pointer;margin-top:28px;transition:all 0.2s;}
+  #modeBackBtn:hover{border-color:#446;color:#446;}
+</style>
+</head>
+<body>
+<div id="gameContainer">
+  <canvas id="canvas" width="800" height="600"></canvas>
+  <div id="ui">
+    <div id="hud">
+      <div id="healthBar">
+        <div id="healthLabel">HP ■■■</div>
+        <div id="healthOuter"><div id="healthInner" style="width:100%"></div></div>
+      </div>
+      <div id="stats">
+        <div class="stat"><div class="statVal" id="levelDisp">1</div><div class="statLbl">LVL</div></div>
+        <div id="timer">00:00</div>
+      </div>
+      <div id="xpBar">
+        <div id="xpLabel">EXP ■■■</div>
+        <div id="xpOuter"><div id="xpInner" style="width:0%"></div></div>
+      </div>
+    </div>
+    <div id="weapons"></div>
+    <button id="settingsBtn" style="display:none;" onclick="openGameSettings()">⚙ SETTINGS</button>
+    <div id="reloadAnim">
+      <svg viewBox="0 0 86 86" id="reloadSvg">
+        <!-- outer ring: main battery (r=40) -->
+        <circle class="track" id="reloadTrackOuter" cx="43" cy="43" r="40"/>
+        <circle class="prog" id="reloadProgOuter" cx="43" cy="43" r="40" style="stroke:#cc44ff;filter:drop-shadow(0 0 5px #cc44ff);stroke-dasharray:251.3;stroke-dashoffset:251.3;display:none;"/>
+        <!-- inner ring: main / classic (r=28) -->
+        <circle class="track" cx="43" cy="43" r="26"/>
+        <circle class="prog" id="reloadProg" cx="43" cy="43" r="26"/>
+      </svg>
+      <div id="reloadCenter">
+        <span id="reloadIcon">🔄</span>
+        <span id="reloadPct">0%</span>
+        <span id="reloadWord">RELOAD</span>
+      </div>
+    </div>
+    <div id="killCount"><div class="killNum" id="killNum">0</div><div class="killLbl">KILLS</div></div>
+  </div>
+  <div id="levelUpScreen">
+    <div id="levelUpTitle">LEVEL UP!</div>
+    <div id="levelUpSub">CHOOSE AN UPGRADE</div>
+    <div id="choices"></div>
+  </div>
+
+  <div id="inventoryPanel">
+    <div id="invHeader">
+      <div id="invTitle">⚔ ARSENAL</div>
+      <div id="invSub">CLICK EQUIP TO SWITCH WEAPON · MERGE DUPLICATES TO LEVEL UP</div>
+    </div>
+    <div id="invGrid"></div>
+    <div id="invFooter">
+      <button id="invCloseBtn" onclick="closeInventory()">CLOSE [ TAB ]</button>
+      <div id="invHint">CLASSIC: LIGHT [1] · MEDIUM [2] · HEAVY [3]  |  FORTRESS: MAIN [1] · SECONDARY [2] · merge 2 identical to upgrade · kill enemies for ammo</div>
+    </div>
+  </div>
+  <div id="tabHint">TAB · ARSENAL</div>
+
+  <!-- CLASSIC MODE SETTINGS -->
+  <div id="classicSettingsScreen" class="settingsScreen">
+    <div id="settingsTitle">⚙ CLASSIC SETTINGS</div>
+    <div id="settingsSub">CUSTOMIZE YOUR RUN</div>
+    <div class="settingsSection">
+      <div class="settingRow">
+        <div><div class="settingName">INFINITE AMMO</div><div class="settingDesc">Weapons never run out of ammo</div></div>
+        <div class="toggleWrap" onclick="document.getElementById('setInfiniteAmmo').click()">
+          <input type="checkbox" id="setInfiniteAmmo"><span class="toggleSlider"></span>
+        </div>
+      </div>
+      <div class="settingRow">
+        <div><div class="settingName">RELOAD</div><div class="settingDesc">Disable to skip reload entirely</div></div>
+        <div class="toggleWrap" onclick="var cb=document.getElementById('setReload');cb.checked=!cb.checked;toggleReloadSpeed(cb.checked)">
+          <input type="checkbox" id="setReload" checked><span class="toggleSlider"></span>
+        </div>
+      </div>
+      <div id="reloadSpeedRow" style="padding:6px 0 6px 16px;border-left:2px solid #1a2a1a;margin-left:4px;display:flex;align-items:center;justify-content:space-between;">
+        <div><div class="settingName" style="color:#44aa66;font-size:10px;">RELOAD SPEED</div><div class="settingDesc">Higher = faster (2× = half the time)</div></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="range" class="settingSlider" id="setReloadSpeed" min="0.5" max="4.0" step="0.1" value="1.0" oninput="onSlider('setReloadSpeed','reloadSpeedVal',v=>v+'x')">
+          <span class="sliderVal" id="reloadSpeedVal">1.0x</span>
+        </div>
+      </div>
+      <div class="settingRow" style="border:none;">
+        <div><div class="settingName">AUTO-COLLECT LOOT</div><div class="settingDesc">Pull all XP gems toward you automatically</div></div>
+        <div class="toggleWrap" onclick="document.getElementById('setAutoCollect').click()">
+          <input type="checkbox" id="setAutoCollect" checked><span class="toggleSlider"></span>
+        </div>
+      </div>
+      <div class="settingRow" style="border:none;">
+        <div><div class="settingName">AIM LASER</div><div class="settingDesc">Laser sight from barrel toward cursor</div></div>
+        <div style="display:flex;gap:4px;">
+          <button class="triBtn" id="setAimFull"    onclick="setAimLaser('classic','full')">FULL</button>
+          <button class="triBtn" id="setAimPartial" onclick="setAimLaser('classic','partial')">PARTIAL</button>
+          <button class="triBtn active" id="setAimOff" onclick="setAimLaser('classic','off')">OFF</button>
+        </div>
+      </div>
+    </div>
+    <div class="settingsSection">
+      <div class="sectionLabel">ENEMY TUNING</div>
+      <div class="settingRow">
+        <div><div class="settingName">SPAWN RATE</div><div class="settingDesc">How quickly enemies appear</div></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="range" class="settingSlider" id="setSpawnRate" min="0.3" max="3.0" step="0.1" value="1.0" oninput="onSlider('setSpawnRate','spawnRateVal',v=>v+'x')">
+          <span class="sliderVal" id="spawnRateVal">1.0x</span>
+        </div>
+      </div>
+      <div class="settingRow" style="border:none;">
+        <div><div class="settingName">ENEMY SPEED</div><div class="settingDesc">Movement speed multiplier</div></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="range" class="settingSlider" id="setEnemySpeed" min="0.3" max="3.0" step="0.1" value="1.0" oninput="onSlider('setEnemySpeed','enemySpeedVal',v=>v+'x')">
+          <span class="sliderVal" id="enemySpeedVal">1.0x</span>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:8px;">
+      <button id="settingsCloseBtn2" onclick="closeSettings()">DONE</button>
+      <button class="settingsStartBtn" id="settingsActionBtn2" onclick="settingsAction('classic')">▶ START GAME</button>
+      <button id="leaveBtn2" class="settingsStartBtn danger" style="display:none;" onclick="leaveToMenu()">✕ LEAVE</button>
+    </div>
+  </div>
+
+  <!-- FORTRESS MODE SETTINGS -->
+  <div id="fortressSettingsScreen" class="settingsScreen">
+    <div id="settingsTitle">⚙ FORTRESS SETTINGS</div>
+    <div id="settingsSub">CUSTOMIZE YOUR DEFENSE</div>
+    <div class="settingsSection">
+      <div class="settingRow">
+        <div><div class="settingName">INFINITE AMMO</div><div class="settingDesc">Weapons never run out of ammo</div></div>
+        <div class="toggleWrap" onclick="document.getElementById('fSetInfiniteAmmo').click()">
+          <input type="checkbox" id="fSetInfiniteAmmo"><span class="toggleSlider"></span>
+        </div>
+      </div>
+      <div class="settingRow" style="border:none;">
+        <div><div class="settingName">RELOAD</div><div class="settingDesc">Disable to skip reload entirely</div></div>
+        <div class="toggleWrap" onclick="var cb=document.getElementById('fSetReload');cb.checked=!cb.checked;fToggleReloadSpeed(cb.checked)">
+          <input type="checkbox" id="fSetReload" checked><span class="toggleSlider"></span>
+        </div>
+      </div>
+      <div id="fReloadSpeedRow" style="padding:6px 0 6px 16px;border-left:2px solid #1a2a1a;margin-left:4px;display:flex;align-items:center;justify-content:space-between;">
+        <div><div class="settingName" style="color:#44aa66;font-size:10px;">RELOAD SPEED</div><div class="settingDesc">Higher = faster (2× = half the time)</div></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="range" class="settingSlider" id="fSetReloadSpeed" min="0.5" max="4.0" step="0.1" value="1.0" oninput="fOnSlider('fSetReloadSpeed','fReloadSpeedVal',v=>v+'x')">
+          <span class="sliderVal" id="fReloadSpeedVal">1.0x</span>
+        </div>
+      </div>
+    </div>
+    <div class="settingsSection">
+      <div class="sectionLabel">DISPLAY</div>
+      <div class="settingRow" style="border:none;">
+        <div><div class="settingName">AIM LASER</div><div class="settingDesc">Laser sight from main barrel</div></div>
+        <div style="display:flex;gap:4px;">
+          <button class="triBtn" id="fSetAimFull"    onclick="setAimLaser('fortress','full')">FULL</button>
+          <button class="triBtn" id="fSetAimPartial" onclick="setAimLaser('fortress','partial')">PARTIAL</button>
+          <button class="triBtn" id="fSetAimOff"     onclick="setAimLaser('fortress','off')">OFF</button>
+        </div>
+      </div>
+    </div>
+    <div class="settingsSection">
+      <div class="sectionLabel">SECONDARY ARMAMENT</div>
+      <div class="settingRow" style="border:none;">
+        <div><div class="settingName">AUTO SECONDARY</div><div class="settingDesc">Secondary targets nearest enemy automatically</div></div>
+        <div class="toggleWrap" onclick="document.getElementById('fSetAutoSec').click()">
+          <input type="checkbox" id="fSetAutoSec" checked onchange="FORTRESS_SETTINGS.autoSecondary=this.checked"><span class="toggleSlider"></span>
+        </div>
+      </div>
+    </div>
+    <div class="settingsSection">
+      <div class="sectionLabel">ENEMY TUNING</div>
+      <div class="settingRow">
+        <div><div class="settingName">SPAWN RATE</div><div class="settingDesc">How quickly enemies appear</div></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="range" class="settingSlider" id="fSetSpawnRate" min="0.3" max="3.0" step="0.1" value="1.5" oninput="fOnSlider('fSetSpawnRate','fSpawnRateVal',v=>v+'x')">
+          <span class="sliderVal" id="fSpawnRateVal">1.5x</span>
+        </div>
+      </div>
+      <div class="settingRow" style="border:none;">
+        <div><div class="settingName">ENEMY SPEED</div><div class="settingDesc">Movement speed multiplier</div></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="range" class="settingSlider" id="fSetEnemySpeed" min="0.3" max="3.0" step="0.1" value="1.0" oninput="fOnSlider('fSetEnemySpeed','fEnemySpeedVal',v=>v+'x')">
+          <span class="sliderVal" id="fEnemySpeedVal">1.0x</span>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:8px;">
+      <button id="settingsCloseBtn3" onclick="closeSettings()">DONE</button>
+      <button class="settingsStartBtn" id="settingsActionBtn3" onclick="settingsAction('fortress')">▶ START GAME</button>
+      <button id="leaveBtn3" class="settingsStartBtn danger" style="display:none;" onclick="leaveToMenu()">✕ LEAVE</button>
+    </div>
+  </div>
+  <div id="modeScreen">
+    <div id="modeTitle">SELECT MODE</div>
+    <div id="modeSub">CHOOSE YOUR CHALLENGE</div>
+    <div class="modeGrid">
+      <div class="modeCard">
+        <div class="modeIcon">💀</div>
+        <div class="modeName">CLASSIC</div>
+        <div class="modeDesc">Survive endless waves. Kill, level up, and outlast the horde.</div>
+        <div style="display:flex;gap:6px;margin-top:auto;padding-top:8px;">
+          <button class="modePlayBtn" onclick="launchMode('classic')">▶ PLAY</button>
+          <button class="modeSetBtn" onclick="openModeSettings('classic')">⚙</button>
+        </div>
+      </div>
+      <div class="modeCard">
+        <div class="modeIcon"><img src="data:image/png;base64,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" style="width:48px;height:48px;mix-blend-mode:screen;" alt="Turret"></div>
+        <div class="modeName">FORTRESS</div>
+        <div class="modeDesc">Hold your ground. You cannot move — only aim and fire.</div>
+        <div style="display:flex;gap:6px;margin-top:auto;padding-top:8px;">
+          <button class="modePlayBtn" onclick="launchMode('fortress')">▶ PLAY</button>
+          <button class="modeSetBtn" onclick="openModeSettings('fortress')">⚙</button>
+        </div>
+      </div>
+      <div class="modeCard locked">
+        <div class="modeLockBadge">🔒 SOON</div>
+        <div class="modeIcon">❓</div>
+        <div class="modeName">???</div>
+        <div class="modeDesc">Something is coming. Stay alive long enough to find out.</div>
+      </div>
+    </div>
+    <button id="modeBackBtn" onclick="showStartScreen()">← BACK</button>
+  </div>
+  <div id="startScreen">
+    <div class="screenTitle">SURVIVOR</div>
+    <div class="screenSub">SURVIVE THE HORDE</div>
+    <button class="bigBtn" onclick="showModeScreen()">START GAME</button>
+    <div style="margin-top:20px;color:#334;font-size:11px;letter-spacing:2px;">WASD · MOVE &nbsp;|&nbsp; LMB · SHOOT &nbsp;|&nbsp; 1 · LIGHT &nbsp;|&nbsp; 2 · MEDIUM &nbsp;|&nbsp; 3 · HEAVY &nbsp;|&nbsp; TAB · ARSENAL</div>
+  </div>
+  <div id="gameOverScreen">
+    <div class="screenTitle" style="color:#ff4466;text-shadow:0 0 30px #ff4466;">DEFEATED</div>
+    <div id="goStats"></div>
+    <button class="bigBtn" style="border-color:#ff4466;color:#ff4466;" onclick="launchMode(game.mode||'classic')">PLAY AGAIN</button>
+    <button class="bigBtn" style="border-color:#334;color:#446;margin-top:10px;font-size:11px;padding:10px 30px;" onclick="showStartScreen()">MAIN MENU</button>
+  </div>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const W = 800, H = 600;
+
+let game = {};
+
+
+// ══════════════════════════════════════════════════════════════════
+// AUDIO SYSTEM (Web Audio API — synthesized, no files needed)
+// ══════════════════════════════════════════════════════════════════
+
+let audioCtx = null;
+function ensureAudio(){
+  if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if(audioCtx.state==='suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+const SFX_VOL = 0.25; // master volume
+
+function sfxShoot(){
+  const a=ensureAudio(), t=a.currentTime;
+  // 1) Initial transient — very short clipped noise for the "snap"
+  const snapLen=0.012;
+  const snapBuf=a.createBuffer(1,a.sampleRate*snapLen,a.sampleRate);
+  const sd=snapBuf.getChannelData(0);
+  for(let i=0;i<sd.length;i++){const n=Math.random()*2-1;sd[i]=Math.max(-1,Math.min(1,n*4))*Math.pow(1-i/sd.length,1.5);}
+  const snap=a.createBufferSource(); snap.buffer=snapBuf;
+  const snapG=a.createGain(); snapG.gain.setValueAtTime(SFX_VOL*0.8,t); snapG.gain.exponentialRampToValueAtTime(0.001,t+snapLen);
+  snap.connect(snapG); snapG.connect(a.destination);
+  snap.start(t); snap.stop(t+snapLen);
+  // 2) Crack — highpass noise
+  const crackLen=0.035;
+  const crackBuf=a.createBuffer(1,a.sampleRate*crackLen,a.sampleRate);
+  const cd=crackBuf.getChannelData(0);
+  for(let i=0;i<cd.length;i++) cd[i]=(Math.random()*2-1)*Math.pow(1-i/cd.length,4);
+  const crack=a.createBufferSource(); crack.buffer=crackBuf;
+  const crackHP=a.createBiquadFilter(); crackHP.type='highpass'; crackHP.frequency.setValueAtTime(3500,t);
+  const crackG=a.createGain(); crackG.gain.setValueAtTime(SFX_VOL*0.65,t); crackG.gain.exponentialRampToValueAtTime(0.001,t+crackLen);
+  crack.connect(crackHP); crackHP.connect(crackG); crackG.connect(a.destination);
+  crack.start(t); crack.stop(t+crackLen);
+  // 3) Body — low punch
+  const o=a.createOscillator(), og=a.createGain();
+  o.type='sine'; o.frequency.setValueAtTime(200,t); o.frequency.exponentialRampToValueAtTime(40,t+0.06);
+  og.gain.setValueAtTime(SFX_VOL*0.6,t); og.gain.exponentialRampToValueAtTime(0.001,t+0.06);
+  o.connect(og); og.connect(a.destination);
+  o.start(t); o.stop(t+0.06);
+  // 4) Report tail — bandpass noise echo
+  const tailLen=0.1;
+  const tailBuf=a.createBuffer(1,a.sampleRate*tailLen,a.sampleRate);
+  const td=tailBuf.getChannelData(0);
+  for(let i=0;i<td.length;i++) td[i]=(Math.random()*2-1)*Math.pow(1-i/td.length,3)*0.5;
+  const tail=a.createBufferSource(); tail.buffer=tailBuf;
+  const tailBP=a.createBiquadFilter(); tailBP.type='bandpass'; tailBP.frequency.setValueAtTime(800,t); tailBP.Q.setValueAtTime(1.2,t);
+  const tailG=a.createGain(); tailG.gain.setValueAtTime(SFX_VOL*0.3,t+0.01); tailG.gain.exponentialRampToValueAtTime(0.001,t+tailLen);
+  tail.connect(tailBP); tailBP.connect(tailG); tailG.connect(a.destination);
+  tail.start(t+0.005); tail.stop(t+tailLen);
+}
+
+function sfxMainBattery(){
+  const a=ensureAudio(), t=a.currentTime;
+  // 1) Massive transient slam
+  const slamLen=0.02;
+  const slamBuf=a.createBuffer(1,a.sampleRate*slamLen,a.sampleRate);
+  const sld=slamBuf.getChannelData(0);
+  for(let i=0;i<sld.length;i++){const n=Math.random()*2-1;sld[i]=Math.max(-1,Math.min(1,n*6))*Math.pow(1-i/sld.length,1);}
+  const slam=a.createBufferSource(); slam.buffer=slamBuf;
+  const slamG=a.createGain(); slamG.gain.setValueAtTime(SFX_VOL*1.0,t); slamG.gain.exponentialRampToValueAtTime(0.001,t+slamLen);
+  slam.connect(slamG); slamG.connect(a.destination);
+  slam.start(t); slam.stop(t+slamLen);
+  // 2) Deep boom — sub bass sweep
+  const o1=a.createOscillator(), g1=a.createGain();
+  o1.type='sine'; o1.frequency.setValueAtTime(90,t); o1.frequency.exponentialRampToValueAtTime(22,t+0.25);
+  g1.gain.setValueAtTime(SFX_VOL*0.9,t); g1.gain.exponentialRampToValueAtTime(0.001,t+0.25);
+  o1.connect(g1); g1.connect(a.destination);
+  o1.start(t); o1.stop(t+0.25);
+  // 3) Second harmonic growl
+  const o2=a.createOscillator(), g2=a.createGain();
+  o2.type='sawtooth'; o2.frequency.setValueAtTime(55,t); o2.frequency.exponentialRampToValueAtTime(20,t+0.18);
+  g2.gain.setValueAtTime(SFX_VOL*0.45,t); g2.gain.exponentialRampToValueAtTime(0.001,t+0.18);
+  const lp=a.createBiquadFilter(); lp.type='lowpass'; lp.frequency.setValueAtTime(200,t); lp.frequency.exponentialRampToValueAtTime(60,t+0.18);
+  o2.connect(lp); lp.connect(g2); g2.connect(a.destination);
+  o2.start(t); o2.stop(t+0.18);
+  // 4) Concussive noise burst — lowpass filtered
+  const boomLen=0.15;
+  const boomBuf=a.createBuffer(1,a.sampleRate*boomLen,a.sampleRate);
+  const bd=boomBuf.getChannelData(0);
+  for(let i=0;i<bd.length;i++) bd[i]=(Math.random()*2-1)*Math.pow(1-i/bd.length,2.5);
+  const boom=a.createBufferSource(); boom.buffer=boomBuf;
+  const boomLP=a.createBiquadFilter(); boomLP.type='lowpass'; boomLP.frequency.setValueAtTime(600,t); boomLP.frequency.exponentialRampToValueAtTime(80,t+boomLen);
+  const boomG=a.createGain(); boomG.gain.setValueAtTime(SFX_VOL*0.6,t); boomG.gain.exponentialRampToValueAtTime(0.001,t+boomLen);
+  boom.connect(boomLP); boomLP.connect(boomG); boomG.connect(a.destination);
+  boom.start(t); boom.stop(t+boomLen);
+  // 5) Long rumble tail
+  const rumLen=0.3;
+  const rumBuf=a.createBuffer(1,a.sampleRate*rumLen,a.sampleRate);
+  const rd=rumBuf.getChannelData(0);
+  for(let i=0;i<rd.length;i++) rd[i]=(Math.random()*2-1)*Math.pow(1-i/rd.length,4)*0.4;
+  const rum=a.createBufferSource(); rum.buffer=rumBuf;
+  const rumLP=a.createBiquadFilter(); rumLP.type='lowpass'; rumLP.frequency.setValueAtTime(250,t+0.03); rumLP.frequency.exponentialRampToValueAtTime(40,t+rumLen);
+  const rumG=a.createGain(); rumG.gain.setValueAtTime(SFX_VOL*0.3,t+0.03); rumG.gain.exponentialRampToValueAtTime(0.001,t+rumLen);
+  rum.connect(rumLP); rumLP.connect(rumG); rumG.connect(a.destination);
+  rum.start(t+0.03); rum.stop(t+rumLen);
+}
+
+function sfxShotgun(){
+  const a=ensureAudio(), t=a.currentTime;
+  // Noise burst
+  const buf=a.createBuffer(1,a.sampleRate*0.12,a.sampleRate);
+  const d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,1.5);
+  const src=a.createBufferSource(); src.buffer=buf;
+  const g=a.createGain(); g.gain.setValueAtTime(SFX_VOL*0.7,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.12);
+  const flt=a.createBiquadFilter(); flt.type='lowpass'; flt.frequency.setValueAtTime(3000,t); flt.frequency.exponentialRampToValueAtTime(300,t+0.12);
+  src.connect(flt); flt.connect(g); g.connect(a.destination);
+  src.start(t); src.stop(t+0.12);
+}
+
+function sfxExplosion(){
+  const a=ensureAudio(), t=a.currentTime;
+  // Low rumble + noise
+  const o=a.createOscillator(), g1=a.createGain();
+  o.type='sawtooth'; o.frequency.setValueAtTime(80,t); o.frequency.exponentialRampToValueAtTime(30,t+0.35);
+  g1.gain.setValueAtTime(SFX_VOL*0.6,t); g1.gain.exponentialRampToValueAtTime(0.001,t+0.35);
+  o.connect(g1); g1.connect(a.destination);
+  o.start(t); o.stop(t+0.35);
+  // Noise layer
+  const buf=a.createBuffer(1,a.sampleRate*0.3,a.sampleRate);
+  const d=buf.getChannelData(0);
+  for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,2);
+  const src=a.createBufferSource(); src.buffer=buf;
+  const g2=a.createGain(); g2.gain.setValueAtTime(SFX_VOL*0.5,t); g2.gain.exponentialRampToValueAtTime(0.001,t+0.3);
+  const flt=a.createBiquadFilter(); flt.type='lowpass'; flt.frequency.setValueAtTime(1500,t); flt.frequency.exponentialRampToValueAtTime(200,t+0.3);
+  src.connect(flt); flt.connect(g2); g2.connect(a.destination);
+  src.start(t); src.stop(t+0.3);
+}
+
+function sfxEnemyHit(){
+  const a=ensureAudio(), t=a.currentTime;
+  const o=a.createOscillator(), g=a.createGain();
+  o.type='triangle'; o.frequency.setValueAtTime(400,t); o.frequency.exponentialRampToValueAtTime(250,t+0.05);
+  g.gain.setValueAtTime(SFX_VOL*0.2,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.05);
+  o.connect(g); g.connect(a.destination);
+  o.start(t); o.stop(t+0.05);
+}
+
+function sfxEnemyDeath(){
+  const a=ensureAudio(), t=a.currentTime;
+  const o=a.createOscillator(), g=a.createGain();
+  o.type='square'; o.frequency.setValueAtTime(500,t); o.frequency.exponentialRampToValueAtTime(60,t+0.2);
+  g.gain.setValueAtTime(SFX_VOL*0.35,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.2);
+  o.connect(g); g.connect(a.destination);
+  o.start(t); o.stop(t+0.2);
+}
+
+function sfxPlayerHit(){
+  const a=ensureAudio(), t=a.currentTime;
+  // Harsh buzz
+  const o=a.createOscillator(), g=a.createGain();
+  o.type='sawtooth'; o.frequency.setValueAtTime(150,t); o.frequency.exponentialRampToValueAtTime(80,t+0.15);
+  g.gain.setValueAtTime(SFX_VOL*0.5,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.15);
+  o.connect(g); g.connect(a.destination);
+  o.start(t); o.stop(t+0.15);
+  // High sting
+  const o2=a.createOscillator(), g2=a.createGain();
+  o2.type='sine'; o2.frequency.setValueAtTime(1200,t); o2.frequency.exponentialRampToValueAtTime(600,t+0.1);
+  g2.gain.setValueAtTime(SFX_VOL*0.25,t); g2.gain.exponentialRampToValueAtTime(0.001,t+0.1);
+  o2.connect(g2); g2.connect(a.destination);
+  o2.start(t); o2.stop(t+0.1);
+}
+
+function sfxLevelUp(){
+  const a=ensureAudio(), t=a.currentTime;
+  const notes=[523,659,784,1047]; // C5 E5 G5 C6
+  notes.forEach((f,i)=>{
+    const o=a.createOscillator(), g=a.createGain();
+    o.type='sine';
+    const st=t+i*0.08;
+    o.frequency.setValueAtTime(f,st);
+    g.gain.setValueAtTime(0.001,t); g.gain.linearRampToValueAtTime(SFX_VOL*0.35,st); g.gain.exponentialRampToValueAtTime(0.001,st+0.2);
+    o.connect(g); g.connect(a.destination);
+    o.start(st); o.stop(st+0.2);
+  });
+}
+
+function sfxXpCollect(){
+  const a=ensureAudio(), t=a.currentTime;
+  const o=a.createOscillator(), g=a.createGain();
+  o.type='sine'; o.frequency.setValueAtTime(880,t); o.frequency.exponentialRampToValueAtTime(1320,t+0.06);
+  g.gain.setValueAtTime(SFX_VOL*0.15,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.06);
+  o.connect(g); g.connect(a.destination);
+  o.start(t); o.stop(t+0.06);
+}
+
+function sfxAmmoPickup(){
+  const a=ensureAudio(), t=a.currentTime;
+  const o=a.createOscillator(), g=a.createGain();
+  o.type='triangle'; o.frequency.setValueAtTime(440,t); o.frequency.linearRampToValueAtTime(660,t+0.05);
+  g.gain.setValueAtTime(SFX_VOL*0.2,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.08);
+  o.connect(g); g.connect(a.destination);
+  o.start(t); o.stop(t+0.08);
+  const o2=a.createOscillator(), g2=a.createGain();
+  o2.type='triangle'; o2.frequency.setValueAtTime(660,t+0.06); o2.frequency.linearRampToValueAtTime(880,t+0.11);
+  g2.gain.setValueAtTime(SFX_VOL*0.2,t+0.06); g2.gain.exponentialRampToValueAtTime(0.001,t+0.14);
+  o2.connect(g2); g2.connect(a.destination);
+  o2.start(t+0.06); o2.stop(t+0.14);
+}
+
+function sfxReloadDone(){
+  const a=ensureAudio(), t=a.currentTime;
+  // Metallic click-clack
+  const o=a.createOscillator(), g=a.createGain();
+  o.type='square'; o.frequency.setValueAtTime(1800,t); o.frequency.exponentialRampToValueAtTime(900,t+0.03);
+  g.gain.setValueAtTime(SFX_VOL*0.3,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.03);
+  o.connect(g); g.connect(a.destination);
+  o.start(t); o.stop(t+0.03);
+  const o2=a.createOscillator(), g2=a.createGain();
+  o2.type='square'; o2.frequency.setValueAtTime(2200,t+0.05); o2.frequency.exponentialRampToValueAtTime(1100,t+0.08);
+  g2.gain.setValueAtTime(SFX_VOL*0.3,t+0.05); g2.gain.exponentialRampToValueAtTime(0.001,t+0.08);
+  o2.connect(g2); g2.connect(a.destination);
+  o2.start(t+0.05); o2.stop(t+0.08);
+}
+
+// Global options (main menu)
+const GLOBAL = {};
+
+// Per-mode settings
+const SETTINGS = {
+  infiniteAmmo: false, reload: true, reloadSpeedMult: 1.0,
+  spawnRateMult: 1.0, enemySpeedMult: 1.0, autoCollect: true, aimLaser: 'off', preset: 'medium'
+};
+const FORTRESS_SETTINGS = {
+  infiniteAmmo: false, reload: true, reloadSpeedMult: 1.0,
+  spawnRateMult: 1.0, enemySpeedMult: 1.0, autoCollect: true, autoSecondary: true, aimLaser: 'partial'
+};
+
+// Return whichever settings apply to the current game mode
+function activeSettings(){ return (game.mode==='fortress') ? FORTRESS_SETTINGS : SETTINGS; }
+
+const PRESETS = {
+  easy:     {infiniteAmmo:true,  reload:false, spawnRateMult:0.6, enemySpeedMult:0.7},
+  medium:   {infiniteAmmo:false, reload:true,  spawnRateMult:1.0, enemySpeedMult:1.0},
+  hard:     {infiniteAmmo:false, reload:true,  spawnRateMult:1.6, enemySpeedMult:1.4},
+  hardcore: {infiniteAmmo:false, reload:true,  spawnRateMult:2.4, enemySpeedMult:2.0},
+};
+
+function applyPreset(name){
+  const p=PRESETS[name];
+  if(p){
+    SETTINGS.infiniteAmmo=p.infiniteAmmo; SETTINGS.reload=p.reload;
+    SETTINGS.spawnRateMult=p.spawnRateMult; SETTINGS.enemySpeedMult=p.enemySpeedMult;
+    SETTINGS.preset=name;
+  } else { SETTINGS.preset='custom'; }
+  syncClassicUI();
+}
+
+function onSlider(inputId, labelId, fmt){
+  document.getElementById(labelId).textContent=fmt(parseFloat(document.getElementById(inputId).value).toFixed(1));
+  SETTINGS.spawnRateMult=parseFloat(document.getElementById('setSpawnRate').value);
+  SETTINGS.enemySpeedMult=parseFloat(document.getElementById('setEnemySpeed').value);
+  SETTINGS.reloadSpeedMult=parseFloat(document.getElementById('setReloadSpeed').value);
+}
+
+function fOnSlider(inputId, labelId, fmt){
+  document.getElementById(labelId).textContent=fmt(parseFloat(document.getElementById(inputId).value).toFixed(1));
+  FORTRESS_SETTINGS.spawnRateMult=parseFloat(document.getElementById('fSetSpawnRate').value);
+  FORTRESS_SETTINGS.enemySpeedMult=parseFloat(document.getElementById('fSetEnemySpeed').value);
+  FORTRESS_SETTINGS.reloadSpeedMult=parseFloat(document.getElementById('fSetReloadSpeed').value);
+}
+
+function toggleReloadSpeed(on){ document.getElementById('reloadSpeedRow').style.display=on?'':'none'; }
+function fToggleReloadSpeed(on){ document.getElementById('fReloadSpeedRow').style.display=on?'':'none'; }
+
+function syncClassicUI(){
+  document.getElementById('setAutoCollect').checked=SETTINGS.autoCollect;
+  syncAimLaserBtns('classic', SETTINGS.aimLaser);
+  document.getElementById('setInfiniteAmmo').checked=SETTINGS.infiniteAmmo;
+  document.getElementById('setReload').checked=SETTINGS.reload;
+  toggleReloadSpeed(SETTINGS.reload);
+  document.getElementById('setSpawnRate').value=SETTINGS.spawnRateMult;
+  document.getElementById('setEnemySpeed').value=SETTINGS.enemySpeedMult;
+  document.getElementById('spawnRateVal').textContent=SETTINGS.spawnRateMult.toFixed(1)+'x';
+  document.getElementById('enemySpeedVal').textContent=SETTINGS.enemySpeedMult.toFixed(1)+'x';
+  document.getElementById('setReloadSpeed').value=SETTINGS.reloadSpeedMult;
+  document.getElementById('reloadSpeedVal').textContent=SETTINGS.reloadSpeedMult.toFixed(1)+'x';
+  // presets removed
+}
+
+function syncFortressUI(){
+  document.getElementById('fSetInfiniteAmmo').checked=FORTRESS_SETTINGS.infiniteAmmo;
+  document.getElementById('fSetReload').checked=FORTRESS_SETTINGS.reload;
+  fToggleReloadSpeed(FORTRESS_SETTINGS.reload);
+  document.getElementById('fSetSpawnRate').value=FORTRESS_SETTINGS.spawnRateMult;
+  document.getElementById('fSetEnemySpeed').value=FORTRESS_SETTINGS.enemySpeedMult;
+  document.getElementById('fSpawnRateVal').textContent=FORTRESS_SETTINGS.spawnRateMult.toFixed(1)+'x';
+  document.getElementById('fEnemySpeedVal').textContent=FORTRESS_SETTINGS.enemySpeedMult.toFixed(1)+'x';
+  document.getElementById('fSetReloadSpeed').value=FORTRESS_SETTINGS.reloadSpeedMult;
+  document.getElementById('fReloadSpeedVal').textContent=FORTRESS_SETTINGS.reloadSpeedMult.toFixed(1)+'x';
+  document.getElementById('fSetAutoSec').checked=FORTRESS_SETTINGS.autoSecondary;
+  syncAimLaserBtns('fortress', FORTRESS_SETTINGS.aimLaser);
+}
+
+function readClassicUI(){
+  SETTINGS.autoCollect=document.getElementById('setAutoCollect').checked;
+  // aimLaser read via setAimLaser() onclick
+  SETTINGS.infiniteAmmo=document.getElementById('setInfiniteAmmo').checked;
+  SETTINGS.reload=document.getElementById('setReload').checked;
+  SETTINGS.spawnRateMult=parseFloat(document.getElementById('setSpawnRate').value);
+  SETTINGS.enemySpeedMult=parseFloat(document.getElementById('setEnemySpeed').value);
+  SETTINGS.reloadSpeedMult=parseFloat(document.getElementById('setReloadSpeed').value);
+}
+
+function readFortressUI(){
+  FORTRESS_SETTINGS.autoCollect=true;
+  FORTRESS_SETTINGS.infiniteAmmo=document.getElementById('fSetInfiniteAmmo').checked;
+  FORTRESS_SETTINGS.autoSecondary=document.getElementById('fSetAutoSec').checked;
+  // aimLaser read via setAimLaser() onclick
+  FORTRESS_SETTINGS.reload=document.getElementById('fSetReload').checked;
+  FORTRESS_SETTINGS.spawnRateMult=parseFloat(document.getElementById('fSetSpawnRate').value);
+  FORTRESS_SETTINGS.enemySpeedMult=parseFloat(document.getElementById('fSetEnemySpeed').value);
+  FORTRESS_SETTINGS.reloadSpeedMult=parseFloat(document.getElementById('fSetReloadSpeed').value);
+}
+
+function updateSettingsBtnVisibility(){
+  const btn=document.getElementById('settingsBtn');
+  if(btn) btn.style.display=game.running?'':'none';
+}
+
+let _activeSettingsScreen=null;
+
+
+function updateSettingsButtons(){
+  const midGame = game.running;
+  const pairs = [
+    ['settingsCloseBtn2', 'settingsActionBtn2'],
+    ['settingsCloseBtn3', 'settingsActionBtn3'],
+  ];
+  for(const [closeId, actionId] of pairs){
+    const cb = document.getElementById(closeId);
+    const ab = document.getElementById(actionId);
+    if(!cb || !ab) continue;
+    if(midGame){
+      cb.textContent = 'RESUME';
+      ab.textContent = '↺ RESTART';
+      ab.classList.add('warning');
+    } else {
+      cb.textContent = 'DONE';
+      ab.textContent = '▶ START GAME';
+      ab.classList.remove('warning');
+    }
+  }
+  // Show Leave buttons only mid-game
+  const lb2 = document.getElementById('leaveBtn2');
+  const lb3 = document.getElementById('leaveBtn3');
+  if(lb2) lb2.style.display = midGame ? '' : 'none';
+  if(lb3) lb3.style.display = midGame ? '' : 'none';
+}
+
+function leaveToMenu(){
+  closeSettings();
+  showStartScreen();
+}
+
+
+
+function setAimLaser(mode, val){
+  if(mode==='classic') SETTINGS.aimLaser = val;
+  else FORTRESS_SETTINGS.aimLaser = val;
+  syncAimLaserBtns(mode, val);
+}
+function syncAimLaserBtns(mode, val){
+  const pre = mode==='classic' ? 's' : 'fS';
+  ['full','partial','off'].forEach(v=>{
+    const id = pre+'etAim'+v.charAt(0).toUpperCase()+v.slice(1);
+    const el = document.getElementById(id);
+    if(el) el.classList.toggle('active', v===val);
+  });
+}
+
+function settingsAction(mode){
+  closeSettings();
+  launchMode(mode);
+}
+
+function openModeSettings(mode){
+  if(mode==='fortress'){ syncFortressUI(); document.getElementById('fortressSettingsScreen').style.display='flex'; _activeSettingsScreen='fortressSettingsScreen'; }
+  else { syncClassicUI(); document.getElementById('classicSettingsScreen').style.display='flex'; _activeSettingsScreen='classicSettingsScreen'; }
+  updateSettingsButtons();
+}
+
+function openGameSettings(){
+  if(game.running) game.paused=true;
+  game.mouseDown=false;
+  game.rightMouseDown=false;
+  openModeSettings(game.mode);
+}
+
+function closeSettings(){
+  if(_activeSettingsScreen==='classicSettingsScreen') readClassicUI();
+  else if(_activeSettingsScreen==='fortressSettingsScreen') readFortressUI();
+  if(_activeSettingsScreen) document.getElementById(_activeSettingsScreen).style.display='none';
+  _activeSettingsScreen=null;
+  if(game.running) game.paused=false;
+}
+
+function initGame(mode) {
+  const gmode = mode || 'classic';
+  const isFort = gmode === 'fortress';
+  game = {
+    running: false, paused: false,
+    time: 0, kills: 0,
+    mode: gmode,
+    player: {
+      x: W/2, y: H/2, r: isFort ? 20 : 14, hp: isFort ? 300 : 100, maxHp: isFort ? 300 : 100,
+      spd: 160,
+      xp: 0, xpNext: 20, level: 1,
+      weapons: [],
+    },
+    enemies: [], bullets: [], gems: [], particles: [],
+    keys: {}, spawnTimer: 0, spawnRate: 1.5,
+    rightMouseDown: false,
+    inventory: [],
+    equipped: isFort ? {main:null, secondary:null} : {light:null, medium:null, heavy:null},
+    ammo:     isFort ? {main:200, secondary:200}   : {light:100, medium:0, heavy:0},
+    activeSlot: isFort ? 'main' : 'light',
+    mainAimAngle: 0,
+    secAimAngle: Math.PI,
+    secOnTarget: false,
+  };
+  addToInventory(isFort ? 'revolver' : 'pistol');
+  if(isFort) addToInventory('sec_pistol');
+  syncEquipped();
+  screenAlerts.length = 0;
+  dmgNums.length = 0;
+}
+
+// Weapon definitions
+// effect types: dot (burn/poison), slow, pierce, spread, explode, crit
+const WEAPONS = {
+  //                                                                                                              mag  reload
+  pistol:   {name:'AUTOPISTOL',    icon:'🔫', rarity:'common',    cls:'light',   color:'#aaccff', cd:0.22, dmg:12, spd:520, r:4,  pierce:0, spread:0,    effect:null,                              mag:12, reload:1.4, maxRange:650, desc:'Fast semi-auto. 12 round mag.'},
+  shotgun:  {name:'SHOTGUN',       icon:'💥', rarity:'common',    cls:'medium', color:'#ff8844', cd:0.9,  dmg:16, spd:380, r:4,  pierce:0, spread:40,   effect:null,  pellets:7,                  mag:6,  reload:2.2, maxRange:420, desc:'7 pellets, wide spread. 6 shells.'},
+  sniper:   {name:'SNIPER RIFLE',  icon:'🎯', rarity:'rare',      cls:'medium', color:'#00ffcc', cd:1.1,  dmg:75, spd:900, r:4,  pierce:5, spread:0,    effect:null,                              mag:5,  reload:2.5, desc:'Extreme damage, pierces. 5 rounds.'},
+  flamer:   {name:'FLAMETHROWER',  icon:'🔥', rarity:'rare',      cls:'heavy',   color:'#ff5500', cd:0.12, dmg:6,  spd:240, r:6,  pierce:2, spread:0,    effect:{type:'dot',dmg:4,tick:0.5,dur:3}, mag:40, reload:2.0, maxRange:280, desc:'40 bursts. Burns over time.'},
+  railgun:  {name:'RAILGUN',       icon:'🟣', rarity:'epic',      cls:'medium', color:'#cc44ff', cd:2.2,  dmg:180,spd:1100,r:4,  pierce:99,spread:0,    effect:null,  chargeVfx:true,              mag:3,  reload:3.0, desc:'3 shots. Full-screen pierce.'},
+  grenade:  {name:'GRENADE LAUNCHER',icon:'💣',rarity:'rare',     cls:'heavy',   color:'#ffcc00', cd:1.0,  dmg:55, spd:320, r:8,  pierce:0, spread:0,    effect:null,  explode:{r:90,dmg:30},        mag:4,  reload:2.5, desc:'4 grenades. Big explosion.'},
+  minigun:  {name:'MINIGUN',       icon:'🔴', rarity:'legendary', cls:'light',   color:'#ff4444', cd:0.06, dmg:9,  spd:560, r:3,  pierce:0, spread:0,    effect:null,  spinUp:true,                 mag:100,reload:3.5, desc:'100 rounds. Spin up required.'},
+  burst:    {name:'BURST RIFLE',   icon:'🟦', rarity:'rare',      cls:'medium', color:'#44aaff', cd:0.55, dmg:20, spd:600, r:4,  pierce:0, spread:0,    effect:null,  burstCount:3,burstDelay:0.08, mag:18, reload:1.6, desc:'18 rounds, 3-burst. Precise.'},
+};
+
+
+
+// ════════════════════════════════════════════════════════
+// FORTRESS MODE — full weapon definitions (high damage)
+// Same field structure as WEAPONS
+// ════════════════════════════════════════════════════════
+const FORTRESS_WEAPONS = {
+  //                                                                                                                     mag  reload
+  revolver: {name:'HEAVY REVOLVER',   icon:'🔫', rarity:'common',    cls:'main',  color:'#aaccff', cd:0.35, dmg:60,  spd:600, r:5,  pierce:1, spread:0,    effect:null,                               mag:6,  reload:1.8, desc:'6-shot hand cannon. High stopping power.'},
+  breacher: {name:'BREACH CANNON',    icon:'💥', rarity:'common',    cls:'main', color:'#ff8844', cd:1.1,  dmg:110, spd:400, r:6,  pierce:0, spread:35,   effect:null,  pellets:9,                   mag:4,  reload:2.5, desc:'9-pellet door breacher. Massive close damage.'},
+  atrifle:  {name:'ANTI-TANK RIFLE',  icon:'🎯', rarity:'rare',      cls:'main', color:'#00ffcc', cd:1.4,  dmg:380, spd:1100,r:5,  pierce:8, spread:0,    effect:null,                               mag:3,  reload:3.0, desc:'Armour-piercing. Shreds anything in a line.'},
+  pdw:      {name:'ASSAULT PDW',      icon:'⚡', rarity:'common',    cls:'main',  color:'#ffff44', cd:0.1,  dmg:35,  spd:500, r:3,  pierce:0, spread:0,    effect:{type:'slow',amt:0.45,dur:1.5},     mag:25, reload:2.0, desc:'25-round mag. Suppressive fire, slows enemies.'},
+  sec_pistol: {name:'AUTOPISTOL',       icon:'🔫', rarity:'common',    cls:'secondary', color:'#aaccff', cd:0.22, dmg:12,  spd:208, r:1.6, pierce:0, spread:0,    effect:null,                               mag:12, reload:1.4, maxRange:260, desc:'Fast semi-auto. 12 round mag.'},
+  sec_shotgun:{name:'SHOTGUN',          icon:'💥', rarity:'common',    cls:'secondary', color:'#ff8844', cd:0.9,  dmg:16,  spd:152, r:1.6, pierce:0, spread:40,   effect:null,  pellets:7,                   mag:6,  reload:2.2, maxRange:168, desc:'7 pellets, wide spread. 6 shells.'},
+  magrail:  {name:'MAG-RAIL CANNON',  icon:'🟣', rarity:'epic',      cls:'main', color:'#cc44ff', cd:2.6,  dmg:900, spd:1400,r:5,  pierce:99,spread:0,    effect:null,  chargeVfx:true,               mag:2,  reload:3.5, desc:'Electromagnetic slug. One-shots everything in its path.'},
+  sec_sniper: {name:'SNIPER RIFLE',     icon:'🎯', rarity:'rare',      cls:'secondary', color:'#00ffcc', cd:1.1,  dmg:75,  spd:360, r:1.6, pierce:5, spread:0,    effect:null,                               mag:5,  reload:2.5, desc:'Extreme damage, pierces. 5 rounds.'},
+  sec_grenade:{name:'GRENADE LAUNCHER', icon:'💣', rarity:'rare',      cls:'secondary', color:'#ffcc00', cd:1.0,  dmg:55,  spd:128, r:3.2, pierce:0, spread:0,    effect:null,  explode:{r:90,dmg:30},       mag:4,  reload:2.5, desc:'4 grenades. Big explosion.'},
+  sec_flamer: {name:'FLAMETHROWER',     icon:'🔥', rarity:'rare',      cls:'secondary', color:'#ff5500', cd:0.12, dmg:6,   spd:96,  r:2.4, pierce:2, spread:0,    effect:{type:'dot',dmg:4,tick:0.5,dur:3},  mag:40, reload:2.0, maxRange:112, desc:'40 bursts. Burns over time.'},
+  rotary:   {name:'ROTARY CANNON',    icon:'🔴', rarity:'legendary', cls:'main',  color:'#ff4444', cd:0.07, dmg:45,  spd:580, r:4,  pierce:0, spread:0,    effect:null,  spinUp:true,                  mag:80, reload:4.0, desc:'LEGENDARY. Gatling devastation. Spin up and hold.'},
+  bursthowl:{name:'BURST HOWITZER',   icon:'🟦', rarity:'rare',      cls:'main', color:'#44aaff', cd:0.65, dmg:100, spd:650, r:5,  pierce:1, spread:0,    effect:null,  burstCount:3,burstDelay:0.1,  mag:12, reload:2.0, desc:'12 rounds, 3-burst. Heavy punch per trigger pull.'},
+  sec_railgun:{name:'RAILGUN',         icon:'🟣', rarity:'epic',      cls:'secondary', color:'#cc44ff', cd:2.2,  dmg:180, spd:440,r:1.6, pierce:99,spread:0,    effect:null,  chargeVfx:true,               mag:3,  reload:3.0, desc:'3 shots. Full-screen pierce.'},
+  sec_burst:  {name:'BURST RIFLE',     icon:'🟦', rarity:'rare',      cls:'secondary', color:'#44aaff', cd:0.55, dmg:20,  spd:240, r:1.6, pierce:0, spread:0,    effect:null,  burstCount:3,burstDelay:0.08, mag:18, reload:1.6, desc:'18 rounds, 3-burst. Precise.'},
+  sec_minigun:{name:'MINIGUN',         icon:'🔴', rarity:'legendary', cls:'secondary', color:'#ff4444', cd:0.06, dmg:9,   spd:224, r:1.2, pierce:0, spread:0,    effect:null,  spinUp:true,                  mag:100,reload:3.5, desc:'100 rounds. Spin up required.'},
+};
+
+const FORTRESS_UPGRADES = [
+  {id:'revolver',   type:'weapon', name:'HEAVY REVOLVER',   icon:'🔫', rarity:'common',    desc:'6-shot cannon. High stopping power.'},
+  {id:'breacher',   type:'weapon', name:'BREACH CANNON',    icon:'💥', rarity:'common',    desc:'9-pellet spread. Devastating up close.'},
+  {id:'atrifle',    type:'weapon', name:'ANTI-TANK RIFLE',  icon:'🎯', rarity:'rare',      desc:'Pierces everything. Armour-shattering.'},
+  {id:'pdw',        type:'weapon', name:'ASSAULT PDW',      icon:'⚡', rarity:'common',    desc:'Suppressive fire. Slows all hit targets.'},
+  {id:'sec_pistol',  type:'weapon', name:'AUTOPISTOL',       icon:'🔫', rarity:'common',    desc:'Fast semi-auto. 12 round mag.'},
+  {id:'sec_shotgun', type:'weapon', name:'SHOTGUN',           icon:'💥', rarity:'common',    desc:'7 pellets, wide spread. 6 shells.'},
+  {id:'magrail',    type:'weapon', name:'MAG-RAIL CANNON',  icon:'🟣', rarity:'epic',      desc:'EPIC. Full-map pierce. One-shots most enemies.'},
+  {id:'sec_sniper',  type:'weapon', name:'SNIPER RIFLE',      icon:'🎯', rarity:'rare',      desc:'Extreme damage, pierces. 5 rounds.'},
+  {id:'sec_grenade', type:'weapon', name:'GRENADE LAUNCHER', icon:'💣', rarity:'rare',      desc:'4 grenades. Big explosion.'},
+  {id:'sec_flamer',  type:'weapon', name:'FLAMETHROWER',     icon:'🔥', rarity:'rare',      desc:'40 bursts. Burns over time.'},
+  {id:'sec_railgun', type:'weapon', name:'RAILGUN',          icon:'🟣', rarity:'epic',      desc:'3 shots. Full-screen pierce.'},
+  {id:'sec_burst',   type:'weapon', name:'BURST RIFLE',      icon:'🟦', rarity:'rare',      desc:'18 rounds, 3-burst. Precise.'},
+  {id:'sec_minigun', type:'weapon', name:'MINIGUN',          icon:'🔴', rarity:'legendary', desc:'100 rounds. Spin up required.'},
+  {id:'rotary',     type:'weapon', name:'ROTARY CANNON',    icon:'🔴', rarity:'legendary', desc:'LEGENDARY. Spin-up gatling. Unstoppable.'},
+  {id:'bursthowl',  type:'weapon', name:'BURST HOWITZER',   icon:'🟦', rarity:'rare',      desc:'3-round burst. Heavy hitting precision.'},
+  {id:'hp',   type:'stat', name:'Reinforced Hull', icon:'🛡️', rarity:'common', desc:'+40 max HP, restore 30 HP'},
+  {id:'dmg',  type:'stat', name:'Overdrive Core',  icon:'🔋', rarity:'rare',   desc:'+30% damage to all weapons'},
+  {id:'atk',  type:'stat', name:'Fire Control',    icon:'⏱️', rarity:'common', desc:'+25% attack speed'},
+  {id:'rspd', type:'stat', name:'Fast Reload',     icon:'🔃', rarity:'rare',   desc:'+40% reload speed'},
+];
+
+const UPGRADES = [
+  {id:'pistol',  type:'weapon', name:'AUTOPISTOL',       icon:'🔫', rarity:'common',    desc:'Fast semi-auto. Reliable damage output.'},
+  {id:'shotgun', type:'weapon', name:'SHOTGUN',           icon:'💥', rarity:'common',    desc:'5 pellets per shot. Devastating close range.'},
+  {id:'sniper',  type:'weapon', name:'SNIPER RIFLE',      icon:'🎯', rarity:'rare',      desc:'Slow fire, extreme damage. Pierces enemies.'},
+  {id:'flamer',  type:'weapon', name:'FLAMETHROWER',      icon:'🔥', rarity:'rare',      desc:'Short range. Ignites enemies — burns over time.'},
+  {id:'railgun', type:'weapon', name:'RAILGUN',           icon:'🟣', rarity:'epic',      desc:'Full screen pierce. One-shot potential.'},
+  {id:'grenade', type:'weapon', name:'GRENADE LAUNCHER',  icon:'💣', rarity:'rare',      desc:'Grenades explode on impact. Area damage.'},
+  {id:'minigun', type:'weapon', name:'MINIGUN',           icon:'🔴', rarity:'legendary', desc:'LEGENDARY. Insane fire rate. Pure devastation.'},
+  {id:'burst',   type:'weapon', name:'BURST RIFLE',       icon:'🟦', rarity:'rare',      desc:'3-round burst. Precise and powerful.'},
+  {id:'spd', type:'stat', name:'Speed Boost', icon:'👟', rarity:'common',    desc:'+20% movement speed'},
+  {id:'hp',  type:'stat', name:'Regenerate', icon:'❤️', rarity:'common',    desc:'Restore 50 HP'},
+  {id:'dmg', type:'stat', name:'Power Core',  icon:'🔋', rarity:'rare',      desc:'+25% damage to all weapons'},
+  {id:'atk',    type:'stat', name:'Attack Speed',  icon:'⏱️', rarity:'common', desc:'+20% attack speed'},
+  {id:'rspd',   type:'stat', name:'Quick Loader',   icon:'🔃', rarity:'rare',   desc:'+30% reload speed'},
+];
+
+function addToInventory(id) {
+  const def = (game.mode === 'fortress' ? FORTRESS_WEAPONS[id] : null) || WEAPONS[id];
+  if(!def || game.inventory.length >= 8) return false;
+  const w = {id, ...JSON.parse(JSON.stringify(def)), level:1, timer:0, burstTimer:0, burstFired:0, spinupAmt:0,
+    currentMag: def.mag, reloading: false, reloadTimer: 0};
+  game.inventory.push(w);
+  // Auto-equip if the weapon's slot is empty
+  const slot = w.cls || 'light';
+  if(!game.equipped[slot]){
+    game.equipped[slot] = w;
+    if(!game.player.weapons[0]) game.activeSlot = slot;
+    syncEquipped();
+  }
+  return true;
+}
+
+function syncEquipped() {
+  if(!game.equipped || !game.player) return;
+  if(game.mode === 'fortress'){
+    const wMain = game.equipped['main'];
+    const wSec  = game.equipped['secondary'];
+    game.player.weapons = [wMain, wSec].filter(Boolean);
+  } else {
+    const w = game.equipped[game.activeSlot];
+    game.player.weapons = w ? [w] : [];
+  }
+  game.bullets = [];
+}
+
+function setActiveSlot(slot) {
+  if(!game.equipped) return;
+  if(!['light','medium','heavy','main','secondary'].includes(slot)) return;
+  game.activeSlot = slot;
+  syncEquipped();
+}
+
+function equipFromInventory(idx) {
+  if(idx < 0 || idx >= game.inventory.length) return;
+  const w = game.inventory[idx];
+  const slot = w.cls || 'light';
+  game.equipped[slot] = w;
+  game.activeSlot = slot;
+  syncEquipped();
+  renderInventory();
+}
+
+function mergeWeapons(id) {
+  const indices = [];
+  for(let i=0;i<game.inventory.length;i++) if(game.inventory[i].id===id) indices.push(i);
+  if(indices.length < 2) return;
+  const keep = game.inventory[indices[0]];
+  const removed = game.inventory[indices[1]];
+  keep.level++;
+  keep.dmg  = Math.floor(keep.dmg * 1.3);
+  keep.cd   = keep.cd * 0.85;
+  keep.timer = 0;
+  // If equipped slot pointed to the removed weapon, point it to keep
+  const slots = game.mode==='fortress' ? ['main','secondary'] : ['light','medium','heavy'];
+  for(const slot of slots){
+    if(game.equipped[slot]===removed) game.equipped[slot]=keep;
+  }
+  game.inventory.splice(indices[1], 1);
+  syncEquipped();
+  renderInventory();
+}
+
+function addWeapon(id){ addToInventory(id); }
+
+// Enemy types
+function spawnEnemy() {
+  const p = game.player;
+  const side = Math.floor(Math.random()*4);
+  let x, y;
+  const pad = 30;
+  if(side===0){x=Math.random()*W;y=-pad;}
+  else if(side===1){x=W+pad;y=Math.random()*H;}
+  else if(side===2){x=Math.random()*W;y=H+pad;}
+  else{x=-pad;y=Math.random()*H;}
+  
+  const t = game.time;
+  // Gradual weighted progression: new enemy types fade in slowly
+  const weights = { slime: 10 };
+  // Runners start at 60s, ramp up over 60s
+  if(t >= 60)  weights.runner  = Math.min(8, 1 + (t - 60)  / 10);
+  // Tanks start at 150s, ramp up over 90s
+  if(t >= 150) weights.tank    = Math.min(6, 1 + (t - 150) / 18);
+  // Speeders start at 270s, ramp up over 90s
+  if(t >= 270) weights.speeder = Math.min(6, 1 + (t - 270) / 18);
+  // Slimes gradually thin out as others appear
+  weights.slime = Math.max(3, 10 - (t / 60));
+  const pool = []; const wArr = [];
+  for(const [k,w] of Object.entries(weights)){ pool.push(k); wArr.push(w); }
+  const total = wArr.reduce((a,b)=>a+b,0);
+  let roll = Math.random() * total;
+  let type = pool[0];
+  for(let i=0;i<pool.length;i++){ roll -= wArr[i]; if(roll<=0){ type=pool[i]; break; } }
+  
+  const configs = {
+    slime: {r:12,hp:30,maxHp:30,spd:60,dmg:10,xp:3,color:'#33ff66',score:1},
+    runner: {r:9,hp:18,maxHp:18,spd:120,dmg:8,xp:2,color:'#ff9933',score:1},
+    tank: {r:20,hp:120,maxHp:120,spd:35,dmg:20,xp:8,color:'#ff3366',score:3},
+    speeder: {r:8,hp:12,maxHp:12,spd:180,dmg:6,xp:2,color:'#ffff00',score:1},
+  };
+  const cfg = configs[type];
+  const ecfg = game.mode==='fortress'
+    ? {...cfg, r:Math.round(cfg.r*0.40), spd:Math.round(cfg.spd*0.40)}
+    : cfg;
+  game.enemies.push({x,y,type,...ecfg,hit:0});
+}
+
+function update(dt) {
+  if(!game.running || game.paused) return;
+  game.time += dt;
+
+  const p = game.player;
+  const spd = p.spd * (p.spdMult||1);
+  let dx=0,dy=0;
+  if(game.mode !== 'fortress'){
+    if(game.keys['ArrowLeft']||game.keys['a']||game.keys['A']) dx-=1;
+    if(game.keys['ArrowRight']||game.keys['d']||game.keys['D']) dx+=1;
+    if(game.keys['ArrowUp']||game.keys['w']||game.keys['W']) dy-=1;
+    if(game.keys['ArrowDown']||game.keys['s']||game.keys['S']) dy+=1;
+    if(dx&&dy){dx*=0.707;dy*=0.707;}
+    p.x = Math.max(p.r, Math.min(W-p.r, p.x + dx*spd*dt));
+    p.y = Math.max(p.r, Math.min(H-p.r, p.y + dy*spd*dt));
+  } else {
+    p.x = W/2; p.y = H/2;
+  }
+  // (player damage handled per-enemy via e.hitTimer)
+
+  // Spawn enemies
+  game.spawnTimer -= dt;
+  const rate = Math.max(0.15, (game.spawnRate - game.time*0.003) / activeSettings().spawnRateMult);
+  if(game.spawnTimer<=0){spawnEnemy();game.spawnTimer=rate;}
+  // Boss spawns
+  if(game.time > 120 && Math.random() < 0.002) spawnBoss();
+
+  // Update enemies
+  for(let i=game.enemies.length-1;i>=0;i--){
+    const e = game.enemies[i];
+    const edx = p.x-e.x, edy = p.y-e.y;
+    const dist = Math.sqrt(edx*edx+edy*edy)||1;
+    const slowF = e.slowAmt ? (1-e.slowAmt) : 1;
+    e.x += (edx/dist)*e.spd*slowF*activeSettings().enemySpeedMult*dt;
+    e.y += (edy/dist)*e.spd*slowF*activeSettings().enemySpeedMult*dt;
+    if(e.hit>0) e.hit-=dt;
+    if(e.hitTimer>0) e.hitTimer-=dt;
+    // Player collision — each enemy has its own damage cooldown
+    if(dist < p.r+e.r){
+      if(!e.hitTimer || e.hitTimer<=0){
+        p.hp = Math.max(0, p.hp - e.dmg);
+        e.hitTimer = 0.8; // seconds between hits per enemy
+        sfxPlayerHit();
+        spawnParticles(p.x,p.y,'#ff4466',8);
+        if(p.hp<=0){gameOver();return;}
+      }
+    }
+  }
+
+  // Update weapons/bullets
+  updateWeapons(dt);
+
+  // Update bullets
+  for(let i=game.bullets.length-1;i>=0;i--){
+    const b = game.bullets[i];
+    b.x += b.vx*dt; b.y += b.vy*dt;
+    b.life -= dt;
+    // Flamer: grow, fade, lose damage over lifetime
+    if(b.weaponId==='flamer'||b.weaponId==='sec_flamer'){
+      const t = 1 - (b.life / b.maxLife); // 0=new, 1=expired
+      b.r = b.baseR * (1 + t * 2.5);     // grows to 3.5× base radius
+      b.dmg = Math.max(1, Math.round(b.baseDmg * (1 - t * 0.8))); // fades to 20% damage
+    }
+    if(b.life<=0||b.x<-60||b.x>W+60||b.y<-60||b.y>H+60){
+      game.bullets.splice(i,1); continue;
+    }
+    // Hit enemies
+    let hitAny = false;
+    for(let j=game.enemies.length-1;j>=0;j--){
+      const e = game.enemies[j];
+      const dx2=b.x-e.x, dy2=b.y-e.y;
+      if(dx2*dx2+dy2*dy2 < (b.r+e.r)*(b.r+e.r)){
+        const dmg = Math.floor(b.dmg*(p.dmgMult||1));
+        e.hp -= dmg; e.hit=0.15;
+        spawnDamageNum(e.x,e.y,dmg,b.color);
+        // Throttled hit sound
+        const now=performance.now(); if(!game._lastHitSfx||now-game._lastHitSfx>50){game._lastHitSfx=now;sfxEnemyHit();}
+        // Apply status effect
+        if(b.effect){
+          if(b.effect.type==='slow'||b.effect.type==='freeze'){
+            e.slowAmt = b.effect.amt; e.slowTimer = b.effect.dur;
+          }
+          if(b.effect.type==='dot'){
+            e.dot = {dmg:b.effect.dmg, tick:b.effect.tick, timer:b.effect.tick, dur:b.effect.dur};
+          }
+        }
+        // Grenade explode
+        if(b.explode){
+          doExplosion(b.x, b.y, b.explode.r, b.explode.dmg, p.dmgMult||1);
+          game.bullets.splice(i,1); hitAny=true; break;
+        }
+        b.pierce = (b.pierce||0) - 1;
+        if(b.pierce < 0){ game.bullets.splice(i,1); hitAny=true; }
+        if(e.hp<=0) killEnemy(e,j);
+        if(hitAny) break;
+      }
+    }
+  }
+
+  // XP gems
+  const autoOn = activeSettings().autoCollect;
+  const magnetRange = autoOn ? 99999 : 80;
+  for(let i=game.gems.length-1;i>=0;i--){
+    const g = game.gems[i];
+    const gdx=p.x-g.x,gdy=p.y-g.y;
+    const gd=Math.sqrt(gdx*gdx+gdy*gdy)||1;
+    if(gd < magnetRange){
+      // Each gem tracks its own attraction time; ramps 0→1000 px/s over 12s
+      if(g.magnetTime == null) g.magnetTime = 0;
+      g.magnetTime += dt;
+      const speed = autoOn ? Math.min(1000, (g.magnetTime / 5) * 1000) : 200;
+      g.x+=gdx/gd*speed*dt; g.y+=gdy/gd*speed*dt;
+    }
+    if(gd < p.r+g.r){
+      if(g.ammo){
+        game.ammo[g.ammoType] = (game.ammo[g.ammoType]||0) + g.val;
+        const now=performance.now(); if(!game._lastAmmoSfx||now-game._lastAmmoSfx>100){game._lastAmmoSfx=now;sfxAmmoPickup();}
+      } else {
+        p.xp+=g.val;
+        const now=performance.now(); if(!game._lastXpSfx||now-game._lastXpSfx>60){game._lastXpSfx=now;sfxXpCollect();}
+        checkLevelUp();
+      }
+      game.gems.splice(i,1);
+    }
+  }
+
+  // Tick enemy status effects (dot / slow)
+  for(let i=game.enemies.length-1;i>=0;i--){
+    const e = game.enemies[i];
+    if(e.slowTimer>0){ e.slowTimer-=dt; if(e.slowTimer<=0){e.slowAmt=0;} }
+    if(e.dot){
+      e.dot.timer-=dt; e.dot.dur-=dt;
+      if(e.dot.timer<=0){
+        const ddmg=Math.floor(e.dot.dmg*(p.dmgMult||1));
+        e.hp-=ddmg; e.hit=0.1;
+        spawnDamageNum(e.x,e.y-8,ddmg,'#ff8800');
+        e.dot.timer=e.dot.tick;
+        if(e.hp<=0){killEnemy(e,i); continue;}
+      }
+      if(e.dot.dur<=0) e.dot=null;
+    }
+  }
+
+  // Update particles
+  for(let i=game.particles.length-1;i>=0;i--){
+    const pt=game.particles[i];
+    pt.x+=pt.vx*dt; pt.y+=pt.vy*dt; pt.life-=dt; pt.vy+=200*dt;
+    if(pt.life<=0) game.particles.splice(i,1);
+  }
+
+  // Fortress: rotate main barrel toward mouse
+  if(game.mode==='fortress'){
+    const targetMain = Math.atan2(mouse.y-p.y, mouse.x-p.x);
+    let cur = game.mainAimAngle !== undefined ? game.mainAimAngle : targetMain;
+    let diff = targetMain - cur;
+    while(diff > Math.PI)  diff -= Math.PI*2;
+    while(diff < -Math.PI) diff += Math.PI*2;
+    const step = 3.0 * dt; // slightly faster than secondary
+    cur += Math.abs(diff) < step ? diff : Math.sign(diff)*step;
+    game.mainAimAngle = cur;
+  }
+
+  updateHUD();
+}
+
+function fireBullet(p, w, ax, ay, angleOffset, ox, oy){
+  const originX = ox !== undefined ? ox : p.x;
+  const originY = oy !== undefined ? oy : p.y;
+  const baseAngle = Math.atan2(ay - originY, ax - originX);
+  const angle = baseAngle + (angleOffset||0);
+  const spd = w.spd || 400;
+  const life = w.maxRange ? w.maxRange/spd : Math.min(2.5, (W*1.2) / spd);
+  game.bullets.push({
+    x:originX, y:originY,
+    vx:Math.cos(angle)*spd, vy:Math.sin(angle)*spd,
+    r:w.r||4, baseR:w.r||4, dmg:w.dmg, baseDmg:w.dmg, color:w.color, life, maxLife:life,
+    pierce:w.pierce||0,
+    effect: w.effect ? {...w.effect} : null,
+    explode: w.explode || null,
+    weaponId: w.id,
+  });
+}
+
+function startReload(w){
+  const s = activeSettings();
+  if(!s.reload){
+    // Instant reload — fill from reserve (or infinite)
+    const at = w.cls||'light';
+    if(s.infiniteAmmo){
+      w.currentMag = w.mag;
+    } else {
+      const need = w.mag - (w.currentMag||0);
+      const take = Math.min(need, game.ammo[at]||0);
+      w.currentMag = (w.currentMag||0) + take;
+      game.ammo[at] = (game.ammo[at]||0) - take;
+    }
+    w.reloading = false;
+    return;
+  }
+  if(w.reloading || w.currentMag >= w.mag) return;
+  if(!s.infiniteAmmo && (game.ammo[w.cls||'light']||0) <= 0) return;
+  w.reloading = true;
+  w.reloadDuration = (w.reload || 1.5) / (s.reloadSpeedMult * (game.player.reloadMult||1));
+  w.reloadTimer = w.reloadDuration;
+}
+
+function updateWeapons(dt){
+  const p = game.player;
+  const s = activeSettings();
+  for(const w of p.weapons){
+    // Reload tick
+    if(w.reloading){
+      w.reloadTimer -= dt;
+      if(w.reloadTimer <= 0){
+        const at = w.cls||'light';
+        if(s.infiniteAmmo){
+          w.currentMag = w.mag;
+        } else {
+          const need = w.mag - (w.currentMag||0);
+          const take = Math.min(need, game.ammo[at]||0);
+          w.currentMag = (w.currentMag||0) + take;
+          game.ammo[at] = (game.ammo[at]||0) - take;
+        }
+        w.reloading = false;
+        sfxReloadDone();
+      }
+      continue;
+    }
+
+    w.timer -= dt;
+    // Determine which button fires this weapon
+    const isFortress = game.mode === 'fortress';
+    const isMain = w.cls === 'main';
+    const isSec  = w.cls === 'secondary';
+    // Auto-secondary: find nearest enemy within weapon range
+    let autoSecTarget = null;
+    if(isFortress && isSec && FORTRESS_SETTINGS.autoSecondary && game.enemies.length > 0){
+      const maxRange = w.maxRange || Math.min(2.5, (W*1.2)/(w.spd||400)) * (w.spd||400);
+      const maxRangeSq = maxRange * maxRange;
+      let minD = Infinity;
+      for(const e of game.enemies){
+        const d=(e.x-p.x)*(e.x-p.x)+(e.y-p.y)*(e.y-p.y);
+        if(d < maxRangeSq && d < minD){minD=d;autoSecTarget=e;}
+      }
+    }
+    if(w.burstFired > 0){
+      w.burstTimer -= dt;
+      if(w.burstTimer <= 0){
+        if(w.currentMag > 0){
+          const bax = (autoSecTarget && isSec) ? autoSecTarget.x : mouse.x;
+          const bay = (autoSecTarget && isSec) ? autoSecTarget.y : mouse.y;
+          if(isFortress && isSec){
+            const sAngle = game.secAimAngle !== undefined ? game.secAimAngle : Math.atan2(bay-p.y, bax-p.x);
+            const perpA = sAngle + Math.PI*0.5;
+            const sbDist = p.r * 0.25;
+            w._barrelIdx = ((w._barrelIdx||0) + 1) % 2;
+            const side = w._barrelIdx === 0 ? -1 : 1;
+            fireBullet(p, w, bax, bay, 0, p.x+Math.cos(perpA)*sbDist*side, p.y+Math.sin(perpA)*sbDist*side);
+          } else {
+            fireBullet(p, w, bax, bay);
+          }
+          w.currentMag--;
+          w.burstFired--;
+          w.burstTimer = w.burstDelay||0.08;
+          if(w.currentMag <= 0) startReload(w);
+        } else { w.burstFired=0; startReload(w); }
+      }
+    }
+    // Track secondary aim angle for barrel drawing
+    if(isFortress && isSec){
+      if(FORTRESS_SETTINGS.autoSecondary){
+        if(autoSecTarget){
+          // Slowly rotate toward target
+          const targetAngle = Math.atan2(autoSecTarget.y - p.y, autoSecTarget.x - p.x);
+          const rotSpeed = 3.2;
+          let cur = game.secAimAngle !== undefined ? game.secAimAngle : targetAngle;
+          let diff = targetAngle - cur;
+          while(diff > Math.PI)  diff -= Math.PI*2;
+          while(diff < -Math.PI) diff += Math.PI*2;
+          const step = rotSpeed * dt;
+          cur += Math.abs(diff) < step ? diff : Math.sign(diff)*step;
+          game.secAimAngle = cur;
+          game.secOnTarget = Math.abs(diff) < 0.15;
+        }
+        // No target in range: hold current angle, don't fire
+      } else {
+        // Manual: snap instantly to mouse
+        game.secAimAngle = Math.atan2(mouse.y - p.y, mouse.x - p.x);
+        game.secOnTarget = true;
+      }
+    }
+    const fireBtn = isFortress
+      ? (isMain ? game.mouseDown : (isSec ? (autoSecTarget ? (FORTRESS_SETTINGS.autoSecondary ? game.secOnTarget : true) : game.rightMouseDown) : false))
+      : game.mouseDown;
+    if(w.spinUp) w.spinupAmt = fireBtn ? Math.min(1,(w.spinupAmt||0)+dt*1.5) : Math.max(0,(w.spinupAmt||0)-dt*2);
+    if(!fireBtn || w.timer > 0) continue;
+    if(w.currentMag <= 0){
+      const s2 = activeSettings();
+      if(!s2.infiniteAmmo && (game.ammo[w.cls||'light']||0) <= 0){
+        spawnScreenAlert('NO AMMO');
+      }
+      startReload(w); continue;
+    }
+    const effectiveCd = w.cd * (p.atkMult||1) * (w.spinUp ? (2-w.spinupAmt) : 1);
+    w.timer = effectiveCd;
+    const ax = (autoSecTarget && isSec) ? autoSecTarget.x
+             : (isFortress && isMain && game.mainAimAngle !== undefined)
+               ? p.x + Math.cos(game.mainAimAngle) * 1000
+               : mouse.x;
+    const ay = (autoSecTarget && isSec) ? autoSecTarget.y
+             : (isFortress && isMain && game.mainAimAngle !== undefined)
+               ? p.y + Math.sin(game.mainAimAngle) * 1000
+               : mouse.y;
+    // For fortress secondary, compute the two barrel origins
+    const secOrigins = (isFortress && isSec) ? (()=>{
+      const sAngle = game.secAimAngle !== undefined ? game.secAimAngle : Math.atan2(ay-p.y, ax-p.x);
+      const perpA = sAngle + Math.PI*0.5;
+      const sbDist = p.r * 0.25;
+      return [
+        [p.x + Math.cos(perpA)*sbDist*-1, p.y + Math.sin(perpA)*sbDist*-1],
+        [p.x + Math.cos(perpA)*sbDist*1,  p.y + Math.sin(perpA)*sbDist*1],
+      ];
+    })() : [[p.x, p.y]];
+    // For secondary: alternate which barrel fires each shot
+    if(isFortress && isSec){ w._barrelIdx = ((w._barrelIdx||0) + 1) % 2; }
+    const fireFromOrigins = (angleOffset=0) => {
+      if(isFortress && isSec){
+        const [ox,oy] = secOrigins[w._barrelIdx];
+        fireBullet(p, w, ax, ay, angleOffset, ox, oy);
+      } else {
+        fireBullet(p, w, ax, ay, angleOffset);
+      }
+    };
+    if(w.pellets && w.pellets > 1){
+      const spread = (w.spread||12) * Math.PI/180;
+      for(let i=0; i<w.pellets; i++){
+        const off = (i/(w.pellets-1) - 0.5) * spread;
+        fireFromOrigins(off);
+      }
+      w.currentMag--;
+      if(isFortress&&isMain) sfxMainBattery(); else sfxShotgun();
+    } else if(w.burstCount){
+      fireFromOrigins();
+      w.currentMag--;
+      w.burstFired = w.burstCount - 1;
+      w.burstTimer = w.burstDelay||0.08;
+      if(isFortress&&isMain){sfxMainBattery();}else{const now=performance.now();if(!game._lastShootSfx||now-game._lastShootSfx>40){game._lastShootSfx=now;sfxShoot();}}
+    } else {
+      fireFromOrigins();
+      w.currentMag--;
+      if(isFortress&&isMain){sfxMainBattery();}else{const now=performance.now();if(!game._lastShootSfx||now-game._lastShootSfx>40){game._lastShootSfx=now;sfxShoot();}}
+    }
+    if(w.currentMag <= 0) startReload(w);
+  }
+}
+
+
+function applyPassive(w){ /* no passive weapons */ }
+
+
+
+function doExplosion(x, y, radius, dmg, dmgMult){
+  sfxExplosion();
+  spawnParticles(x,y,'#ffaa00',18);
+  for(let i=0;i<16;i++){
+    const a=Math.PI*2/16*i;
+    game.particles.push({x,y,vx:Math.cos(a)*150,vy:Math.sin(a)*150,life:0.5,color:'#ff6600',r:5});
+  }
+  for(let j=game.enemies.length-1;j>=0;j--){
+    const e=game.enemies[j];
+    const dx=e.x-x,dy=e.y-y;
+    if(dx*dx+dy*dy<radius*radius){
+      const d=Math.floor(dmg*dmgMult);
+      e.hp-=d; e.hit=0.2;
+      spawnDamageNum(e.x,e.y,d,'#ffcc00');
+      if(e.hp<=0) killEnemy(e,j);
+    }
+  }
+}
+
+
+function nearestEnemy(){
+  const p=game.player;
+  let best=null,bestD=Infinity;
+  for(const e of game.enemies){
+    const d=(e.x-p.x)**2+(e.y-p.y)**2;
+    if(d<bestD){bestD=d;best=e;}
+  }
+  return best;
+}
+
+function killEnemy(e, idx){
+  game.kills++;
+  game.enemies.splice(idx,1);
+  const now=performance.now(); if(!game._lastDeathSfx||now-game._lastDeathSfx>80){game._lastDeathSfx=now;sfxEnemyDeath();}
+  spawnParticles(e.x,e.y,e.color,10);
+  // Drop gem
+  const val = e.xp || 3;
+  const gemScale = game.mode==='fortress' ? 0.40 : 1;
+  game.gems.push({x:e.x,y:e.y,r:6*gemScale,val,color:'#44ffaa'});
+  // Drop ammo pickup (small chance based on enemy type)
+  const ammoDrop = Math.random();
+  if(ammoDrop < 0.55){
+    const isFort = game.mode==='fortress';
+    const types = isFort ? ['main','secondary'] : ['light','medium','heavy'];
+    let atype;
+    if(e.type==='boss'){
+      atype = types[Math.floor(Math.random()*types.length)];
+    } else if(isFort){
+      atype = ammoDrop < 0.3 ? 'main' : 'secondary';
+    } else {
+      atype = ammoDrop < 0.3 ? 'light' : ammoDrop < 0.45 ? 'medium' : 'heavy';
+    }
+    const amt = e.type==='boss' ? 30 : (atype==='light'||atype==='main' ? 10 : atype==='medium'||atype==='secondary' ? 6 : 4);
+    const col = atype==='light'?'#aaddff':atype==='medium'?'#ffcc44':atype==='main'?'#ff9900':atype==='secondary'?'#cc44ff':'#ff5533';
+    game.gems.push({x:e.x+10,y:e.y-6,r:5*gemScale,ammo:true,ammoType:atype,val:amt,color:col});
+  }
+}
+
+function spawnBoss(){
+  const side=Math.floor(Math.random()*4);
+  let x,y;
+  if(side===0){x=Math.random()*W;y=-30;}
+  else if(side===1){x=W+30;y=Math.random()*H;}
+  else if(side===2){x=Math.random()*W;y=H+30;}
+  else{x=-30;y=Math.random()*H;}
+  const bossR   = game.mode==='fortress' ? Math.round(30*0.40) : 30;
+  const bossSpd = game.mode==='fortress' ? Math.round(45*0.40) : 45;
+  const bossHp  = game.mode==='fortress' ? Math.round(500*0.40) : 500;
+  const bossDmg = game.mode==='fortress' ? Math.round(40*0.40) : 40;
+  game.enemies.push({x,y,type:'boss',r:bossR,hp:bossHp,maxHp:bossHp,spd:bossSpd,dmg:bossDmg,xp:30,color:'#cc00ff',hit:0});
+}
+
+function spawnParticles(x,y,color,n){
+  for(let i=0;i<n;i++){
+    const a=Math.random()*Math.PI*2, spd=50+Math.random()*100;
+    game.particles.push({x,y,vx:Math.cos(a)*spd,vy:Math.sin(a)*spd,life:0.4+Math.random()*0.3,color,r:2+Math.random()*3});
+  }
+}
+
+const dmgNums=[];
+function spawnDamageNum(x,y,dmg,color){
+  dmgNums.push({x,y,dmg,color,life:0.8,vy:-60});
+}
+
+const screenAlerts=[];
+function spawnScreenAlert(text, color='#ff4466'){
+  // Dedupe — don't stack same message
+  if(screenAlerts.find(a=>a.text===text)) return;
+  screenAlerts.push({text, color, life:1.4, maxLife:1.4});
+}
+
+function checkLevelUp(){
+  const p=game.player;
+  while(p.xp>=p.xpNext){
+    p.xp-=p.xpNext;
+    p.level++;
+    p.xpNext=Math.floor(p.xpNext*1.4);
+    showLevelUp();
+  }
+}
+
+const RARITY_WEIGHTS = {common:55, rare:25, epic:14, legendary:4};
+function weightedPickUpgrades(count){
+  const upgradePool = game.mode === 'fortress' ? FORTRESS_UPGRADES : UPGRADES;
+
+  // Fortress: always 1 weapon pick + 1 stat pick
+  if(game.mode === 'fortress'){
+    const weaponPool = upgradePool.filter(u=>u.type==='weapon');
+    const statPool   = upgradePool.filter(u=>u.type!=='weapon');
+    const pickFrom = (pool) => {
+      const weighted = pool.map(u=>({u, w:RARITY_WEIGHTS[u.rarity]||5}));
+      const total = weighted.reduce((s,p)=>s+p.w, 0);
+      if(total<=0) return null;
+      let r = Math.random()*total;
+      for(const p of weighted){ r-=p.w; if(r<=0) return p.u; }
+      return weighted[weighted.length-1].u;
+    };
+    const picks = [];
+    // 75% chance secondary weapon, 25% chance main battery weapon
+    const secPool  = weaponPool.filter(u=>{ const def=FORTRESS_WEAPONS[u.id]; return def && def.cls==='secondary'; });
+    const mainPool = weaponPool.filter(u=>{ const def=FORTRESS_WEAPONS[u.id]; return def && def.cls==='main'; });
+    const chosenWeaponPool = (Math.random() < 0.75 && secPool.length) ? secPool : (mainPool.length ? mainPool : weaponPool);
+    const w = pickFrom(chosenWeaponPool); if(w) picks.push(w);
+    const s = pickFrom(statPool);   if(s) picks.push(s);
+    return picks;
+  }
+
+  // Classic: weighted random
+  const pool = upgradePool.map(u=>({u, w:RARITY_WEIGHTS[u.rarity]||5}));
+  const picks=[], used=new Set();
+  let attempts=0;
+  while(picks.length<count && attempts<200){
+    attempts++;
+    const total=pool.reduce((s,p)=>s+(used.has(p.u.id)?0:p.w),0);
+    if(total<=0) break;
+    let r=Math.random()*total;
+    for(const p of pool){
+      if(used.has(p.u.id)) continue;
+      r-=p.w;
+      if(r<=0){ picks.push(p.u); used.add(p.u.id); break; }
+    }
+  }
+  return picks;
+}
+
+function showLevelUp(){
+  sfxLevelUp();
+  game.paused=true;
+  const screen=document.getElementById('levelUpScreen');
+  const choicesEl=document.getElementById('choices');
+  choicesEl.innerHTML='';
+  const picks = weightedPickUpgrades(3);
+  for(const u of picks){
+    const div=document.createElement('div');
+    div.className='choice';
+    const rc2={'common':'#88aacc','rare':'#44aaff','epic':'#aa44ff','legendary':'#ffaa00'}[u.rarity]||'#aaa';
+    div.style.borderColor=rc2;
+    // Show if already in inventory
+    const owned = u.type==='weapon' ? game.inventory.filter(w=>w.id===u.id).length : 0;
+    const ownedTxt = owned>0 ? `<div style="color:#556;font-size:8px;margin-top:4px">OWNED ×${owned}</div>` : '';
+    const invFull = u.type==='weapon' && game.inventory.length>=8;
+    const fullTxt = invFull ? `<div style="color:#ff4466;font-size:8px;margin-top:4px">INVENTORY FULL</div>` : '';
+    const wDef = u.type==='weapon' ? (FORTRESS_WEAPONS[u.id]||WEAPONS[u.id]||null) : null;
+    const clsColors = {light:'#aaddff',medium:'#ffcc44',heavy:'#ff5533',main:'#ff9900',secondary:'#cc44ff'};
+    const clsLabels = {light:'LIGHT',medium:'MEDIUM',heavy:'HEAVY',main:'MAIN',secondary:'SECONDARY'};
+    const typeTxt = wDef ? `<div style="color:${clsColors[wDef.cls]||'#aaa'};font-size:8px;letter-spacing:2px;margin-top:2px;">${clsLabels[wDef.cls]||wDef.cls.toUpperCase()}</div>` : '';
+    div.innerHTML=`<div class="choiceIcon">${u.icon}</div><div class="choiceRarity ${u.rarity}">${u.rarity.toUpperCase()}</div><div class="choiceName" style="color:${rc2}">${u.name}</div>${typeTxt}<div class="choiceDesc">${u.desc}</div>${ownedTxt}${fullTxt}`;
+    if(!invFull) div.onclick=()=>applyUpgrade(u);
+    else div.style.opacity='0.45';
+    choicesEl.appendChild(div);
+  }
+  screen.style.display='flex';
+}
+
+function applyUpgrade(u){
+  const p=game.player;
+  if(u.type==='weapon'){ addToInventory(u.id); }
+  else if(u.id==='spd') p.spdMult=(p.spdMult||1)*1.2;
+  else if(u.id==='hp'){
+    if(game.mode==='fortress'){ p.maxHp+=40; p.hp=Math.min(p.maxHp, p.hp+30); }
+    else { p.hp = Math.min(p.maxHp, p.hp + 50); }
+  }
+  else if(u.id==='dmg') p.dmgMult=(p.dmgMult||1)*1.25;
+  else if(u.id==='atk')  p.atkMult=(p.atkMult||1)*0.8;
+  else if(u.id==='rspd') p.reloadMult=(p.reloadMult||1)*1.3;
+  document.getElementById('levelUpScreen').style.display='none';
+  game.paused=false;
+}
+
+function openInventory(){
+  if(!game.running) return;
+  game.paused=true;
+  game.mouseDown=false;
+  game.rightMouseDown=false;
+  document.getElementById('invHint').textContent = game.mode==='fortress'
+    ? 'MAIN BATTERY [1] · SECONDARY [2] · merge 2 identical to upgrade · kill enemies for ammo'
+    : 'LIGHT [1] · MEDIUM [2] · HEAVY [3] · merge 2 identical to upgrade · kill enemies for ammo';
+  renderInventory();
+  document.getElementById('inventoryPanel').style.display='flex';
+}
+
+function closeInventory(){
+  document.getElementById('inventoryPanel').style.display='none';
+  game.paused=false;
+}
+
+const CLS_INFO = {
+  light:     {label:'LIGHT',      key:'1', color:'#aaddff', icon:'🔫'},
+  medium:    {label:'MEDIUM',     key:'2', color:'#ffcc44', icon:'🟡'},
+  heavy:     {label:'HEAVY',      key:'3', color:'#ff5533', icon:'🔴'},
+  main:      {label:'MAIN BATTERY',    key:'1', color:'#ff9900', icon:'💥'},
+  secondary: {label:'SECONDARY ARMAMENTS', key:'2', color:'#cc44ff', icon:'🎯'},
+};
+
+function renderInventory(){
+  const grid=document.getElementById('invGrid');
+  grid.innerHTML='';
+  const RC={'common':'#88aacc','rare':'#44aaff','epic':'#aa44ff','legendary':'#ffaa00'};
+  const EFFECT_COLORS={dot:'#ff8800',slow:'#88ddff',freeze:'#00ccff'};
+  const counts={};
+  for(const w of game.inventory) counts[w.id]=(counts[w.id]||0)+1;
+
+  const slots = game.mode==='fortress' ? ['main','secondary'] : ['light','medium','heavy'];
+
+  for(const slot of slots){
+    const ci=CLS_INFO[slot];
+    const isActive=game.activeSlot===slot;
+    const eq=game.equipped[slot];
+    const eqDef = eq && game.mode==='fortress' && FORTRESS_WEAPONS[eq.id] ? FORTRESS_WEAPONS[eq.id] : eq;
+
+    const header=document.createElement('div');
+    header.style=`grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:6px 2px 2px;margin-top:6px;border-bottom:1px solid ${ci.color}33;`;
+    header.innerHTML=`<span style="color:${ci.color};font-family:'Orbitron',monospace;font-size:11px;font-weight:700;letter-spacing:2px;">${ci.icon} ${ci.label}</span><span style="background:${ci.color}22;border:1px solid ${ci.color}44;color:${ci.color};font-size:8px;padding:1px 6px;border-radius:2px;">KEY ${ci.key}</span>${isActive?`<span style="background:${ci.color};color:#000;font-size:8px;padding:1px 6px;border-radius:2px;font-weight:700;">ACTIVE</span>`:''}<span style="color:#335;font-size:9px;margin-left:auto;">${eq?'EQUIPPED: '+(eqDef?eqDef.icon:'')+(eqDef?' '+eqDef.name:''):'— EMPTY SLOT —'}</span>`;
+    grid.appendChild(header);
+
+    const matching = game.inventory.map((w,i)=>({w,i})).filter(({w})=>(w.cls||'light')===slot);
+    for(const {w,i} of matching){
+      const rc=RC[w.rarity]||'#aaa';
+      const isEq=(game.equipped[slot]===w);
+      const canMerge=counts[w.id]>=2;
+      const effColor=w.effect?EFFECT_COLORS[w.effect.type]||'#aaa':'';
+      const effBadge=w.effect?`<div class="invCardEffect" style="color:${effColor};border:1px solid ${effColor}22">${w.effect.type.toUpperCase()}</div>`:'';
+      const fRate=w.pellets?`${(1/w.cd).toFixed(1)}/s ×${w.pellets}p`:(w.burstCount?`${(1/w.cd).toFixed(1)}/s ×${w.burstCount}b`:`${(1/w.cd).toFixed(1)}/s`);
+      const wDef = game.mode==='fortress' && FORTRESS_WEAPONS[w.id] ? FORTRESS_WEAPONS[w.id] : w;
+      const card=document.createElement('div');
+      card.className='invCard'+(isEq?' equipped':'');
+      if(isEq) card.style.borderColor=ci.color;
+      card.innerHTML=`
+        <div class="invCardLevel" style="color:${rc}">Lv${w.level}</div>
+        ${counts[w.id]>1?`<div class="invCardCount">×${counts[w.id]}</div>`:''}
+        <div class="invCardIcon">${wDef.icon}</div>
+        <div class="invCardName" style="color:${rc}">${wDef.name}</div>
+        <div class="invCardRarity ${w.rarity}">${w.rarity.toUpperCase()}</div>
+        ${effBadge}
+        <div class="invCardStats">DMG: ${w.dmg} &nbsp; ${fRate}<br>PIERCE: ${w.pierce||0}${w.explode?' · EXPLODES':''}</div>
+        <div class="invCardBtns">
+          <button class="invBtn equipBtn${isEq?' active':''}" ${isEq?'disabled':''} onclick="equipFromInventory(${i})" style="${isEq?'border-color:'+ci.color+';color:'+ci.color:''}">
+            ${isEq?'✓ EQUIPPED':'EQUIP ['+ci.key+']'}
+          </button>
+          ${canMerge?`<button class="invBtn mergeBtn" onclick="mergeWeapons('${w.id}')">MERGE ×2</button>`:''}
+        </div>`;
+      grid.appendChild(card);
+    }
+    if(matching.length===0){
+      const empty=document.createElement('div');
+      empty.className='emptySlot';
+      empty.style=`border-color:${ci.color}22;color:${ci.color}33;`;
+      empty.innerHTML=`<span style="font-size:11px">no ${ci.label.toLowerCase()} weapons</span>`;
+      grid.appendChild(empty);
+    }
+  }
+
+  const emptyCount = 8 - game.inventory.length;
+  if(emptyCount>0){
+    const note=document.createElement('div');
+    note.style=`grid-column:1/-1;color:#224;font-size:9px;text-align:center;padding:6px;letter-spacing:1px;`;
+    note.textContent=`${emptyCount} OPEN SLOT${emptyCount>1?'S':''} — COLLECT WEAPONS ON LEVEL UP`;
+    grid.appendChild(note);
+  }
+}
+
+
+function updateHUD(){
+  const p=game.player;
+  document.getElementById('healthInner').style.width=(p.hp/p.maxHp*100)+'%';
+  document.getElementById('xpInner').style.width=(p.xp/p.xpNext*100)+'%';
+  document.getElementById('levelDisp').textContent=p.level;
+  document.getElementById('killNum').textContent=game.kills;
+  const m=Math.floor(game.time/60), s=Math.floor(game.time%60);
+  document.getElementById('timer').textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+  // Reload animation
+  const reloadAnim=document.getElementById('reloadAnim');
+  const reloadProg=document.getElementById('reloadProg');
+  const reloadProgOuter=document.getElementById('reloadProgOuter');
+  const reloadPct=document.getElementById('reloadPct');
+  const reloadIcon=document.getElementById('reloadIcon');
+  const isFortressMode = game.mode==='fortress';
+  const wMain = isFortressMode ? game.equipped['main']      : null;
+  const wSec  = isFortressMode ? game.equipped['secondary'] : null;
+  const w0cur = isFortressMode ? wMain : p.weapons[0];
+  const settings = activeSettings();
+
+  if(isFortressMode){
+    const mainReloading = wMain && wMain.reloading && settings.reload;
+    const secReloading  = wSec  && wSec.reloading  && settings.reload;
+    const rto=document.getElementById('reloadTrackOuter'); if(rto) rto.style.display='';
+    if(mainReloading || secReloading){
+      reloadAnim.style.display='flex';
+      reloadAnim.style.bottom='0px';
+      reloadAnim.style.left='4px';
+      reloadAnim.style.transform='scale(0.85)';
+      // Outer ring = main battery (orange)
+      const outerCirc = 2*Math.PI*40;
+      if(mainReloading){
+        const dur=wMain.reloadDuration||wMain.reload||1.5;
+        const pct=Math.min(1,Math.max(0,1-(wMain.reloadTimer/dur)));
+        reloadProgOuter.style.strokeDasharray=outerCirc;
+        reloadProgOuter.style.strokeDashoffset=outerCirc*(1-pct);
+        const col=wMain.color||'#ff9900';
+        reloadProgOuter.style.stroke=col;
+        reloadProgOuter.style.filter=`drop-shadow(0 0 5px ${col})`;
+        reloadProgOuter.style.display='';
+        if(reloadIcon.dataset.weaponId!==wMain.id){ reloadIcon.dataset.weaponId=wMain.id; reloadIcon.textContent=wMain.icon||'🔄'; }
+        reloadPct.style.color=col;
+        reloadPct.textContent=Math.round(pct*100)+'%';
+      } else {
+        reloadProgOuter.style.strokeDashoffset=outerCirc;
+        reloadProgOuter.style.display='none';
+      }
+      // Inner ring = secondary armaments (purple)
+      const innerCirc = 2*Math.PI*26;
+      if(secReloading){
+        const dur=wSec.reloadDuration||wSec.reload||1.5;
+        const pct=Math.min(1,Math.max(0,1-(wSec.reloadTimer/dur)));
+        reloadProg.style.strokeDasharray=innerCirc;
+        reloadProg.style.strokeDashoffset=innerCirc*(1-pct);
+        const col=wSec.color||'#cc44ff';
+        reloadProg.style.stroke=col;
+        reloadProg.style.filter=`drop-shadow(0 0 5px ${col})`;
+        reloadProg.style.display='';
+        if(!mainReloading){
+          reloadIcon.dataset.weaponId=wSec.id; reloadIcon.textContent=wSec.icon||'🔄';
+          reloadPct.style.color=col;
+          reloadPct.textContent=Math.round(pct*100)+'%';
+        }
+      } else {
+        reloadProg.style.strokeDashoffset=innerCirc;
+        reloadProg.style.display='none';
+      }
+    } else {
+      reloadAnim.style.display='none';
+      reloadAnim.style.transform='';
+      reloadIcon.dataset.weaponId='';
+      reloadProg.style.display='none';
+      reloadProgOuter.style.display='none';
+    }
+  } else {
+    // Classic: single inner ring only
+    const rto2=document.getElementById('reloadTrackOuter'); if(rto2) rto2.style.display='none';
+    reloadProgOuter.style.display='none';
+    reloadProg.style.display='';
+    if(w0cur && w0cur.reloading && settings.reload){
+      reloadAnim.style.display='flex';
+      reloadAnim.style.bottom='0px';
+      reloadAnim.style.left='4px';
+      reloadAnim.style.transform='';
+      const circumference=2*Math.PI*26;
+      const dur=w0cur.reloadDuration||w0cur.reload||1.5;
+      const pct=Math.min(1,Math.max(0,1-(w0cur.reloadTimer/dur)));
+      reloadProg.style.strokeDasharray=circumference;
+      reloadProg.style.strokeDashoffset=circumference*(1-pct);
+      const col=w0cur.color||'#ffcc00';
+      reloadProg.style.stroke=col; reloadProg.style.filter=`drop-shadow(0 0 5px ${col})`;
+      reloadPct.style.color=col; reloadPct.textContent=Math.round(pct*100)+'%';
+      if(reloadIcon.dataset.weaponId!==w0cur.id){ reloadIcon.dataset.weaponId=w0cur.id; reloadIcon.textContent=w0cur.icon||'🔄'; }
+    } else {
+      reloadAnim.style.display='none';
+      if(reloadIcon.dataset.weaponId) reloadIcon.dataset.weaponId='';
+    }
+  }
+  // Weapon HUD (2-slot fortress / 3-slot classic)
+  const wEl=document.getElementById('weapons');
+  const RC2={'common':'#aaccff','rare':'#44aaff','epic':'#aa44ff','legendary':'#ffaa00'};
+  const CLS_COLORS2={light:'#aaddff',medium:'#ffcc44',heavy:'#ff5533',main:'#ff9900',secondary:'#cc44ff'};
+  const SLOTS = game.mode==='fortress' ? ['main','secondary'] : ['light','medium','heavy'];
+  let html='';
+  for(let si=0;si<SLOTS.length;si++){
+    const slotName=SLOTS[si];
+    const w=game.equipped?game.equipped[slotName]:null;
+    const isActive=game.activeSlot===slotName;
+    const cc=CLS_COLORS2[slotName];
+    const keyNum=si+1;
+    const reserve = game.ammo ? (game.ammo[slotName]||0) : 0;
+    const totalAmmo = w ? (w.currentMag||0) + reserve : reserve;
+    const ammoTxt = `<span style="color:${cc};font-family:'Orbitron',monospace;font-size:7px;">${w ? totalAmmo : reserve}</span>`;
+    if(w){
+      const rc=RC2[w.rarity]||'#aaa';
+      const fw = game.mode==='fortress' && FORTRESS_WEAPONS[w.id];
+      const wIcon = fw ? fw.icon : w.icon;
+      const magTxt=w.reloading?`<span style="color:#ffcc00;font-size:7px;">RLD</span>`:`<span style="color:#888;font-size:7px;">${w.currentMag||0}/${w.mag||0}</span>`;
+      html+=`<div title="${fw?fw.name:w.name} [${keyNum}]" style="width:62px;height:68px;font-size:22px;border:1px solid ${isActive?cc:'#1a1a2e'};background:${isActive?cc+'18':'#060610'};box-shadow:${isActive?'0 0 16px '+cc+'66':''};border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;pointer-events:none;transition:all 0.15s;position:relative;">
+        <span style="position:absolute;top:2px;left:4px;font-size:7px;color:${cc};font-family:'Orbitron',monospace;opacity:0.8;">[${keyNum}]</span>
+        ${wIcon}
+        <span style="color:${rc};font-size:7px;font-family:'Orbitron',monospace;">Lv${w.level}</span>
+        ${magTxt}
+        ${ammoTxt}
+      </div>`;
+    } else {
+      html+=`<div title="Empty ${slotName} slot [${keyNum}]" style="width:62px;height:68px;border:1px dashed ${cc}33;background:#05050a;border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;gap:2px;">
+        <span style="color:${cc}55;font-size:8px;font-family:'Orbitron',monospace;">[${keyNum}]</span>
+        <span style="color:${cc}33;font-size:18px;">+</span>
+        <span style="color:${cc}44;font-size:7px;letter-spacing:1px;">${slotName==='main'?'MAIN BAT.':slotName==='secondary'?'SECONDARY':slotName.toUpperCase()}</span>
+        ${ammoTxt}
+      </div>`;
+    }
+  }
+  // TAB hint below
+  html+=`<div style="position:absolute;bottom:-16px;left:0;right:0;text-align:center;color:#223;font-size:8px;letter-spacing:1px;pointer-events:none;">TAB · ARSENAL</div>`;
+  wEl.style.position='relative';
+  wEl.innerHTML=html;
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  // Background grid
+  ctx.strokeStyle='#0d0d1a';
+  ctx.lineWidth=1;
+  const gs=40;
+  for(let x=0;x<W;x+=gs){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<H;y+=gs){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+
+  if(!game.running) return;
+  const p=game.player;
+
+  // Gems
+  for(const g of game.gems){
+    ctx.save();
+    ctx.shadowColor=g.color; ctx.shadowBlur=8;
+    ctx.fillStyle=g.color;
+    if(g.ammo){
+      // Ammo: small square rotated 45deg
+      ctx.translate(g.x,g.y); ctx.rotate(Math.PI/4);
+      ctx.fillRect(-g.r*0.65,-g.r*0.65,g.r*1.3,g.r*1.3);
+    } else {
+      // XP gem: diamond
+      ctx.beginPath();
+      ctx.moveTo(g.x,g.y-g.r);ctx.lineTo(g.x+g.r*0.6,g.y);ctx.lineTo(g.x,g.y+g.r);ctx.lineTo(g.x-g.r*0.6,g.y);ctx.closePath();
+      ctx.fill();
+    }
+    ctx.restore();
+  }
+
+  // AOE rings
+  for(const w of p.weapons){
+    if(w.aoeActive&&w.x!==undefined){
+      ctx.save();
+      ctx.strokeStyle=w.color; ctx.lineWidth=2;
+      ctx.globalAlpha=w.aoeDur>0?Math.min(1,w.aoeDur*3):0;
+      ctx.shadowColor=w.color; ctx.shadowBlur=20;
+      ctx.beginPath(); ctx.arc(w.x,w.y,w.radius||80,0,Math.PI*2); ctx.stroke();
+      ctx.globalAlpha=0.1; ctx.fillStyle=w.color;
+      ctx.fill(); ctx.restore();
+    }
+  }
+
+  // Enemies
+  for(const e of game.enemies){
+    ctx.save();
+    if(e.hit>0) ctx.globalAlpha=0.5;
+    ctx.shadowColor=e.color; ctx.shadowBlur=10;
+    if(e.type==='boss'){
+      // Boss: spiky
+      ctx.fillStyle=e.color;
+      for(let i=0;i<8;i++){
+        const a=Math.PI*2/8*i+Date.now()*0.001;
+        ctx.beginPath();
+        ctx.moveTo(e.x,e.y);
+        ctx.lineTo(e.x+Math.cos(a)*e.r*1.4,e.y+Math.sin(a)*e.r*1.4);
+        ctx.lineTo(e.x+Math.cos(a+0.3)*e.r*0.8,e.y+Math.sin(a+0.3)*e.r*0.8);
+        ctx.closePath(); ctx.fill();
+      }
+    } else {
+      ctx.fillStyle=e.color;
+      ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,Math.PI*2); ctx.fill();
+      // Eye
+      const toPlayerA=Math.atan2(p.y-e.y,p.x-e.x);
+      ctx.fillStyle='#000';
+      ctx.beginPath(); ctx.arc(e.x+Math.cos(toPlayerA)*e.r*0.4,e.y+Math.sin(toPlayerA)*e.r*0.4,e.r*0.3,0,Math.PI*2); ctx.fill();
+    }
+    // Status effect overlay
+    if(e.slowAmt){
+      ctx.globalAlpha=0.35; ctx.fillStyle='#88ddff';
+      ctx.beginPath(); ctx.arc(e.x,e.y,e.r+3,0,Math.PI*2); ctx.fill();
+    }
+    if(e.dot){
+      ctx.globalAlpha=0.3+Math.abs(Math.sin(Date.now()*0.01))*0.2;
+      ctx.fillStyle=e.dot.dmg>6?'#44ff88':'#ff6600';
+      ctx.beginPath(); ctx.arc(e.x,e.y,e.r+2,0,Math.PI*2); ctx.fill();
+    }
+    ctx.globalAlpha=e.hit>0?0.5:1;
+    // HP bar
+    if(e.hp<e.maxHp){
+      ctx.globalAlpha=0.9;
+      ctx.fillStyle='#1a1a1a';
+      ctx.fillRect(e.x-e.r,e.y-e.r-8,e.r*2,4);
+      ctx.fillStyle=e.color;
+      ctx.fillRect(e.x-e.r,e.y-e.r-8,e.r*2*(e.hp/e.maxHp),4);
+    }
+    ctx.restore();
+  }
+
+  // Bullets
+  for(const b of game.bullets){
+    ctx.save();
+    // Fade out in last 20% of life (non-flamer weapons only)
+    const lifeRatio = b.life / b.maxLife;
+    const isFlamer = b.weaponId==='flamer'||b.weaponId==='sec_flamer';
+    const fadeAlpha = isFlamer ? 1 : (lifeRatio < 0.3 ? lifeRatio / 0.3 : 1);
+    ctx.shadowColor=b.color; ctx.shadowBlur=14;
+    const angle = Math.atan2(b.vy, b.vx);
+    if(b.weaponId==='flamer'||b.weaponId==='toxic'||b.weaponId==='plasma'||b.weaponId==='sec_flamer'){
+      // Blob — flamer fades out over lifetime
+      const alpha = (b.weaponId==='flamer'||b.weaponId==='sec_flamer')
+        ? Math.max(0, (b.life/b.maxLife) * 0.9)
+        : 0.85;
+      ctx.fillStyle=b.color; ctx.globalAlpha=alpha;
+      ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill();
+    } else if(b.weaponId==='railgun'||b.weaponId==='sec_railgun'){
+      // Long streak
+      ctx.globalAlpha=fadeAlpha;
+      ctx.strokeStyle=b.color; ctx.lineWidth=b.r*2;
+      ctx.beginPath(); ctx.moveTo(b.x-Math.cos(angle)*20,b.y-Math.sin(angle)*20);
+      ctx.lineTo(b.x+Math.cos(angle)*30,b.y+Math.sin(angle)*30); ctx.stroke();
+    } else if(b.weaponId==='grenade'||b.weaponId==='sec_grenade'){
+      // Circle with cross
+      ctx.globalAlpha=fadeAlpha;
+      ctx.fillStyle=b.color;
+      ctx.beginPath(); ctx.arc(b.x,b.y,b.r,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle='#000'; ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.moveTo(b.x-b.r+2,b.y); ctx.lineTo(b.x+b.r-2,b.y);
+      ctx.moveTo(b.x,b.y-b.r+2); ctx.lineTo(b.x,b.y+b.r-2); ctx.stroke();
+    } else {
+      // Elongated bullet streak
+      ctx.globalAlpha=fadeAlpha;
+      ctx.strokeStyle=b.color; ctx.lineWidth=b.r*1.8;
+      ctx.lineCap='round';
+      ctx.beginPath();
+      ctx.moveTo(b.x - Math.cos(angle)*(b.r*2), b.y - Math.sin(angle)*(b.r*2));
+      ctx.lineTo(b.x + Math.cos(angle)*(b.r*3), b.y + Math.sin(angle)*(b.r*3));
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // Player
+  ctx.save();
+
+  ctx.globalAlpha=1;
+  // Body
+  ctx.shadowColor='#00ccff'; ctx.shadowBlur=20;
+  ctx.fillStyle='#00ccff';
+  ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+  // Inner
+  ctx.fillStyle='#003344';
+  ctx.beginPath(); ctx.arc(p.x,p.y,p.r*0.5,0,Math.PI*2); ctx.fill();
+  // Weapon barrel pointing at mouse
+  const w0draw = p.weapons[0];
+  const a2 = (game.mode==='fortress' && game.mainAimAngle !== undefined)
+    ? game.mainAimAngle
+    : Math.atan2(mouse.y-p.y, mouse.x-p.x);
+  const barrelColor = w0draw ? w0draw.color : '#00ffff';
+  const barrelLen = game.mode==='fortress' ? p.r+15 : p.r+10;
+  const barrelW   = game.mode==='fortress' ? 4.5 : 3;
+  ctx.strokeStyle=barrelColor; ctx.lineWidth=barrelW; ctx.shadowColor=barrelColor; ctx.shadowBlur=8;
+  ctx.beginPath(); ctx.moveTo(p.x+Math.cos(a2)*p.r,p.y+Math.sin(a2)*p.r);
+  ctx.lineTo(p.x+Math.cos(a2)*barrelLen,p.y+Math.sin(a2)*barrelLen); ctx.stroke();
+  // Aim laser
+  const laserMode = activeSettings().aimLaser;
+  if(laserMode && laserMode !== 'off'){
+    const laserEnd = laserMode==='partial' ? barrelLen + 320 : 1200;
+    const startX = p.x+Math.cos(a2)*barrelLen;
+    const startY = p.y+Math.sin(a2)*barrelLen;
+    const endX   = p.x+Math.cos(a2)*laserEnd;
+    const endY   = p.y+Math.sin(a2)*laserEnd;
+    ctx.save();
+    ctx.setLineDash([6,8]);
+    ctx.lineWidth=1; ctx.shadowColor=barrelColor; ctx.shadowBlur=6;
+    if(laserMode==='partial'){
+      const grad = ctx.createLinearGradient(startX, startY, endX, endY);
+      grad.addColorStop(0, barrelColor+'33'); // ~20% opacity
+      grad.addColorStop(1, barrelColor+'00'); // fully transparent
+      ctx.strokeStyle = grad;
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.strokeStyle = barrelColor;
+      ctx.globalAlpha = 0.25;
+    }
+    ctx.beginPath();
+    ctx.moveTo(startX, startY);
+    ctx.lineTo(endX, endY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+  // Fortress: two secondary barrels offset from center, aimed at secondary target
+  if(game.mode==='fortress' && game.equipped && game.equipped['secondary']){
+    const secW = game.equipped['secondary'];
+    const sAngle = game.secAimAngle !== undefined ? game.secAimAngle : a2;
+    const secColor = secW.color || '#cc44ff';
+    const sbDist = p.r * 0.25;    // closer together
+    const perpA = sAngle + Math.PI * 0.5;
+    // Two barrels: one each side perpendicular to the secondary aim angle
+    for(const side of [-1, 1]){
+      const bx = p.x + Math.cos(perpA) * sbDist * side;
+      const by = p.y + Math.sin(perpA) * sbDist * side;
+      // Dark base to tip gradient effect
+      ctx.globalAlpha=0.45;
+      ctx.strokeStyle='#000'; ctx.lineWidth=2; ctx.shadowColor=secColor; ctx.shadowBlur=2;
+      ctx.beginPath();
+      ctx.moveTo(bx, by);
+      ctx.lineTo(bx + Math.cos(sAngle)*6, by + Math.sin(sAngle)*6);
+      ctx.stroke();
+      ctx.globalAlpha=1;
+      ctx.strokeStyle='#111'; ctx.shadowBlur=6;
+      ctx.beginPath();
+      ctx.moveTo(bx + Math.cos(sAngle)*6, by + Math.sin(sAngle)*6);
+      ctx.lineTo(bx + Math.cos(sAngle)*12, by + Math.sin(sAngle)*12);
+      ctx.stroke();
+    }
+  }
+  // Minigun spin ring
+  if(w0draw && w0draw.spinUp && w0draw.spinupAmt>0){
+    ctx.strokeStyle='#ff4444'; ctx.lineWidth=2; ctx.globalAlpha=w0draw.spinupAmt;
+    ctx.shadowColor='#ff4444'; ctx.shadowBlur=12;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r+5+w0draw.spinupAmt*6,0,Math.PI*2*w0draw.spinupAmt); ctx.stroke();
+  }
+  ctx.restore();
+
+  // Particles
+  for(const pt of game.particles){
+    ctx.save();
+    ctx.globalAlpha=pt.life/0.7;
+    ctx.fillStyle=pt.color;
+    ctx.shadowColor=pt.color; ctx.shadowBlur=6;
+    ctx.beginPath(); ctx.arc(pt.x,pt.y,pt.r,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+
+  // Damage numbers
+  for(let i=dmgNums.length-1;i>=0;i--){
+    const dn=dmgNums[i];
+    dn.y+=dn.vy*0.016; dn.life-=0.016;
+    ctx.save();
+    ctx.globalAlpha=dn.life/0.8;
+    ctx.fillStyle=dn.color; ctx.font='bold 13px "Orbitron",monospace';
+    ctx.shadowColor=dn.color; ctx.shadowBlur=8;
+    ctx.fillText(dn.dmg,dn.x,dn.y);
+    ctx.restore();
+    if(dn.life<=0) dmgNums.splice(i,1);
+  }
+  // Screen alerts (e.g. NO AMMO)
+  for(let i=screenAlerts.length-1;i>=0;i--){
+    const sa=screenAlerts[i];
+    sa.life-=0.016;
+    const t=sa.life/sa.maxLife;
+    const alpha=t<0.3?t/0.3:1;
+    const yOff=(1-t)*-18;
+    ctx.save();
+    ctx.globalAlpha=alpha*0.92;
+    ctx.font='bold 15px "Orbitron",monospace';
+    ctx.textAlign='center';
+    ctx.fillStyle=sa.color;
+    ctx.shadowColor=sa.color; ctx.shadowBlur=14;
+    ctx.fillText(sa.text, W/2, H/2 - 60 + yOff);
+    ctx.restore();
+    if(sa.life<=0) screenAlerts.splice(i,1);
+  }
+}
+
+let lastTime=0;
+function loop(ts){
+  const dt=Math.min((ts-lastTime)/1000,0.05);
+  lastTime=ts;
+  update(dt);
+  draw();
+  
+
+requestAnimationFrame(loop);
+}
+
+
+function showModeScreen(){
+  document.getElementById('startScreen').style.display='none';
+  document.getElementById('gameOverScreen').style.display='none';
+  document.getElementById('modeScreen').style.display='flex';
+}
+
+function showStartScreen(){
+  game.running = false;
+  game.paused = false;
+  document.getElementById('modeScreen').style.display='none';
+  document.getElementById('gameOverScreen').style.display='none';
+  document.getElementById('inventoryPanel').style.display='none';
+  document.getElementById('classicSettingsScreen').style.display='none';
+  document.getElementById('fortressSettingsScreen').style.display='none';
+  _activeSettingsScreen=null;
+  document.getElementById('startScreen').style.display='flex';
+  updateSettingsBtnVisibility();
+}
+
+function launchMode(mode){
+  document.getElementById('modeScreen').style.display='none';
+  startGame(mode);
+}
+
+function startGame(mode){
+  document.getElementById('startScreen').style.display='none';
+  document.getElementById('gameOverScreen').style.display='none';
+  document.getElementById('levelUpScreen').style.display='none';
+  document.getElementById('inventoryPanel').style.display='none';
+  document.getElementById('classicSettingsScreen').style.display='none';
+  document.getElementById('fortressSettingsScreen').style.display='none';
+  _activeSettingsScreen=null;
+  initGame(mode || 'classic');
+  game.running=true;
+  game.paused=false;
+  updateSettingsBtnVisibility();
+}
+
+function gameOver(){
+  game.running=false;
+  document.getElementById('inventoryPanel').style.display='none';
+  document.getElementById('levelUpScreen').style.display='none';
+  document.getElementById('classicSettingsScreen').style.display='none';
+  document.getElementById('fortressSettingsScreen').style.display='none';
+  _activeSettingsScreen=null;
+  const m=Math.floor(game.time/60),s=Math.floor(game.time%60);
+  document.getElementById('goStats').innerHTML=`
+    <div>Time Survived: <span>${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}</span></div>
+    <div>Enemies Killed: <span>${game.kills}</span></div>
+    <div>Level Reached: <span>${game.player.level}</span></div>
+  `;
+  document.getElementById('gameOverScreen').style.display='flex';
+  updateSettingsBtnVisibility();
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    e.preventDefault();
+    if(_activeSettingsScreen){ closeSettings(); return; }
+    const inv=document.getElementById('inventoryPanel'); if(inv.style.display==='flex'){ closeInventory(); return; }
+    return;
+  }
+  if(e.key==='Tab'){e.preventDefault(); const inv=document.getElementById('inventoryPanel'); if(inv.style.display==='flex') closeInventory(); else openInventory(); return;}
+  if(e.key==='r'||e.key==='R'){ if(game.player&&game.player.weapons){ for(const w of game.player.weapons) startReload(w); } e.preventDefault(); return; }
+  if(e.key==='1'){ setActiveSlot(game.mode==='fortress'?'main':'light');   e.preventDefault(); return; }
+  if(e.key==='2'){ setActiveSlot(game.mode==='fortress'?'secondary':'medium'); e.preventDefault(); return; }
+  if(e.key==='3'){ if(game.mode!=='fortress') setActiveSlot('heavy'); e.preventDefault(); return; }
+  game.keys[e.key]=true; e.preventDefault();
+});
+document.addEventListener('keyup',e=>{game.keys[e.key]=false;});
+
+const mouse = {x:400, y:300};
+canvas.addEventListener('mousemove', e=>{
+  const rect = canvas.getBoundingClientRect();
+  mouse.x = (e.clientX - rect.left) * (W / rect.width);
+  mouse.y = (e.clientY - rect.top) * (H / rect.height);
+});
+canvas.addEventListener('mousedown', e=>{ if(e.button===0) game.mouseDown=true; if(e.button===2){ e.preventDefault(); game.rightMouseDown=true; } });
+canvas.addEventListener('mouseup',   e=>{ if(e.button===0) game.mouseDown=false; if(e.button===2) game.rightMouseDown=false; });
+canvas.addEventListener('mouseleave',e=>{ game.mouseDown=false; game.rightMouseDown=false; });
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+document.addEventListener('contextmenu',e=>e.preventDefault());
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
