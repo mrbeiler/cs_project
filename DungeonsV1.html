@@ -1,0 +1,872 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Dungeon Game</title>
+<style>
+  :root{
+    --bg:#0b0f14;
+    --panel:#0f1720;
+    --text:#e6eef6;
+    --accent:#7bd389;
+  }
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#071018 0%, #0b0f14 100%);font-family:Inter,system-ui,Segoe UI,Roboto,Arial;color:var(--text);}
+  #gameWrap{display:flex;gap:12px;padding:12px;box-sizing:border-box;height:100%;}
+  #leftPanel{width:760px;background:linear-gradient(180deg,#071018,#0b1220);border-radius:8px;padding:8px;box-shadow:0 6px 20px rgba(0,0,0,.6);position:relative;}
+  canvas{background:linear-gradient(180deg,#071018,#08121a);display:block;border-radius:6px;width:100%;height:600px;}
+  #rightPanel{flex:1;min-width:260px;background:var(--panel);border-radius:8px;padding:12px;box-shadow:0 6px 20px rgba(0,0,0,.6);display:flex;flex-direction:column;gap:10px;}
+  .stat{background:rgba(255,255,255,0.03);padding:8px;border-radius:6px;}
+  .row{display:flex;justify-content:space-between;align-items:center;}
+  .small{font-size:13px;color:#bcd3e6;}
+  .big{font-size:18px;font-weight:600;}
+  #armory{position:absolute;left:12px;top:12px;background:rgba(0,0,0,0.45);padding:6px 10px;border-radius:6px;font-size:13px;}
+  #armoryHint{font-size:12px;color:#9fb7d0;margin-top:6px;}
+  .inventorySlot{display:flex;gap:6px;align-items:center;margin-top:8px;}
+  .itemBox{width:44px;height:44px;border-radius:6px;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;font-size:12px;color:#dfeefc;position:relative;}
+  .tier-common{box-shadow:0 0 0 2px rgba(255,255,255,0.03) inset;}
+  .tier-rare{box-shadow:0 0 0 2px rgba(66,153,225,0.12) inset;border:2px solid rgba(66,153,225,0.12);}
+  .tier-epic{box-shadow:0 0 0 2px rgba(153,50,204,0.12) inset;border:2px solid rgba(153,50,204,0.12);}
+  .tier-legend{box-shadow:0 0 0 2px rgba(255,184,28,0.12) inset;border:2px solid rgba(255,184,28,0.12);}
+  #armoryOverlay{position:absolute;inset:0;background:rgba(0,0,0,0.6);display:none;align-items:center;justify-content:center;}
+  #armoryPanel{background:#071827;padding:16px;border-radius:8px;width:420px;color:var(--text);}
+  .btn{background:linear-gradient(180deg,#1b2b34,#0f1b22);padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.03);cursor:pointer;color:var(--text);}
+  .btn-small{padding:4px 8px;font-size:12px;margin-left:6px;}
+  #pauseText{position:absolute;right:12px;top:12px;color:#9fb7d0;font-size:13px;}
+  #overlayDeath{position:absolute;inset:0;background:rgba(0,0,0,0.75);display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;}
+  #overlayDeath h1{color:#ff6b6b;margin:0;font-size:36px;}
+  #overlayDeath p{color:#cbdaf0;margin:0;}
+  .weaponVis{position:absolute;transform-origin:left center;}
+  .monsterLabel{position:absolute;background:rgba(0,0,0,0.5);padding:2px 6px;border-radius:4px;font-size:12px;}
+  footer.small{font-size:12px;color:#8fa7c2;margin-top:auto;}
+  /* simple responsive */
+  @media (max-width:980px){#leftPanel{width:100%}#gameWrap{flex-direction:column;padding:8px;}canvas{height:480px}}
+</style>
+</head>
+<body>
+<div id="gameWrap">
+  <div id="leftPanel">
+    <div id="armory">Armory (E)</div>
+    <div id="pauseText">Playing</div>
+    <canvas id="gameCanvas" width="760" height="600"></canvas>
+    <div id="armoryOverlay">
+      <div id="armoryPanel">
+        <div class="row"><div class="big">Armory</div><div><button id="closeArmory" class="btn">Close (E)</button></div></div>
+        <div class="small" id="armoryHint">Equip drops here. Game is paused while armory is open.</div>
+        <div style="margin-top:8px;" class="row">
+          <div class="small">Gold: <span id="goldDisplay">0</span></div>
+          <div class="small">Equipped</div>
+        </div>
+        <div style="margin-top:6px;">
+          <div class="inventorySlot">
+            <div id="equipWeapon" class="itemBox tier-common">W</div>
+            <div id="equipArmor" class="itemBox tier-common">A</div>
+            <div style="margin-left:8px;">
+              <div class="small">Stats</div>
+              <div id="equipStats" class="small">No items</div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:12px;">
+          <div class="small">Loot (click Equip or Sell)</div>
+          <div id="lootList" style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;"></div>
+        </div>
+      </div>
+    </div>
+    <div id="overlayDeath">
+      <h1>You Died</h1>
+      <p id="deathMsg">You reached level 1</p>
+      <button id="restartBtn" class="btn">Restart</button>
+    </div>
+  </div>
+
+  <div id="rightPanel">
+    <div class="stat">
+      <div class="row"><div class="big">Player</div><div class="small">Level <span id="levelNum">1</span></div></div>
+      <div class="row"><div class="small">HP</div><div class="small" id="hpText">100 / 100</div></div>
+      <div class="row"><div class="small">XP</div><div class="small" id="xpText">0</div></div>
+      <div style="margin-top:8px;">
+        <div class="small">Controls</div>
+        <div class="small">Move: WASD or Arrow keys • Attack: Space • Armory: E</div>
+      </div>
+    </div>
+
+    <div class="stat">
+      <div class="big">Enemies</div>
+      <div class="small" id="enemyCount">0 alive</div>
+      <div style="margin-top:8px;">
+        <div class="small">Next miniboss at level <span id="nextMini">10</span></div>
+      </div>
+    </div>
+
+    <div class="stat">
+      <div class="big">Equipped</div>
+      <div class="small" id="equippedDesc">None</div>
+    </div>
+
+    <footer class="small">Color tiers: <span style="color:#cbdff6">Common</span>, <span style="color:#66a3ff">Rare</span>, <span style="color:#b36bff">Epic</span>, <span style="color:#ffcf5c">Legendary</span></footer>
+  </div>
+</div>
+
+<script>
+/* Dungeon game core
+   - Canvas-based top-down mini-dungeon
+   - Adjustments requested:
+     * stop enemy spawning mid-level
+     * fix weapon pickup mechanic
+     * armory only opens with E; equipping swaps items back into inventory; sell option
+   - Only the requested changes were made
+*/
+
+// --- Utilities
+const rand = (a,b)=>Math.random()*(b-a)+a;
+const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+const dist = (a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+
+// --- Tier definitions
+const TIERS = [
+  {name:'Common', key:'common', color:'#cbdff6', dropRate:0.6, multiplier:1},
+  {name:'Rare', key:'rare', color:'#66a3ff', dropRate:0.25, multiplier:1.25},
+  {name:'Epic', key:'epic', color:'#b36bff', dropRate:0.1, multiplier:1.6},
+  {name:'Legendary', key:'legend', color:'#ffcf5c',dropRate:0.05, multiplier:2.2}
+];
+function pickTier(minTierIndex=0){
+  let total = 0;
+  for(let i=minTierIndex;i<TIERS.length;i++) total += TIERS[i].dropRate;
+  let r = Math.random() * total;
+  let cum = 0;
+  for(let i=minTierIndex;i<TIERS.length;i++){
+    cum += TIERS[i].dropRate;
+    if(r <= cum) return i;
+  }
+  return TIERS.length-1;
+}
+
+// --- Weapon templates
+const WEAPON_TEMPLATES = [
+  {id:'dagger',name:'Dagger',type:'melee',range:40,damage:8,recharge:0.5},
+  {id:'sword',name:'Sword',type:'melee',range:60,damage:12,recharge:0.9},
+  {id:'halberd',name:'Halberd',type:'melee',range:90,damage:18,recharge:1.4},
+  {id:'bow',name:'Shortbow',type:'ranged',range:220,damage:10,recharge:1.8,projectileSpeed:420},
+  {id:'cross',name:'Crossbow',type:'ranged',range:300,damage:18,recharge:2.6,projectileSpeed:360},
+  {id:'wand',name:'Wand',type:'ranged',range:260,damage:14,recharge:2.2,projectileSpeed:480}
+];
+
+// Armor templates
+const ARMOR_TEMPLATES = [
+  {id:'cloth',name:'Cloth',def:0},
+  {id:'leather',name:'Leather',def:4},
+  {id:'chain',name:'Chain',def:8},
+  {id:'plate',name:'Plate',def:14}
+];
+
+// --- Game state
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let W = canvas.width, H = canvas.height;
+
+const state = {
+  level:1,
+  xp:0,
+  player:null,
+  enemies:[],
+  projectiles:[],
+  loot:[],
+  playing:true,
+  paused:false,
+  inArmory:false,
+  lastSpawnTime:0,
+  spawnInterval:2000,
+  enemyCount:0,
+  maxEnemies:0,
+  spawningAllowed:false,
+  doorUnlocked:false,
+  doorPos: {x: W/2, y: 28, w: 80, h: 14},
+  gold: 0
+};
+
+// --- Player
+function createPlayer(){
+  return {
+    x: W/2, y: H/2, r:14,
+    hp:100, maxHp:100,
+    speed:160,
+    dir:{x:0,y:0},
+    facing: {x:1,y:0},
+    weapon: null,
+    armor: null,
+    lastAttack:0,
+    alive:true
+  };
+}
+
+// --- Items
+function makeWeaponFromTemplate(tpl, tierIndex){
+  const tier = TIERS[tierIndex];
+  return {
+    id: tpl.id + '_' + tier.key + '_' + Math.floor(Math.random()*10000),
+    name: tpl.name,
+    type: tpl.type,
+    range: tpl.range,
+    damage: Math.round(tpl.damage * tier.multiplier),
+    recharge: Math.max(0.12, tpl.recharge / tier.multiplier),
+    projectileSpeed: tpl.projectileSpeed || 0,
+    tier: tierIndex,
+    color: tier.color,
+    template: tpl
+  };
+}
+function makeArmorFromTemplate(tpl, tierIndex){
+  const tier = TIERS[tierIndex];
+  return {
+    id: tpl.id + '_' + tier.key + '_' + Math.floor(Math.random()*10000),
+    name: tpl.name,
+    def: Math.round(tpl.def * tier.multiplier),
+    tier: tierIndex,
+    color: TIERS[tierIndex].color
+  };
+}
+
+// --- Spawn logic
+function spawnEnemy(isMiniboss=false){
+  // ensure spawn inside the playable boundary (no offscreen spawns)
+  let x = rand(40, W-40), y = rand(40, H-40);
+  // clamp to safe area
+  x = clamp(x, 20, W-20);
+  y = clamp(y, 20, H-20);
+
+  // make first level a little easier: reduce base HP slightly and slower speed
+  const levelHpBase = (state.level === 1) ? 12 : 20;
+  const baseHp = levelHpBase + state.level*6 + (isMiniboss? state.level*8 : 0);
+  const speedBase = (state.level === 1) ? 50 : 60;
+  const speed = clamp(speedBase + state.level*3 - (isMiniboss?10:0), 40, 220);
+
+  const weaponTpl = WEAPON_TEMPLATES[Math.floor(Math.random()*WEAPON_TEMPLATES.length)];
+  const hasWeapon = Math.random() < 0.6 || isMiniboss;
+
+  // bias tier upward as levels progress: every 5 levels increase minimum tier
+  const minTierIndex = Math.min(Math.floor(state.level / 5), 2);
+  const tierIndex = isMiniboss ? Math.min(TIERS.length-1, pickTier(Math.max(1, minTierIndex+1))) : pickTier(minTierIndex);
+
+  const weapon = hasWeapon ? makeWeaponFromTemplate(weaponTpl, tierIndex) : null;
+  const armorTpl = ARMOR_TEMPLATES[Math.floor(Math.random()*ARMOR_TEMPLATES.length)];
+  const armor = Math.random() < 0.35 ? makeArmorFromTemplate(armorTpl, Math.max(0, tierIndex-1)) : null;
+  const enemy = {
+    id: 'e'+Math.floor(Math.random()*999999),
+    x,y,r:16,
+    hp: baseHp,
+    maxHp: baseHp,
+    speed,
+    weapon,
+    armor,
+    lastAttack:0,
+    isMiniboss,
+    color: isMiniboss ? '#ff8b6b' : '#d6e6ff'
+  };
+  state.enemies.push(enemy);
+  state.enemyCount = state.enemies.length;
+}
+
+// --- Drops
+function dropLoot(x,y,weapon=null,armor=null){
+  if(weapon) state.loot.push({type:'weapon',item:weapon,x,y,id:'loot'+Math.floor(Math.random()*99999), inInventory:false});
+  if(armor) state.loot.push({type:'armor',item:armor,x,y,id:'loot'+Math.floor(Math.random()*99999), inInventory:false});
+}
+
+// --- Input
+const keys = {};
+window.addEventListener('keydown',e=>{
+  keys[e.key.toLowerCase()] = true;
+  // Armory only opens/closes with E keypress
+  if(e.key === 'e' || e.key === 'E'){ toggleArmory(); }
+  if(e.code === 'Space'){ e.preventDefault(); playerAttack(); }
+});
+window.addEventListener('keyup',e=>{ keys[e.key.toLowerCase()] = false; });
+
+// --- Armory UI
+const armoryOverlay = document.getElementById('armoryOverlay');
+const lootList = document.getElementById('lootList');
+const equipWeaponBox = document.getElementById('equipWeapon');
+const equipArmorBox = document.getElementById('equipArmor');
+const equipStats = document.getElementById('equipStats');
+const equippedDesc = document.getElementById('equippedDesc');
+const goldDisplay = document.getElementById('goldDisplay');
+document.getElementById('closeArmory').addEventListener('click', toggleArmory);
+
+function toggleArmory(){
+  state.inArmory = !state.inArmory;
+  state.paused = state.inArmory;
+  armoryOverlay.style.display = state.inArmory ? 'flex' : 'none';
+  document.getElementById('pauseText').textContent = state.paused ? 'Paused' : 'Playing';
+  refreshArmoryUI();
+}
+
+function refreshArmoryUI(){
+  // update gold display
+  goldDisplay.textContent = state.gold;
+
+  // populate loot list with equip and sell buttons
+  lootList.innerHTML = '';
+  state.loot.forEach((l, idx)=>{
+    if(!l || !l.item) return;
+    // only show inventory items (inInventory true)
+    if(!l.inInventory) return;
+    const container = document.createElement('div');
+    container.style.display = 'flex';
+    container.style.alignItems = 'center';
+    container.style.gap = '6px';
+
+    const div = document.createElement('div');
+    div.className = 'itemBox ' + tierClass(l.item.tier);
+    div.style.cursor = 'default';
+    div.title = (l.type==='weapon'?l.item.name+' (Weapon)':'Armor: '+l.item.name);
+    div.textContent = l.type==='weapon' ? 'W' : 'A';
+
+    const info = document.createElement('div');
+    info.style.fontSize = '12px';
+    info.style.color = '#dfeefc';
+    info.textContent = `${l.item.name} (${TIERS[l.item.tier].name})`;
+
+    const btnEquip = document.createElement('button');
+    btnEquip.className = 'btn btn-small';
+    btnEquip.textContent = 'Equip';
+    btnEquip.onclick = ()=>{ equipLoot(l); };
+
+    const btnSell = document.createElement('button');
+    btnSell.className = 'btn btn-small';
+    btnSell.textContent = 'Sell';
+    btnSell.onclick = ()=>{ sellLoot(l); };
+
+    container.appendChild(div);
+    container.appendChild(info);
+    container.appendChild(btnEquip);
+    container.appendChild(btnSell);
+
+    lootList.appendChild(container);
+  });
+
+  // equipped boxes
+  equipWeaponBox.className = 'itemBox ' + (state.player.weapon ? tierClass(state.player.weapon.tier) : 'tier-common');
+  equipWeaponBox.textContent = state.player.weapon ? 'W' : 'W';
+  equipArmorBox.className = 'itemBox ' + (state.player.armor ? tierClass(state.player.armor.tier) : 'tier-common');
+  equipArmorBox.textContent = state.player.armor ? 'A' : 'A';
+  equipStats.textContent = state.player.weapon || state.player.armor ? describeEquips() : 'No items';
+  equippedDesc.textContent = state.player.weapon ? `${state.player.weapon.name} (${TIERS[state.player.weapon.tier].name})` : 'No weapon';
+  if(state.player.armor) equippedDesc.textContent += ' • ' + state.player.armor.name + ` (${TIERS[state.player.armor.tier].name})`;
+}
+
+function tierClass(tierIndex){
+  if(tierIndex>=3) return 'tier-legend';
+  if(tierIndex===2) return 'tier-epic';
+  if(tierIndex===1) return 'tier-rare';
+  return 'tier-common';
+}
+
+// When equipping, swap the currently equipped item back into inventory (state.loot)
+function equipLoot(loot){
+  if(!loot || !loot.item) return;
+  // swap logic
+  if(loot.type === 'weapon'){
+    if(state.player.weapon){
+      const old = state.player.weapon;
+      state.loot.unshift({type:'weapon', item: old, x: null, y: null, id:'inv'+Math.floor(Math.random()*99999), inInventory:true});
+    }
+    state.player.weapon = loot.item;
+  } else {
+    if(state.player.armor){
+      const old = state.player.armor;
+      state.loot.unshift({type:'armor', item: old, x: null, y: null, id:'inv'+Math.floor(Math.random()*99999), inInventory:true});
+    }
+    state.player.armor = loot.item;
+  }
+  // remove the equipped loot entry from inventory
+  state.loot = state.loot.filter(l=>l.id !== loot.id);
+  refreshArmoryUI();
+}
+
+// Sell removes item and grants gold based on tier and basic stat
+function sellLoot(loot){
+  if(!loot || !loot.item) return;
+  // compute sell value
+  let value = 0;
+  if(loot.type === 'weapon'){
+    value = (loot.item.tier + 1) * 12 + Math.round(loot.item.damage * 0.6);
+  } else {
+    value = (loot.item.tier + 1) * 10 + Math.round((loot.item.def || 0) * 1.2);
+  }
+  state.gold += value;
+  // remove from inventory
+  state.loot = state.loot.filter(l=>l.id !== loot.id);
+  refreshArmoryUI();
+}
+
+// --- Combat
+function playerAttack(){
+  const p = state.player;
+  if(!p.alive) return;
+  const now = performance.now()/1000;
+  const w = p.weapon;
+  if(!w) return;
+  if(now - p.lastAttack < w.recharge) return;
+  p.lastAttack = now;
+  if(w.type === 'melee'){
+    const range = w.range;
+    state.projectiles.push({type:'meleeAnim',x:p.x,y:p.y,range,life:0.18,owner:'player',weapon:w});
+    state.enemies.forEach(e=>{
+      if(dist(p,e) <= range + e.r){
+        applyDamage(e, w.damage);
+      }
+    });
+  } else {
+    const dir = normalize(p.facing);
+    const speed = w.projectileSpeed || 360;
+    state.projectiles.push({type:'proj',x:p.x+dir.x*(p.r+6),y:p.y+dir.y*(p.r+6),vx:dir.x*speed,vy:dir.y*speed,owner:'player',weapon:w,life:4});
+  }
+}
+
+function normalize(v){ const m=Math.hypot(v.x||0,v.y||0)||1; return {x:(v.x||0)/m,y:(v.y||0)/m}; }
+
+function applyDamage(target, dmg){
+  const def = target.armor ? target.armor.def : 0;
+  const net = Math.max(1, dmg - Math.round(def*0.2));
+  target.hp -= net;
+  target._hitFlash = 0.18;
+  if(target.hp <= 0){
+    const dropChance = 0.45 + (target.isMiniboss?0.35:0);
+    if(Math.random() < dropChance){
+      const tierIndex = target.isMiniboss ? pickTier(2) : pickTier(0);
+      const wtpl = WEAPON_TEMPLATES[Math.floor(Math.random()*WEAPON_TEMPLATES.length)];
+      const atpl = ARMOR_TEMPLATES[Math.floor(Math.random()*ARMOR_TEMPLATES.length)];
+      const w = Math.random() < 0.7 ? makeWeaponFromTemplate(wtpl,tierIndex) : null;
+      const a = Math.random() < 0.5 ? makeArmorFromTemplate(atpl, Math.max(0,tierIndex-1)) : null;
+      dropLoot(target.x, target.y, w, a);
+    }
+    state.xp += Math.round(target.maxHp/4) + (target.isMiniboss?50:0);
+    state.enemies = state.enemies.filter(e=>e.id!==target.id);
+    state.enemyCount = state.enemies.length;
+  }
+}
+
+// --- Enemy AI and attacks
+function enemyTryAttack(enemy, dt){
+  if(!enemy.weapon) return;
+  const now = performance.now()/1000;
+  const p = state.player;
+  const d = Math.hypot(p.x-enemy.x,p.y-enemy.y);
+  if(d <= enemy.weapon.range + p.r + enemy.r){
+    if(now - enemy.lastAttack >= enemy.weapon.recharge){
+      enemy.lastAttack = now;
+      if(enemy.weapon.type === 'melee'){
+        state.projectiles.push({type:'meleeAnim',x:enemy.x,y:enemy.y,range:enemy.weapon.range,life:0.18,owner:'enemy',weapon:enemy.weapon});
+        if(Math.hypot(p.x-enemy.x,p.y-enemy.y) <= enemy.weapon.range + p.r){
+          applyDamageToPlayer(enemy.weapon.damage);
+        }
+      } else {
+        const dir = normalize({x:p.x-enemy.x,y:p.y-enemy.y});
+        const speed = enemy.weapon.projectileSpeed || 320;
+        state.projectiles.push({type:'proj',x:enemy.x+dir.x*(enemy.r+6),y:enemy.y+dir.y*(enemy.r+6),vx:dir.x*speed,vy:dir.y*speed,owner:'enemy',weapon:enemy.weapon,life:4});
+      }
+    }
+  }
+}
+
+function applyDamageToPlayer(dmg){
+  const def = state.player.armor ? state.player.armor.def : 0;
+  const net = Math.max(1, dmg - Math.round(def*0.2));
+  state.player.hp -= net;
+  state.player._hitFlash = 0.25;
+  if(state.player.hp <= 0){
+    state.player.alive = false;
+    showDeath();
+  }
+}
+
+// --- Projectiles update
+function updateProjectiles(dt){
+  for(let i=state.projectiles.length-1;i>=0;i--){
+    const pr = state.projectiles[i];
+    pr.life -= dt;
+    if(pr.type === 'proj'){
+      pr.x += pr.vx * dt;
+      pr.y += pr.vy * dt;
+      if(pr.owner === 'player'){
+        for(const e of state.enemies){
+          if(Math.hypot(e.x-pr.x,e.y-pr.y) <= e.r+6){
+            applyDamage(e, pr.weapon.damage);
+            state.projectiles.splice(i,1);
+            break;
+          }
+        }
+      } else {
+        const p = state.player;
+        if(Math.hypot(p.x-pr.x,p.y-pr.y) <= p.r+6){
+          applyDamageToPlayer(pr.weapon.damage);
+          state.projectiles.splice(i,1);
+        }
+      }
+    } else if(pr.type === 'meleeAnim'){
+      // visual only
+    }
+    if(pr && pr.life <= 0) state.projectiles.splice(i,1);
+  }
+}
+
+// --- Level progression and spawning
+function nextLevel(){
+  // heal player fully between levels
+  state.level++;
+  document.getElementById('levelNum').textContent = state.level;
+  state.player.hp = state.player.maxHp;
+  spawnWave();
+}
+
+function spawnWave(){
+  // base set amount: 3 at start; occasionally add monsters as levels progress
+  const base = 3;
+  const extra = Math.floor(state.level / 3); // every 3 levels add one extra
+  // make first level a little easier by reducing one enemy
+  const count = (state.level === 1) ? Math.max(1, base + extra - 1) : base + extra;
+  const miniboss = (state.level % 10 === 0);
+
+  // set maxEnemies for the level and spawn the fixed set
+  state.maxEnemies = count + (miniboss ? 1 : 0);
+
+  // spawn initial fixed set inside bounds (no mid-level spawning)
+  for(let i=0;i<count;i++){
+    spawnEnemy(false);
+  }
+  if(miniboss) spawnEnemy(true);
+
+  // after initial spawn, disable further spawning for this level
+  state.spawningAllowed = false;
+
+  state.enemyCount = state.enemies.length;
+  document.getElementById('nextMini').textContent = Math.ceil((Math.floor(state.level/10)+1)*10);
+  state.doorUnlocked = false;
+}
+
+function onAllEnemiesCleared(){
+  state.spawningAllowed = false;
+  state.doorUnlocked = true;
+}
+
+// --- Death and restart
+const overlayDeath = document.getElementById('overlayDeath');
+const deathMsg = document.getElementById('deathMsg');
+document.getElementById('restartBtn').addEventListener('click', restartGame);
+
+function showDeath(){
+  state.playing = false;
+  overlayDeath.style.display = 'flex';
+  deathMsg.textContent = `You reached level ${state.level}`;
+}
+
+function restartGame(){
+  overlayDeath.style.display = 'none';
+  initGame();
+}
+
+// --- Rendering
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#071018';
+  ctx.fillRect(0,0,W,H);
+
+  // draw loot (only world items, not inventory)
+  state.loot.forEach(l=>{
+    if(!l || !l.item) return;
+    if(l.inInventory) return; // don't draw inventory items
+    ctx.save();
+    ctx.translate(l.x,l.y);
+    ctx.fillStyle = l.item.color || '#fff';
+    ctx.beginPath(); ctx.arc(0,0,8,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#071018'; ctx.font='10px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(l.type==='weapon'?'W':'A',0,0);
+    ctx.restore();
+  });
+
+  // draw enemies
+  state.enemies.forEach(e=>{
+    ctx.save();
+    ctx.translate(e.x,e.y);
+    ctx.fillStyle = e.color;
+    ctx.beginPath(); ctx.arc(0,0,e.r,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(-20,-e.r-12,40,6);
+    ctx.fillStyle = '#ff6b6b'; ctx.fillRect(-20,-e.r-12,40*(e.hp/e.maxHp),6);
+    if(e.weapon){
+      ctx.fillStyle = e.weapon.color;
+      const angle = Math.atan2(state.player.y-e.y, state.player.x-e.x);
+      ctx.save();
+      ctx.rotate(angle);
+      ctx.fillRect(e.r+2,-4, e.weapon.type==='melee'? e.weapon.range*0.12 : 18, 8);
+      ctx.restore();
+    }
+    if(e.armor){
+      ctx.strokeStyle = e.armor.color; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(0,0,e.r+6,0,Math.PI*2); ctx.stroke();
+    }
+    if(e._hitFlash && e._hitFlash>0){
+      ctx.fillStyle = 'rgba(255,255,255,0.12)'; ctx.beginPath(); ctx.arc(0,0,e.r+6,0,Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
+  });
+
+  // draw projectiles and animations
+  state.projectiles.forEach(pr=>{
+    if(pr.type === 'proj'){
+      ctx.save();
+      ctx.translate(pr.x,pr.y);
+      ctx.fillStyle = pr.weapon.color || '#fff';
+      ctx.beginPath(); ctx.arc(0,0,6,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    } else if(pr.type === 'meleeAnim'){
+      ctx.save();
+      ctx.translate(pr.x,pr.y);
+      ctx.strokeStyle = pr.weapon.color || '#fff';
+      ctx.lineWidth = 6;
+      ctx.globalAlpha = Math.max(0, pr.life/0.18);
+      ctx.beginPath();
+      ctx.arc(0,0,pr.range,0,Math.PI*2);
+      ctx.stroke();
+      ctx.restore();
+    }
+  });
+
+  // draw player
+  const p = state.player;
+  ctx.save();
+  ctx.translate(p.x,p.y);
+  ctx.fillStyle = '#9fd3ff';
+  ctx.beginPath(); ctx.arc(0,0,p.r,0,Math.PI*2); ctx.fill();
+  if(p.weapon){
+    ctx.save();
+    const ang = Math.atan2(p.facing.y,p.facing.x);
+    ctx.rotate(ang);
+    ctx.fillStyle = p.weapon.color;
+    if(p.weapon.type === 'melee'){
+      const len = clamp(p.weapon.range*0.12, 18, 90);
+      ctx.fillRect(p.r, -6, len, 12);
+    } else {
+      ctx.fillRect(p.r, -6, 18, 12);
+    }
+    ctx.restore();
+  }
+  if(p.armor){
+    ctx.strokeStyle = p.armor.color; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(0,0,p.r+8,0,Math.PI*2); ctx.stroke();
+  }
+  if(p._hitFlash && p._hitFlash>0){
+    ctx.fillStyle = 'rgba(255,0,0,0.12)'; ctx.beginPath(); ctx.arc(0,0,p.r+8,0,Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+
+  // draw door
+  const d = state.doorPos;
+  ctx.save();
+  ctx.fillStyle = state.doorUnlocked ? 'rgba(120,220,140,0.95)' : 'rgba(120,120,140,0.9)';
+  ctx.fillRect(d.x - d.w/2, d.y - d.h/2, d.w, d.h);
+  ctx.strokeStyle = '#071018';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(d.x - d.w/2, d.y - d.h/2, d.w, d.h);
+  ctx.fillStyle = '#071018';
+  ctx.font = '12px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(state.doorUnlocked ? 'Door (Unlocked)' : 'Door (Locked)', d.x, d.y);
+  ctx.restore();
+
+  // HUD small
+  ctx.fillStyle = 'rgba(255,255,255,0.04)';
+  ctx.fillRect(8, H-48, 220, 36);
+  ctx.fillStyle = '#dfeefc';
+  ctx.font = '14px sans-serif';
+  ctx.fillText(`HP: ${Math.max(0,Math.round(p.hp))} / ${p.maxHp}`, 16, H-26);
+  ctx.fillText(`Level: ${state.level}  XP: ${state.xp}`, 140, H-26);
+}
+
+// --- Game loop
+let lastTime = performance.now();
+function loop(now){
+  const dt = Math.min(0.05, (now - lastTime)/1000);
+  lastTime = now;
+  if(state.playing && !state.paused){
+    update(dt);
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// --- Update
+function update(dt){
+  const p = state.player;
+  let vx=0, vy=0;
+  if(keys['w']||keys['arrowup']) vy -= 1;
+  if(keys['s']||keys['arrowdown']) vy += 1;
+  if(keys['a']||keys['arrowleft']) vx -= 1;
+  if(keys['d']||keys['arrowright']) vx += 1;
+  const m = Math.hypot(vx,vy) || 1;
+  p.x += (vx/m) * p.speed * dt;
+  p.y += (vy/m) * p.speed * dt;
+  p.x = clamp(p.x, 20, W-20);
+  p.y = clamp(p.y, 20, H-20);
+  if(vx!==0 || vy!==0) p.facing = {x:vx, y:vy};
+
+  // pickup loot by walking over it (no auto-open)
+  for(let i=state.loot.length-1;i>=0;i--){
+    const l = state.loot[i];
+    if(!l || !l.item) continue;
+    if(l.inInventory) continue;
+    const dx = l.x - p.x, dy = l.y - p.y;
+    if(Math.hypot(dx,dy) <= 18){
+      // mark as inventory item and remove world position
+      l.inInventory = true;
+      l.x = null;
+      l.y = null;
+      // move to front of loot list so it appears first in armory
+      state.loot.splice(i,1);
+      state.loot.unshift(l);
+      // do NOT auto-open armory; armory opens only with E
+    }
+  }
+
+  // enemies move toward player and stay within bounds
+  state.enemies.forEach(e=>{
+    const dir = normalize({x:p.x-e.x,y:p.y-e.y});
+    e.x += dir.x * e.speed * dt;
+    e.y += dir.y * e.speed * dt;
+    // clamp enemy position so they cannot go outside boundary
+    e.x = clamp(e.x, 20, W-20);
+    e.y = clamp(e.y, 20, H-20);
+    enemyTryAttack(e, dt);
+    if(e._hitFlash) e._hitFlash = Math.max(0, e._hitFlash - dt);
+  });
+
+  // projectiles
+  updateProjectiles(dt);
+
+  // player hit flash
+  if(p._hitFlash) p._hitFlash = Math.max(0, p._hitFlash - dt);
+
+  // spawn logic: disabled mid-level by design (spawningAllowed remains false after initial spawn)
+  state.lastSpawnTime += dt*1000;
+  if(state.spawningAllowed && state.lastSpawnTime > state.spawnInterval){
+    state.lastSpawnTime = 0;
+    if(state.enemies.length < state.maxEnemies){
+      spawnEnemy(false);
+    }
+  }
+
+  // if all enemies cleared, unlock door (only once)
+  if(state.enemies.length === 0 && !state.doorUnlocked){
+    onAllEnemiesCleared();
+  }
+
+  // check player entering door to advance level
+  const d = state.doorPos;
+  if(state.doorUnlocked){
+    const px = p.x, py = p.y;
+    if(px >= d.x - d.w/2 && px <= d.x + d.w/2 && py >= d.y - d.h/2 && py <= d.y + d.h/2){
+      state.doorUnlocked = false;
+      nextLevel();
+    }
+  }
+
+  // update UI
+  document.getElementById('hpText').textContent = `${Math.max(0,Math.round(p.hp))} / ${p.maxHp}`;
+  document.getElementById('xpText').textContent = `${state.xp}`;
+  document.getElementById('enemyCount').textContent = `${state.enemies.length} alive`;
+  if(state.inArmory) refreshArmoryUI();
+}
+
+// --- Initialization
+let player;
+function initGame(){
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = Math.max(1, Math.floor(rect.width));
+  canvas.height = Math.max(1, Math.floor(rect.height));
+  W = canvas.width;
+  H = canvas.height;
+  state.doorPos = {x: W/2, y: 28, w: 80, h: 18};
+
+  state.level = 1;
+  state.xp = 0;
+  state.enemies = [];
+  state.projectiles = [];
+  state.loot = [];
+  state.playing = true;
+  state.paused = false;
+  state.inArmory = false;
+  state.lastSpawnTime = 0;
+  state.spawnInterval = 2000;
+  state.maxEnemies = 0;
+  state.spawningAllowed = false;
+  state.doorUnlocked = false;
+  state.gold = 0;
+
+  player = createPlayer();
+  state.player = player;
+  player.weapon = makeWeaponFromTemplate(WEAPON_TEMPLATES[1], 0);
+  player.armor = makeArmorFromTemplate(ARMOR_TEMPLATES[0], 0);
+  // start first level by spawning wave
+  spawnWave();
+  document.getElementById('overlayDeath').style.display = 'none';
+  document.getElementById('pauseText').textContent = 'Playing';
+  document.getElementById('levelNum').textContent = state.level;
+  lastTime = performance.now();
+}
+
+// --- Helpers
+function describeEquips(){
+  const parts = [];
+  if(state.player.weapon) parts.push(`${state.player.weapon.name} (${TIERS[state.player.weapon.tier].name}) dmg:${state.player.weapon.damage} r:${state.player.weapon.range}`);
+  if(state.player.armor) parts.push(`${state.player.armor.name} (${TIERS[state.player.armor.tier].name}) def:${state.player.armor.def}`);
+  return parts.join(' • ');
+}
+
+// --- Mouse aim for facing
+canvas.addEventListener('mousemove', e=>{
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) * (canvas.width/rect.width);
+  const my = (e.clientY - rect.top) * (canvas.height/rect.height);
+  const p = state.player;
+  p.facing = {x: mx - p.x, y: my - p.y};
+});
+
+// pickup loot on click (quick) - no auto-open
+canvas.addEventListener('click', e=>{
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) * (canvas.width/rect.width);
+  const my = (e.clientY - rect.top) * (canvas.height/rect.height);
+  for(let i=0;i<state.loot.length;i++){
+    const l = state.loot[i];
+    if(!l) continue;
+    if(l.inInventory) continue;
+    if(Math.hypot(l.x-mx,l.y-my) <= 18){
+      l.inInventory = true;
+      l.x = null;
+      l.y = null;
+      state.loot.splice(i,1);
+      state.loot.unshift(l);
+      // do NOT auto-open armory; armory opens only with E
+      break;
+    }
+  }
+});
+
+// --- Start
+initGame();
+requestAnimationFrame(loop);
+
+// --- Resize handling
+window.addEventListener('resize', ()=>{
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = Math.max(1, Math.floor(rect.width));
+  canvas.height = Math.max(1, Math.floor(rect.height));
+  W = canvas.width;
+  H = canvas.height;
+  state.doorPos = {x: W/2, y: 28, w: 80, h: 18};
+});
+
+</script>
+</body>
+</html>
