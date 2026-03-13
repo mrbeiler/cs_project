@@ -1,7 +1,18 @@
 <!DOCTYPE html>
 <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
-<embed 
-  src="Games\HenryStickmin\escapingtheprisongame.swf"
-  width="800"
-  height="600">
-</embed>
+</head>
+<body>
+
+<div id="game-container"></div>
+
+<script>
+  const ruffle = window.RufflePlayer.newest();
+  const player = ruffle.createPlayer();
+  document.getElementById("game-container").appendChild(player);
+
+  // Use a relative path here
+  player.load("/Games/HenryStickmin/escapingtheprisongame.swf");
+</script>
+
+</body>
+</html>
