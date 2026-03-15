@@ -2216,7 +2216,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='1'){ setActiveSlot(game.mode==='fortress'?'main':'light');   e.preventDefault(); return; }
   if(e.key==='2'){ setActiveSlot(game.mode==='fortress'?'secondary':'medium'); e.preventDefault(); return; }
   if(e.key==='3'){ if(game.mode!=='fortress') setActiveSlot('heavy'); e.preventDefault(); return; }
-  if(e.key===' '){ game.keys[' ']=true; e.preventDefault(); return; }
+  game.keys[e.key]=true; e.preventDefault();
 });
 document.addEventListener('keyup',e=>{game.keys[e.key]=false;});
 
