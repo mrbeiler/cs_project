@@ -1,0 +1,1560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IRONARC — Welding Simulator</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap');
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;user-select:none}
+:root{--ora:#FF7A20;--amb:#FFC444;--grn:#38FF80;--blu:#3AADFF;--red:#FF4040;--txt:#F0ECE4;--mut:#6A6358;--pan:rgba(14,18,26,.94);--bdr:rgba(255,140,50,.26)}
+body{background:#0D1018;color:var(--txt);font-family:'Rajdhani',sans-serif;overflow:hidden;width:100vw;height:100vh}
+canvas#c{display:block;position:fixed;inset:0;z-index:1;cursor:crosshair}
+/* LOADING */
+#loading{position:fixed;inset:0;z-index:500;background:#0F1218;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px}
+.ld-logo{font-family:'Bebas Neue',sans-serif;font-size:108px;letter-spacing:20px;color:var(--ora);text-shadow:0 0 80px rgba(255,122,32,.5),0 8px 0 #5A1F00;animation:lf 3.5s ease infinite}
+.ld-sub{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:7px;color:var(--mut)}
+.ld-bw{width:380px;height:4px;background:rgba(255,122,32,.1);border-radius:2px;overflow:hidden}
+#ld-bar{height:100%;width:0%;background:var(--ora);box-shadow:0 0 16px var(--ora);transition:width .2s}
+#ld-st{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:4px;color:#3A3020}
+@keyframes lf{0%,89%,100%{opacity:1}91%{opacity:.4}93%{opacity:1}96%{opacity:.65}}
+/* MENU */
+#menu{position:fixed;inset:0;z-index:400;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:radial-gradient(ellipse at 28% 58%,#1E1008,#0D1018)}
+#menu::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 47px,rgba(255,122,32,.03) 48px),repeating-linear-gradient(90deg,transparent,transparent 47px,rgba(255,122,32,.03) 48px)}
+.mlogo{font-family:'Bebas Neue',sans-serif;font-size:128px;letter-spacing:22px;color:var(--ora);text-shadow:0 0 100px rgba(255,122,32,.4),0 10px 0 #5A1F00;line-height:1;position:relative}
+.mtag{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:7px;color:var(--mut);position:relative;margin-bottom:8px}
+.btn{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:5px;border:none;padding:14px 64px;cursor:pointer;transition:all .14s;position:relative}
+.btn-p{background:var(--ora);color:#0D1018;clip-path:polygon(12px 0%,100% 0%,calc(100% - 12px) 100%,0%)}
+.btn-p:hover{background:var(--amb);transform:translateY(-2px)}
+.btn-s{background:transparent;color:var(--ora);border:1px solid rgba(255,122,32,.45)}
+.btn-s:hover{background:rgba(255,122,32,.08);border-color:var(--ora)}
+.mkeys{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:3px;color:#2A2218;text-align:center;line-height:2.6;position:relative;margin-top:6px}
+/* HUD */
+#hud{position:fixed;inset:0;z-index:10;display:none;pointer-events:none}
+/* Crosshair */
+#ch{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:18px;height:18px}
+#ch::before,#ch::after{content:'';position:absolute;transition:all .1s}
+#ch::before{width:1.5px;height:100%;left:50%;transform:translateX(-50%);background:rgba(255,235,200,.5)}
+#ch::after{height:1.5px;width:100%;top:50%;transform:translateY(-50%);background:rgba(255,235,200,.5)}
+#ch.w::before,#ch.w::after{background:var(--ora);box-shadow:0 0 10px var(--ora)}
+#ch.g::before,#ch.g::after{background:var(--blu);box-shadow:0 0 10px var(--blu)}
+#ch.s::before,#ch.s::after{background:var(--grn);box-shadow:0 0 12px var(--grn)}
+/* Weld ring */
+#wring{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:80px;height:80px;opacity:0;transition:opacity .18s;pointer-events:none}
+#wring.v{opacity:1}
+.rt{stroke:rgba(255,122,32,.14);fill:none}
+.rf{fill:none;stroke:var(--ora);stroke-linecap:round;stroke-dasharray:200.5;stroke-dashoffset:200.5;filter:drop-shadow(0 0 6px var(--ora));transition:stroke-dashoffset .06s linear}
+/* Interact label */
+#il{position:absolute;top:calc(50% - 66px);left:50%;transform:translateX(-50%);text-align:center;opacity:0;transition:opacity .2s;pointer-events:none}
+#il.v{opacity:1}
+.ilk{display:inline-block;font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:4px;color:var(--amb);background:rgba(0,0,0,.72);border:1px solid rgba(255,196,68,.4);padding:5px 14px}
+.ild{display:block;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:3px;color:var(--mut);margin-top:5px}
+#snap{position:absolute;top:calc(50% + 34px);left:50%;transform:translateX(-50%);font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:5px;color:var(--grn);text-shadow:0 0 14px var(--grn);opacity:0;transition:opacity .12s;pointer-events:none}
+#snap.v{opacity:1}
+/* Objective */
+#obj{position:absolute;top:22px;left:22px;background:var(--pan);border:1px solid var(--bdr);border-left:3px solid var(--ora);padding:14px 18px;min-width:268px;backdrop-filter:blur(14px)}
+.op-lbl{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:5px;color:var(--ora);margin-bottom:4px}
+.op-name{font-size:19px;font-weight:700;line-height:1.15;margin-bottom:2px}
+.op-cl{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:2px;color:var(--mut);margin-bottom:6px}
+.op-ph{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--amb);margin-bottom:6px}
+.op-dots{display:flex;gap:5px;flex-wrap:wrap}
+.jd{width:9px;height:9px;border:1px solid var(--mut);border-radius:50%;transition:all .35s;flex-shrink:0}
+.jd.done{background:var(--grn);border-color:var(--grn);box-shadow:0 0 7px var(--grn)}
+.jd.act{background:var(--amb);border-color:var(--amb);animation:dp .75s ease infinite}
+.pd{font-family:'Share Tech Mono',monospace;font-size:8px;padding:2px 6px;border-radius:2px;border:1px solid;flex-shrink:0}
+.pd.ok{color:var(--grn);border-color:rgba(56,255,128,.4)}
+.pd.nx{color:var(--mut);border-color:rgba(106,99,88,.4)}
+@keyframes dp{0%,100%{opacity:1}50%{opacity:.2}}
+/* Money */
+#money{position:absolute;top:22px;right:22px;background:var(--pan);border:1px solid var(--bdr);border-right:3px solid var(--amb);padding:14px 18px;text-align:right;backdrop-filter:blur(14px)}
+.mp-l{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:4px;color:var(--mut)}
+.mp-v{font-family:'Bebas Neue',sans-serif;font-size:46px;color:var(--amb);letter-spacing:2px;text-shadow:0 0 26px rgba(255,196,68,.28);line-height:1}
+/* Meters */
+#meters{position:absolute;bottom:32px;left:24px;display:flex;flex-direction:column;gap:11px}
+.ml{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:3px;color:var(--mut)}
+.mv{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--txt)}
+.mb{width:196px;height:7px;background:rgba(255,255,255,.07);border:1px solid rgba(255,122,32,.18);border-radius:2px;overflow:hidden;margin-top:3px}
+.mf{height:100%;border-radius:2px;transition:width .07s,background .22s}
+/* Weld seam tracker */
+#stab{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);display:none;flex-direction:column;align-items:center;gap:5px;pointer-events:none}
+#stab.v{display:flex}
+#sg{border:1px solid rgba(255,122,32,.3);border-radius:3px}
+.sl{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:4px;color:var(--ora)}
+#sq{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;color:var(--grn)}
+/* Toolbar */
+#tb{position:absolute;bottom:32px;right:22px;background:var(--pan);border:1px solid var(--bdr);padding:7px 10px;display:flex;gap:6px;backdrop-filter:blur(14px);pointer-events:all}
+.ts{display:flex;flex-direction:column;align-items:center;gap:3px;padding:7px 13px;border:1px solid transparent;border-radius:2px;cursor:pointer;transition:all .12s;min-width:62px}
+.ts.act{border-color:var(--ora);background:rgba(255,122,32,.12)}
+.ts.lk{opacity:.22;pointer-events:none}
+.ts:hover:not(.lk){border-color:rgba(255,122,32,.55)}
+.ti{font-size:20px;line-height:1}
+.tn{font-family:'Share Tech Mono',monospace;font-size:7px;letter-spacing:1px;color:var(--mut)}
+.ts.act .tn{color:var(--amb)}
+/* Carry HUD */
+#carry{position:absolute;top:50%;right:24px;transform:translateY(-50%);background:rgba(58,173,255,.1);border:1px solid rgba(58,173,255,.4);padding:12px 14px;display:none;backdrop-filter:blur(10px)}
+.ch-l{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:4px;color:var(--blu);margin-bottom:4px}
+.ch-n{font-family:'Bebas Neue',sans-serif;font-size:38px;color:var(--blu);line-height:1}
+.ch-nm{font-size:15px;font-weight:700;margin-bottom:6px}
+.ch-h{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:1px;color:var(--mut);line-height:2.2}
+/* Board btn */
+#bdbtn{position:absolute;top:22px;left:50%;transform:translateX(-50%);font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:4px;color:var(--ora);background:var(--pan);border:1px solid var(--bdr);padding:9px 16px;cursor:pointer;backdrop-filter:blur(14px);pointer-events:all;transition:all .14s}
+#bdbtn:hover{background:rgba(255,122,32,.1);border-color:var(--ora)}
+/* Notif */
+#notif{position:absolute;top:80px;left:50%;transform:translateX(-50%);font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:3px;color:var(--ora);background:var(--pan);border:1px solid var(--bdr);padding:8px 22px;white-space:nowrap;opacity:0;transition:opacity .2s;pointer-events:none;z-index:12}
+#notif.sh{opacity:1}
+#asv{position:absolute;top:22px;left:50%;transform:translateX(-50%);font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:5px;color:var(--grn);opacity:0;transition:opacity .3s;pointer-events:none;margin-top:36px}
+#asv.sh{opacity:1}
+#wovr{position:absolute;top:54%;left:50%;transform:translateX(-50%);font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:8px;color:var(--red);text-shadow:0 0 22px var(--red);opacity:0;transition:opacity .15s;pointer-events:none}
+#wovr.sh{opacity:1}
+/* Helmet + arc */
+#helm{position:fixed;inset:0;z-index:15;background:rgba(3,2,1,0);transition:background .12s;pointer-events:none}
+#helm.on{background:rgba(8,5,2,.22)}
+.hv{position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 44%,rgba(0,0,0,.55) 100%)}
+.hs{position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 5px,rgba(0,180,40,.008) 6px)}
+#af{position:fixed;inset:0;z-index:14;pointer-events:none;opacity:0;transition:opacity .04s;background:radial-gradient(ellipse 22% 22% at 50% 50%,rgba(255,180,80,.07),transparent 70%)}
+#af.on{opacity:1}
+/* BOARD */
+#board{position:fixed;inset:0;z-index:200;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.86);backdrop-filter:blur(8px)}
+.bw{background:#141820;border:1px solid var(--bdr);border-top:3px solid var(--ora);width:min(940px,96vw);max-height:92vh;display:flex;flex-direction:column;animation:pop .22s ease}
+@keyframes pop{from{transform:scale(.94) translateY(-10px);opacity:0}to{transform:none;opacity:1}}
+.bhd{display:flex;align-items:center;justify-content:space-between;padding:18px 26px;border-bottom:1px solid rgba(255,122,32,.08)}
+.bt{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:7px;color:var(--ora)}
+.bbal{font-family:'Share Tech Mono',monospace;font-size:14px;color:var(--amb)}
+.bcl{font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:4px;color:var(--mut);background:transparent;border:1px solid var(--mut);padding:7px 14px;cursor:pointer;transition:all .12s}
+.bcl:hover{border-color:var(--txt);color:var(--txt)}
+.btabs{display:flex;border-bottom:1px solid rgba(255,122,32,.08)}
+.btab{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:4px;padding:11px 28px;cursor:pointer;color:var(--mut);border-bottom:2px solid transparent;transition:all .12s}
+.btab.on{color:var(--ora);border-bottom-color:var(--ora)}
+.bb{overflow-y:auto;padding:24px 26px;flex:1}
+.bb::-webkit-scrollbar{width:4px}
+.bb::-webkit-scrollbar-thumb{background:rgba(255,122,32,.35)}
+/* Contract cards */
+.ctl{display:flex;flex-direction:column;gap:11px}
+.cc{border:1px solid rgba(255,122,32,.18);padding:18px 20px;display:flex;justify-content:space-between;align-items:flex-start;gap:18px;background:rgba(255,255,255,.012);transition:border-color .12s}
+.cc:hover:not(.cc-done):not(.cc-act){border-color:rgba(255,122,32,.42)}
+.cc.cc-act{border-color:var(--ora);background:rgba(255,122,32,.04)}
+.cc.cc-done{opacity:.38}
+.cccl{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:5px;color:var(--ora);margin-bottom:4px}
+.ccn{font-size:21px;font-weight:700;margin-bottom:2px}
+.ccd{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--mut);line-height:1.7;margin-bottom:10px}
+.cct{display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:2px;padding:2px 8px;border:1px solid}
+.tag-beg{color:#88CCFF;border-color:rgba(136,204,255,.38)}
+.tag-easy{color:var(--grn);border-color:rgba(56,255,128,.38)}
+.tag-med{color:var(--amb);border-color:rgba(255,196,68,.38)}
+.tag-hard{color:var(--red);border-color:rgba(255,64,64,.38)}
+.tag-exp{color:#EE44FF;border-color:rgba(238,68,255,.38)}
+.tag-i{color:var(--mut);border-color:rgba(106,99,88,.38)}
+.ccr{text-align:right;flex-shrink:0;display:flex;flex-direction:column;gap:7px;align-items:flex-end;min-width:140px}
+.ccp{font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:2px;color:var(--amb)}
+.ccb{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:2px;color:var(--mut)}
+.cbtn{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:13px;letter-spacing:2px;background:var(--ora);color:#0D1018;border:none;padding:9px 20px;cursor:pointer;transition:all .12s;text-transform:uppercase}
+.cbtn:hover:not(:disabled){background:var(--amb)}
+.cbtn:disabled{background:var(--mut);cursor:not-allowed;opacity:.5}
+.cbtn.ip{background:var(--grn);cursor:default}
+.cdl{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:3px;color:var(--grn)}
+/* Shop */
+.shsec{margin-bottom:28px}
+.shh{font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:6px;color:var(--ora);margin-bottom:14px;padding-bottom:6px;border-bottom:1px solid rgba(255,122,32,.12)}
+.shg{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.shc{border:1px solid rgba(255,122,32,.18);padding:14px;display:flex;flex-direction:column;gap:6px;background:rgba(255,255,255,.012);transition:border-color .12s}
+.shc:hover:not(.sho){border-color:rgba(255,122,32,.45)}
+.sho{border-color:rgba(56,255,128,.28);background:rgba(56,255,128,.018)}
+.she{border-color:var(--ora);background:rgba(255,122,32,.04)}
+.shi{font-size:26px;line-height:1}
+.shtn{font-size:17px;font-weight:700}
+.shtd{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:2px;color:var(--mut);margin-bottom:3px}
+.shbs{display:flex;flex-direction:column;gap:4px}
+.shbh{display:flex;justify-content:space-between}
+.shbl{font-family:'Share Tech Mono',monospace;font-size:7px;letter-spacing:2px;color:var(--mut)}
+.shbv{font-family:'Share Tech Mono',monospace;font-size:7px;color:var(--txt)}
+.shbb{height:5px;background:rgba(255,255,255,.06);border-radius:1px;overflow:hidden;margin-top:2px}
+.shbf{height:100%;border-radius:1px}
+.bspd{background:var(--blu)}.bqlt{background:var(--grn)}.bht{background:var(--red)}
+.shpr{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--amb);margin-top:2px}
+.shby{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:2px;background:var(--ora);color:#0D1018;border:none;padding:8px;cursor:pointer;transition:background .12s;width:100%;margin-top:3px}
+.shby:hover:not(:disabled){background:var(--amb)}
+.shby:disabled{background:var(--mut);cursor:not-allowed;opacity:.5}
+.shol{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:3px;color:var(--grn)}
+.shel{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:3px;color:var(--ora)}
+.sheq{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:12px;letter-spacing:2px;background:transparent;color:var(--ora);border:1px solid rgba(255,122,32,.45);padding:8px;cursor:pointer;width:100%;margin-top:3px;transition:all .12s}
+.sheq:hover{background:rgba(255,122,32,.12)}
+/* Contract preview canvas */
+.cc-prev{border:1px solid rgba(255,122,32,.22);background:#060E1A;flex-shrink:0;image-rendering:pixelated}
+.upgg{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.upgc{border:1px solid rgba(255,122,32,.18);padding:14px;background:rgba(255,255,255,.012)}
+.upgi{font-size:22px;margin-bottom:5px}
+.upgn{font-size:16px;font-weight:700;margin-bottom:2px}
+.upge{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--mut);line-height:1.7;margin-bottom:8px}
+.upgp{display:flex;gap:4px;margin-bottom:8px}
+.pip{width:17px;height:5px;border-radius:1px;background:rgba(255,255,255,.07);border:1px solid rgba(255,122,32,.2)}
+.pip.lit{background:var(--ora);border-color:var(--ora)}
+.upgpr{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--amb)}
+.upgb{font-family:'Rajdhani',sans-serif;font-weight:700;font-size:11px;letter-spacing:2px;background:transparent;color:var(--ora);border:1px solid rgba(255,122,32,.42);padding:7px;cursor:pointer;width:100%;margin-top:5px;transition:all .12s}
+.upgb:hover:not(:disabled){background:rgba(255,122,32,.12)}
+.upgb:disabled{border-color:var(--mut);color:var(--mut);cursor:not-allowed}
+.upgmx{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:4px;color:var(--grn);margin-top:7px}
+/* Blueprint overlay */
+#bpo{position:fixed;inset:0;z-index:150;display:none;align-items:center;justify-content:center;background:rgba(0,5,20,.96);backdrop-filter:blur(6px)}
+#bpo.v{display:flex}
+.bpw{display:flex;flex-direction:column;align-items:center;gap:10px}
+.bpt{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:8px;color:var(--blu);text-shadow:0 0 20px rgba(58,173,255,.4)}
+#bpc{border:1px solid rgba(58,173,255,.3);image-rendering:pixelated}
+.bph{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:4px;color:var(--mut)}
+/* Job Complete */
+#jc{position:fixed;inset:0;z-index:300;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.88);backdrop-filter:blur(6px)}
+.jcw{background:#141820;border:1px solid rgba(56,255,128,.22);border-top:4px solid var(--grn);padding:46px 60px;text-align:center;animation:pop .3s ease;max-width:540px;width:92vw}
+.jct{font-family:'Bebas Neue',sans-serif;font-size:66px;letter-spacing:12px;color:var(--grn);text-shadow:0 0 50px rgba(56,255,128,.35);margin-bottom:6px}
+.jcn{font-size:17px;font-weight:600;margin-bottom:20px}
+.jcel{font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:4px;color:var(--mut);margin-bottom:4px}
+.jce{font-family:'Bebas Neue',sans-serif;font-size:56px;letter-spacing:5px;color:var(--amb);text-shadow:0 0 30px rgba(255,196,68,.3)}
+.jcq{font-size:14px;margin:12px 0 18px}
+.jcs{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--mut);letter-spacing:2px;line-height:2.2;margin-bottom:26px}
+</style>
+</head>
+<body>
+<div id="loading">
+  <div class="ld-logo">IRONARC</div>
+  <div class="ld-sub">PROFESSIONAL WELDING SIMULATOR</div>
+  <div class="ld-bw"><div id="ld-bar"></div></div>
+  <div id="ld-st">INITIALIZING...</div>
+</div>
+<div id="menu">
+  <div class="mlogo">IRONARC</div>
+  <div class="mtag">PROFESSIONAL WELDING SIMULATOR</div>
+  <button class="btn btn-p" id="btn-start">Start Working</button>
+  <button class="btn btn-s" id="btn-cont" style="display:none">Resume Session</button>
+  <button class="btn btn-s" id="btn-mbrd">Contract Board</button>
+  <div class="mkeys">
+    WASD · MOVE &nbsp;·&nbsp; SPACE · JUMP &nbsp;·&nbsp; MOUSE · LOOK<br>
+    E · GRAB / PLACE PIECE &nbsp;·&nbsp; Q / R · ROTATE &nbsp;·&nbsp; SCROLL · DISTANCE / TOOL<br>
+    HOLD LMB · WELD &nbsp;·&nbsp; B · BLUEPRINT &nbsp;·&nbsp; TAB · CONTRACT BOARD
+  </div>
+</div>
+<div id="hud">
+  <div id="ch"></div>
+  <div id="il"><span class="ilk" id="ilk">E — GRAB</span><span class="ild" id="ild"></span></div>
+  <div id="snap">⬡ SNAP POINT — PRESS E</div>
+  <div id="wring">
+    <svg viewBox="0 0 80 80"><circle class="rt" cx="40" cy="40" r="32" stroke-width="3.5"/><circle class="rf" id="rfe" cx="40" cy="40" r="32" stroke-width="3.5"/></svg>
+  </div>
+  <div id="obj">
+    <div class="op-lbl">Active Contract</div>
+    <div class="op-name" id="opn">No Contract Active</div>
+    <div class="op-cl" id="opcl">OPEN BOARD TO BEGIN</div>
+    <div class="op-ph" id="opph">—</div>
+    <div class="op-dots" id="opd"></div>
+  </div>
+  <div id="money"><div class="mp-l">Balance</div><div class="mp-v" id="mpv">$500</div></div>
+  <div id="meters">
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="ml">Arc Temperature</span><span class="mv" id="htv">COLD</span></div>
+      <div class="mb"><div class="mf" id="htb" style="width:0%"></div></div>
+    </div>
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="ml">Weld Quality</span><span class="mv" id="qlv">—</span></div>
+      <div class="mb"><div class="mf" id="qlb" style="width:0%"></div></div>
+    </div>
+  </div>
+  <div id="stab"><div class="sl">WELD SEAM TRACKER</div><canvas id="sg" width="260" height="90"></canvas><div id="sq">—</div></div>
+  <div id="tb">
+    <div class="ts act" data-t="0"><span class="ti">⚡</span><span class="tn">Stick</span></div>
+    <div class="ts lk"  data-t="1"><span class="ti">🔥</span><span class="tn">MIG</span></div>
+    <div class="ts lk"  data-t="2"><span class="ti">💎</span><span class="tn">TIG</span></div>
+    <div class="ts lk"  data-t="3"><span class="ti">🌀</span><span class="tn">Plasma</span></div>
+  </div>
+  <button id="bdbtn">≡ BOARD [TAB]</button>
+  <div id="carry">
+    <div class="ch-l">Carrying Piece</div>
+    <div class="ch-n" id="cnum">#1</div>
+    <div class="ch-nm" id="cnm">Piece</div>
+    <div class="ch-h">Q/R · ROTATE<br>SCROLL · DISTANCE<br>E · PLACE/SNAP<br>ESC · DROP</div>
+  </div>
+  <div id="notif"></div>
+  <div id="asv">✓ SAVED</div>
+  <div id="wovr">⚠ OVERHEAT — RELEASE TORCH</div>
+</div>
+<div id="helm"><div class="hv"></div><div class="hs"></div></div>
+<div id="af"></div>
+<!-- Blueprint overlay -->
+<div id="bpo">
+  <div class="bpw">
+    <div class="bpt" id="bptitle">ASSEMBLY BLUEPRINT</div>
+    <canvas id="bpc" width="580" height="440" style="border:1px solid rgba(40,80,180,.4);image-rendering:pixelated"></canvas>
+    <div class="bph">[B] OR [ESC] TO CLOSE &nbsp;·&nbsp; ORANGE CIRCLES = WELD JOINTS &nbsp;·&nbsp; GREEN = PIECE PLACED</div>
+  </div>
+</div>
+<!-- Board -->
+<div id="board">
+  <div class="bw">
+    <div class="bhd">
+      <div class="bt">IRONARC WORKSHOP</div>
+      <div class="bbal" id="bdbal">Balance: $500</div>
+      <button class="bcl" id="bdcl">× CLOSE</button>
+    </div>
+    <div class="btabs">
+      <div class="btab on" data-tab="ct">Contracts</div>
+      <div class="btab" data-tab="sh">Equipment</div>
+    </div>
+    <div class="bb">
+      <div id="tab-ct" class="ctl"></div>
+      <div id="tab-sh" style="display:none"></div>
+    </div>
+  </div>
+</div>
+<!-- Job Complete -->
+<div id="jc">
+  <div class="jcw">
+    <div class="jct">JOB DONE</div>
+    <div class="jcn" id="jcn"></div>
+    <div class="jcel">Total Earnings</div>
+    <div class="jce" id="jce"></div>
+    <div class="jcq" id="jcq"></div>
+    <div class="jcs" id="jcs"></div>
+    <button class="btn btn-p" id="jcc">Continue →</button>
+  </div>
+</div>
+<canvas id="c"></canvas>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+// ══════════════════════════════════════════════════════
+//  IRONARC v5 — Fixed
+// ══════════════════════════════════════════════════════
+
+// ── SAVE ──────────────────────────────────────────────
+const SK='ironarc_v7';
+const defS=()=>({money:500,tool:0,owned:[true,false,false,false],upg:{pow:0,prec:0,cool:0,lens:0,stab:0,prem:0,spd:0,bon:0},stats:{jobs:0,joints:0,earned:0}});
+let S=(()=>{try{const r=localStorage.getItem(SK);return r?Object.assign(defS(),JSON.parse(r)):defS()}catch{return defS()}})();
+function sv(){try{localStorage.setItem(SK,JSON.stringify(S))}catch{}bdg('asv')}
+
+// ── TOOLS ─────────────────────────────────────────────
+const TOOLS=[
+  {n:'Stick Welder',ic:'⚡',cost:0,  wr:22,hu:15,hd:14,sp:13,mq:.78,df:'Forgiving — AC arc, best for beginners'},
+  {n:'MIG Welder',  ic:'🔥',cost:850,wr:40,hu:20,hd:11,sp:24,mq:.92,df:'Balanced — wire feed, fast and reliable'},
+  {n:'TIG Welder',  ic:'💎',cost:1700,wr:15,hu:7, hd:21,sp:5, mq:1.0,df:'Precision — slow, perfect quality welds'},
+  {n:'Plasma Cutter',ic:'🌀',cost:2600,wr:62,hu:34,hd:7,sp:40,mq:.72,df:'Aggressive — max speed, extreme heat'}
+];
+const UPGS=[
+  {id:'pow', n:'Arc Power',         ic:'⚡',d:'+18% weld speed per level.',              costs:[220,460,840]},
+  {id:'prec',n:'Torch Precision',   ic:'🎯',d:'+6% max quality per level.',               costs:[320,650,1050]},
+  {id:'cool',n:'Active Cooling',    ic:'❄️',d:'−20% heat buildup per level.',             costs:[280,560,960]},
+  {id:'lens',n:'Shade Lens Grade',  ic:'🕶️',d:'−18% quality loss from overheat per lv.', costs:[380,720,1200]},
+  {id:'stab',n:'Weld Pool Control', ic:'🌊',d:'+10% base stability per level.',           costs:[420,800,1350]},
+  {id:'prem',n:'Premium Electrodes',ic:'🔩',d:'+4% quality floor per level.',             costs:[300,580,950]},
+  {id:'spd', n:'Wire Feed Rate',    ic:'💨',d:'−15% speed quality penalty per level.',    costs:[350,680,1100]},
+  {id:'bon', n:'Job Bonus Payout',  ic:'💰',d:'+12% quality bonus multiplier per level.', costs:[450,900,1500]}
+];
+
+// ── CONTRACT LAYOUTS ──────────────────────────────────
+const LAYOUTS=[
+{id:'bkt',n:'Mounting Bracket',cl:'MASON & HARTWELL CORP.',
+ desc:'Weld two angle irons to a base plate to form a structural mounting bracket. Place pieces per blueprint.',
+ dk:'beg',dl:'BEGINNER',pay:[350,480],minQ:50,
+ pieces:[
+  {num:1,t:'plate',lb:'Base Plate',  tp:[0,1.14,0],      tr:[0,0,0]},
+  {num:2,t:'angle',lb:'Left Bracket',tp:[-0.72,1.30,0],  tr:[0,0,0]},
+  {num:3,t:'angle',lb:'Right Bracket',tp:[0.72,1.30,0],  tr:[0,Math.PI,0]}
+ ],
+ joints:[
+  {needs:[1,2],sA:[-0.66,1.20, 0.42],sB:[-0.66,1.20,-0.42]},
+  {needs:[1,2],sA:[-0.84,1.26, 0.0], sB:[-0.96,1.32, 0.0]},
+  {needs:[1,3],sA:[ 0.66,1.20, 0.42],sB:[ 0.66,1.20,-0.42]},
+  {needs:[1,3],sA:[ 0.84,1.26, 0.0], sB:[ 0.96,1.32, 0.0]}
+ ]},
+{id:'skd',n:'Equipment Skid',cl:'REDLINE INDUSTRIAL',
+ desc:'Two runner beams with three cross members. Classic skid base for heavy equipment.',
+ dk:'easy',dl:'EASY',pay:[580,780],minQ:58,
+ pieces:[
+  {num:1,t:'hbeam',lb:'Runner A',  tp:[-0.95,1.30,0], tr:[0,0,0]},
+  {num:2,t:'hbeam',lb:'Runner B',  tp:[ 0.95,1.30,0], tr:[0,0,0]},
+  {num:3,t:'sqtube',lb:'Cross #1', tp:[0,1.26,-0.55], tr:[0,Math.PI/2,0]},
+  {num:4,t:'sqtube',lb:'Cross #2', tp:[0,1.26, 0.0],  tr:[0,Math.PI/2,0]},
+  {num:5,t:'sqtube',lb:'Cross #3', tp:[0,1.26, 0.55], tr:[0,Math.PI/2,0]}
+ ],
+ joints:[
+  {needs:[1,3],sA:[-0.88,1.30,-0.50],sB:[-1.04,1.30,-0.50]},
+  {needs:[2,3],sA:[ 0.88,1.30,-0.50],sB:[ 1.04,1.30,-0.50]},
+  {needs:[1,4],sA:[-0.88,1.30, 0.0], sB:[-1.04,1.30, 0.0]},
+  {needs:[2,4],sA:[ 0.88,1.30, 0.0], sB:[ 1.04,1.30, 0.0]},
+  {needs:[1,5],sA:[-0.88,1.30, 0.50],sB:[-1.04,1.30, 0.50]},
+  {needs:[2,5],sA:[ 0.88,1.30, 0.50],sB:[ 1.04,1.30, 0.50]}
+ ]},
+{id:'tbm',n:'T-Beam Assembly',cl:'NORTHGAS CORPORATION',
+ desc:'Welded T-beam from a web and two flange plates. Four precision fillet welds required.',
+ dk:'med',dl:'MEDIUM',pay:[820,1100],minQ:65,
+ pieces:[
+  {num:1,t:'plate',lb:'Web Plate', tp:[0,1.56,0],  tr:[0,0,Math.PI/2]},
+  {num:2,t:'plate',lb:'Top Flange',tp:[0,1.90,0],  tr:[0,0,0]},
+  {num:3,t:'plate',lb:'Bot Flange',tp:[0,1.22,0],  tr:[0,0,0]}
+ ],
+ joints:[
+  {needs:[1,2],sA:[-0.65,1.82, 0.38],sB:[ 0.65,1.82, 0.38]},
+  {needs:[1,2],sA:[-0.65,1.82,-0.38],sB:[ 0.65,1.82,-0.38]},
+  {needs:[1,3],sA:[-0.65,1.30, 0.38],sB:[ 0.65,1.30, 0.38]},
+  {needs:[1,3],sA:[-0.65,1.30,-0.38],sB:[ 0.65,1.30,-0.38]}
+ ]},
+{id:'prt',n:'Portal Frame',cl:'CITY INFRASTRUCTURE DEPT.',
+ desc:'Two vertical columns, header and sill beams forming a structural portal gate section.',
+ dk:'med',dl:'MEDIUM',pay:[900,1200],minQ:65,
+ pieces:[
+  {num:1,t:'sqtube',lb:'Left Column', tp:[-0.76,1.88,0],  tr:[Math.PI/2,0,0]},
+  {num:2,t:'sqtube',lb:'Right Column',tp:[ 0.76,1.88,0],  tr:[Math.PI/2,0,0]},
+  {num:3,t:'hbeam', lb:'Header Beam', tp:[0,1.36,-0.38],  tr:[0,Math.PI/2,0]},
+  {num:4,t:'hbeam', lb:'Sill Beam',   tp:[0,1.36, 0.38],  tr:[0,Math.PI/2,0]}
+ ],
+ joints:[
+  {needs:[1,4],sA:[-0.68,1.36, 0.30],sB:[-0.68,1.36, 0.46]},
+  {needs:[2,4],sA:[ 0.68,1.36, 0.30],sB:[ 0.68,1.36, 0.46]},
+  {needs:[1,3],sA:[-0.68,1.36,-0.30],sB:[-0.68,1.36,-0.46]},
+  {needs:[2,3],sA:[ 0.68,1.36,-0.30],sB:[ 0.68,1.36,-0.46]},
+  {needs:[1,4],sA:[-0.80,1.40, 0.34],sB:[-0.80,1.46, 0.34]},
+  {needs:[2,3],sA:[ 0.80,1.40,-0.34],sB:[ 0.80,1.46,-0.34]}
+ ]},
+{id:'trs',n:'Pratt Truss Node',cl:'STATE HIGHWAY AUTHORITY',
+ desc:'Safety-critical bridge truss gusset node. Eight welds. 75% minimum quality — structural failure is not an option.',
+ dk:'hard',dl:'HARD',pay:[1500,2100],minQ:75,
+ pieces:[
+  {num:1,t:'hbeam', lb:'Bottom Chord',tp:[0,1.36,0],    tr:[0,0,0]},
+  {num:2,t:'sqtube',lb:'Vertical Web', tp:[0,1.80,0],   tr:[Math.PI/2,0,0]},
+  {num:3,t:'hbeam', lb:'Top Chord',   tp:[0,2.24,0],    tr:[0,0,0]},
+  {num:4,t:'plate', lb:'Gusset Left', tp:[-0.30,1.80,0],tr:[0,0,0]},
+  {num:5,t:'plate', lb:'Gusset Right',tp:[ 0.30,1.80,0],tr:[0,0,0]}
+ ],
+ joints:[
+  {needs:[1,2],sA:[-0.14,1.44, 0.12],sB:[ 0.14,1.44, 0.12]},
+  {needs:[1,2],sA:[-0.14,1.44,-0.12],sB:[ 0.14,1.44,-0.12]},
+  {needs:[2,3],sA:[-0.14,2.16, 0.12],sB:[ 0.14,2.16, 0.12]},
+  {needs:[2,3],sA:[-0.14,2.16,-0.12],sB:[ 0.14,2.16,-0.12]},
+  {needs:[1,4],sA:[-0.40,1.38, 0.10],sB:[-0.40,1.38,-0.10]},
+  {needs:[1,5],sA:[ 0.40,1.38, 0.10],sB:[ 0.40,1.38,-0.10]},
+  {needs:[3,4],sA:[-0.40,2.20, 0.10],sB:[-0.40,2.20,-0.10]},
+  {needs:[3,5],sA:[ 0.40,2.20, 0.10],sB:[ 0.40,2.20,-0.10]}
+ ]},
+{id:'rct',n:'Reactor Support Frame',cl:'AXIOM NUCLEAR SERVICES',
+ desc:'Critical base frame for a nuclear reactor vessel. Fourteen welds, 82% minimum quality. No rework, no exceptions.',
+ dk:'exp',dl:'EXPERT',pay:[2700,3600],minQ:82,
+ pieces:[
+  {num:1,t:'plate',lb:'Base Plate A',tp:[-0.72,1.14,0],tr:[0,0,0]},
+  {num:2,t:'plate',lb:'Base Plate B',tp:[ 0.72,1.14,0],tr:[0,0,0]},
+  {num:3,t:'hbeam',lb:'Spine Beam',  tp:[0,1.46,0],   tr:[0,0,0]},
+  {num:4,t:'sqtube',lb:'Post FL',    tp:[-0.68,1.90,-0.56],tr:[Math.PI/2,0,0]},
+  {num:5,t:'sqtube',lb:'Post FR',    tp:[ 0.68,1.90,-0.56],tr:[Math.PI/2,0,0]},
+  {num:6,t:'sqtube',lb:'Post RL',    tp:[-0.68,1.90, 0.56],tr:[Math.PI/2,0,0]},
+  {num:7,t:'sqtube',lb:'Post RR',    tp:[ 0.68,1.90, 0.56],tr:[Math.PI/2,0,0]}
+ ],
+ joints:[
+  {needs:[1,3],sA:[-0.52,1.38, 0.10],sB:[-0.52,1.38,-0.10]},
+  {needs:[2,3],sA:[ 0.52,1.38, 0.10],sB:[ 0.52,1.38,-0.10]},
+  {needs:[1,4],sA:[-0.60,1.18,-0.48],sB:[-0.76,1.18,-0.48]},
+  {needs:[1,6],sA:[-0.60,1.18, 0.48],sB:[-0.76,1.18, 0.48]},
+  {needs:[2,5],sA:[ 0.60,1.18,-0.48],sB:[ 0.76,1.18,-0.48]},
+  {needs:[2,7],sA:[ 0.60,1.18, 0.48],sB:[ 0.76,1.18, 0.48]},
+  {needs:[3,4],sA:[-0.60,1.44,-0.48],sB:[-0.76,1.44,-0.48]},
+  {needs:[3,5],sA:[ 0.60,1.44,-0.48],sB:[ 0.76,1.44,-0.48]},
+  {needs:[3,6],sA:[-0.60,1.44, 0.48],sB:[-0.76,1.44, 0.48]},
+  {needs:[3,7],sA:[ 0.60,1.44, 0.48],sB:[ 0.76,1.44, 0.48]},
+  {needs:[4,5],sA:[ 0.0, 1.36,-0.50],sB:[ 0.0, 1.36,-0.64]},
+  {needs:[6,7],sA:[ 0.0, 1.36, 0.50],sB:[ 0.0, 1.36, 0.64]},
+  {needs:[4,6],sA:[-0.60,1.36,-0.08],sB:[-0.60,1.36, 0.08]},
+  {needs:[5,7],sA:[ 0.60,1.36,-0.08],sB:[ 0.60,1.36, 0.08]}
+ ]}
+];
+
+// ── CONTRACT QUEUE ────────────────────────────────────
+let queue=[], qCtr=0, actCt=null;
+function mkCt(L){
+  const f=.85+Math.random()*.3;
+  return{uid:qCtr++,L,pay:Math.round(L.pay[0]+(L.pay[1]-L.pay[0])*f),bon:Math.round(L.pay[1]*f*.32),done:false};
+}
+function refill(){
+  const used=new Set(queue.map(c=>c.L.id));
+  const avail=LAYOUTS.filter(L=>!used.has(L.id));
+  while(queue.length<3&&avail.length){
+    const i=Math.floor(Math.random()*avail.length);
+    queue.push(mkCt(avail.splice(i,1)[0]));
+  }
+  while(queue.length<3){
+    queue.push(mkCt(LAYOUTS[Math.floor(Math.random()*LAYOUTS.length)]));
+  }
+}
+refill();
+
+// ── THREE.JS SETUP ─────────────────────────────────────
+const R=new THREE.WebGLRenderer({canvas:document.getElementById('c'),antialias:true,powerPreference:'high-performance'});
+R.setPixelRatio(Math.min(devicePixelRatio,2));R.setSize(innerWidth,innerHeight);
+R.shadowMap.enabled=true;R.shadowMap.type=THREE.PCFSoftShadowMap;
+R.toneMapping=THREE.ACESFilmicToneMapping;R.toneMappingExposure=1.4;R.physicallyCorrectLights=true;
+window.addEventListener('resize',()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();R.setSize(innerWidth,innerHeight)});
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x8FA4B8);
+scene.fog=new THREE.Fog(0x8FA4B8,28,75);
+const cam=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.04,150);
+cam.position.set(0,1.65,7);
+const clock=new THREE.Clock();
+
+// ── HELPERS ────────────────────────────────────────────
+const sm=(c,mr=.88,rg=.24)=>new THREE.MeshStandardMaterial({color:c,metalness:mr,roughness:rg});
+const dm=(c=0x505868)=>new THREE.MeshStandardMaterial({color:c,metalness:.8,roughness:.58});
+const pm=(c)=>new THREE.MeshStandardMaterial({color:c,metalness:.08,roughness:.8});
+const V3=(x,y,z)=>new THREE.Vector3(x,y,z);
+
+// ── LIGHTING ────────────────────────────────────────────
+function bldLight(){
+  scene.add(new THREE.HemisphereLight(0xC8D8F0,0x9A8870,1.8));
+  const sun=new THREE.DirectionalLight(0xFFF8F0,2.2);
+  sun.position.set(18,30,12);sun.castShadow=true;sun.shadow.mapSize.set(2048,2048);sun.shadow.bias=-.0003;
+  Object.assign(sun.shadow.camera,{near:.1,far:80,left:-24,right:24,top:24,bottom:-24});
+  scene.add(sun);
+  const fillLight=new THREE.DirectionalLight(0xCCD8EE,.9);fillLight.position.set(-12,14,-8);scene.add(fillLight);
+  [[-4,8,0],[4,8,0],[0,8,-4],[-4,8,-4],[4,8,-4]].forEach(([x,y,z])=>{
+    const pl=new THREE.PointLight(0xF8F4EE,2.0,18);pl.position.set(x,y,z);scene.add(pl);
+    const t=new THREE.Mesh(new THREE.BoxGeometry(.55,.05,1.3),new THREE.MeshStandardMaterial({color:0xFFFFEE,emissive:0xFFFFCC,emissiveIntensity:4}));
+    t.position.set(x,y-.1,z);scene.add(t);
+  });
+}
+const arcL=new THREE.PointLight(0xFF9944,0,6);scene.add(arcL);
+
+// ── ENVIRONMENT ─────────────────────────────────────────
+let bpMesh=null,bpTex=null,bpCanvas=null;
+function bldEnv(){
+  const env=new THREE.Group();scene.add(env);
+  const fl=new THREE.Mesh(new THREE.BoxGeometry(70,.3,70),new THREE.MeshStandardMaterial({color:0x9A9590,metalness:.01,roughness:.96}));
+  fl.position.y=-.15;fl.receiveShadow=true;env.add(fl);
+  env.add(new THREE.GridHelper(48,48,0xA0B0C0,0x8898A8));
+  // Walls
+  const wm=pm(0xB0B8C4);
+  [{w:34,h:14,d:.4,x:0,y:7,z:-12},{w:.4,h:14,d:24,x:-13,y:7,z:0},{w:.4,h:14,d:24,x:13,y:7,z:0}].forEach(({w,h,d,x,y,z})=>{
+    const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),wm);m.position.set(x,y,z);m.receiveShadow=true;env.add(m);
+  });
+  // Ceiling + beams
+  const ce=new THREE.Mesh(new THREE.BoxGeometry(27,.3,25),new THREE.MeshStandardMaterial({color:0x9A9590,metalness:.01,roughness:.96}));
+  ce.position.set(0,12,0);env.add(ce);
+  [-5,-1,3].forEach(x=>{const b=new THREE.Mesh(new THREE.BoxGeometry(.35,.42,25),dm());b.position.set(x,11.8,0);b.castShadow=true;env.add(b)});
+  // Windows
+  [-4,0,4].forEach(wx=>{
+    const fr=new THREE.Mesh(new THREE.BoxGeometry(2.5,2.5,.1),dm(0x5A6470));fr.position.set(wx,5.8,-11.8);env.add(fr);
+    const gl=new THREE.Mesh(new THREE.BoxGeometry(2.1,2.1,.04),new THREE.MeshStandardMaterial({color:0x88AACC,emissive:0x6688BB,emissiveIntensity:.5,transparent:true,opacity:.7,roughness:0}));
+    gl.position.set(wx,5.8,-11.79);env.add(gl);
+  });
+  // ── Floor safety stripes (around work zone, not table-specific)
+  for(let i=-1;i<=1;i++){const s=new THREE.Mesh(new THREE.BoxGeometry(.17,.02,10),pm(0xE8B820));s.position.set(i*2.8+.5,.02,1);env.add(s)}
+
+  // ── Welding fixture stand — compact steel positioner in the center
+  // Body: heavy box with grated top
+  const fsMat=dm(0x404850);
+  const fsBody=new THREE.Mesh(new THREE.BoxGeometry(1.8,.06,1.8),dm(0x505A64));
+  fsBody.position.set(0,1.08,0);fsBody.castShadow=true;fsBody.receiveShadow=true;env.add(fsBody);
+  // Grate lines on top
+  for(let i=-3;i<=3;i++){
+    const gr=new THREE.Mesh(new THREE.BoxGeometry(1.76,.025,.03),sm(0x2A3038,.9,.5));
+    gr.position.set(0,1.095,i*.25);env.add(gr);
+    const gc=new THREE.Mesh(new THREE.BoxGeometry(.03,.025,1.76),sm(0x2A3038,.9,.5));
+    gc.position.set(i*.25,1.095,0);env.add(gc);
+  }
+  // 4 thick legs
+  [[-0.76,.52,-0.76],[-0.76,.52,0.76],[0.76,.52,-0.76],[0.76,.52,0.76]].forEach(([x,y,z])=>{
+    const lg=new THREE.Mesh(new THREE.BoxGeometry(.18,1.05,.18),fsMat);lg.position.set(x,y,z);lg.castShadow=true;env.add(lg);
+  });
+  // Cross bracing
+  [[1.52,.38,0,0,0,0],[0,.38,1.52,Math.PI/2,0,0]].forEach(([w,y,d,rx,ry,rz])=>{
+    const br=new THREE.Mesh(new THREE.BoxGeometry(w,.06,d||.06),fsMat);br.position.set(0,y,0);env.add(br);
+  });
+  const br1=new THREE.Mesh(new THREE.BoxGeometry(1.52,.05,.05),fsMat);br1.position.set(0,.38,0);env.add(br1);
+  const br2=new THREE.Mesh(new THREE.BoxGeometry(.05,.05,1.52),fsMat);br2.position.set(0,.38,0);env.add(br2);
+  // Clamp fixtures on sides (decorative)
+  [[-0.92,1.05,0,0],[0.92,1.05,0,Math.PI]].forEach(([x,y,z,ry])=>{
+    const cl=new THREE.Mesh(new THREE.BoxGeometry(.12,.28,.2),dm(0x606870));cl.position.set(x,y,z);cl.rotation.y=ry;env.add(cl);
+    const arm=new THREE.Mesh(new THREE.BoxGeometry(.22,.04,.06),sm(0x9AAABB));arm.position.set(x+(ry?-.12:.12),y+.08,z);env.add(arm);
+  });
+
+  // ── Blueprint counter — against the back-left wall
+  // Cabinet body
+  const ctMat=new THREE.MeshStandardMaterial({color:0x5C4A38,metalness:.05,roughness:.85});
+  const ctBody=new THREE.Mesh(new THREE.BoxGeometry(2.2,.86,.62),ctMat);
+  ctBody.position.set(-5,.43,-10.6);ctBody.castShadow=true;ctBody.receiveShadow=true;env.add(ctBody);
+  // Counter top slab
+  const ctTop=new THREE.Mesh(new THREE.BoxGeometry(2.3,.07,.68),new THREE.MeshStandardMaterial({color:0x4A3A2C,metalness:.04,roughness:.9}));
+  ctTop.position.set(-5,.9,-10.6);ctTop.castShadow=true;env.add(ctTop);
+  // Kickboard base strip
+  const ctKick=new THREE.Mesh(new THREE.BoxGeometry(2.2,.08,.06),dm(0x383028));
+  ctKick.position.set(-5,.04,-10.3);env.add(ctKick);
+  // Drawer fronts on cabinet
+  [[-.6,.55],[.6,.55],[-.6,.2],[.6,.2]].forEach(([dx,dy])=>{
+    const dr=new THREE.Mesh(new THREE.BoxGeometry(.92,.28,.05),dm(0x3A3028));
+    dr.position.set(-5+dx,dy,-10.29);env.add(dr);
+    const kn=new THREE.Mesh(new THREE.CylinderGeometry(.018,.018,.03,8),new THREE.MeshStandardMaterial({color:0xBBAA88,metalness:.9,roughness:.2}));
+    kn.position.set(-5+dx,dy,-10.26);kn.rotation.x=Math.PI/2;env.add(kn);
+  });
+  // Small upright pegboard panel behind counter top
+  const pgb=new THREE.Mesh(new THREE.BoxGeometry(2.1,.05,1.1),new THREE.MeshStandardMaterial({color:0x8A7260,metalness:.02,roughness:.9}));
+  pgb.rotation.x=Math.PI/2;pgb.position.set(-5,1.49,-11.1);pgb.receiveShadow=true;env.add(pgb);
+  // Pegboard holes
+  for(let xi=0;xi<6;xi++)for(let yi=0;yi<4;yi++){
+    const ph=new THREE.Mesh(new THREE.CylinderGeometry(.025,.025,.07,6),dm(0x5A4A38));
+    ph.position.set(-5-1.0+xi*.38,1.02+yi*.28,-11.05);ph.rotation.x=Math.PI/2;env.add(ph);
+  }
+  // Drafting lamp arm above counter
+  const lampArm=new THREE.Mesh(new THREE.BoxGeometry(.04,.04,.9),dm(0x303840));
+  lampArm.rotation.x=Math.PI/10;lampArm.position.set(-5,2.0,-10.9);env.add(lampArm);
+  const lampHead=new THREE.Mesh(new THREE.CylinderGeometry(.14,.1,.12,10),dm(0x282C34));
+  lampHead.position.set(-5,1.88,-10.5);lampHead.rotation.x=Math.PI/6;env.add(lampHead);
+  const lampBulb=new THREE.Mesh(new THREE.SphereGeometry(.06,8,6),new THREE.MeshStandardMaterial({color:0xFFEECC,emissive:0xFFEEAA,emissiveIntensity:3.5}));
+  lampBulb.position.set(-5,1.82,-10.48);env.add(lampBulb);
+  const lampLight=new THREE.PointLight(0xFFEECC,1.4,3.5);lampLight.position.set(-5,1.82,-10.48);scene.add(lampLight);
+  // Pencil/pen holder cup on counter
+  const cup=new THREE.Mesh(new THREE.CylinderGeometry(.07,.065,.18,10),new THREE.MeshStandardMaterial({color:0x8A3A1A,metalness:.05,roughness:.85}));
+  cup.position.set(-6.2,.975,-10.35);env.add(cup);
+  [0,1.2,2.4,3.6].forEach(a=>{
+    const pen=new THREE.Mesh(new THREE.CylinderGeometry(.012,.012,.22,6),new THREE.MeshStandardMaterial({color:a<2?0x3A3838:0x2244AA,metalness:.3,roughness:.6}));
+    pen.position.set(-6.2+Math.sin(a)*.04,.975+.12+Math.random()*.04,-10.35+Math.cos(a)*.04);env.add(pen);
+  });
+  // Small coffee mug on counter edge
+  const mug=new THREE.Mesh(new THREE.CylinderGeometry(.055,.05,.12,10),pm(0x445566));
+  mug.position.set(-4.0,.975,-10.35);env.add(mug);
+  const mugHandle=new THREE.Mesh(new THREE.TorusGeometry(.045,.012,6,10,Math.PI),dm(0x445566));
+  mugHandle.position.set(-3.955,.975,-10.35);mugHandle.rotation.y=Math.PI/2;env.add(mugHandle);
+
+  // ── Blueprint canvas texture ─────────────────────────────
+  bpCanvas=document.createElement('canvas');bpCanvas.width=740;bpCanvas.height=500;
+  const bpCtx=bpCanvas.getContext('2d');
+  bpCtx.fillStyle='#C8D0E0';bpCtx.fillRect(0,0,740,500);
+  bpCtx.fillStyle='rgba(30,60,120,.18)';bpCtx.font='bold 32px monospace';bpCtx.textAlign='center';
+  bpCtx.fillText('BLUEPRINT',370,260);
+  bpTex=new THREE.CanvasTexture(bpCanvas);
+  // Paper sheet on counter top — slightly angled toward player
+  const bpb=new THREE.Mesh(new THREE.BoxGeometry(1.7,.018,1.15),new THREE.MeshStandardMaterial({color:0xEAE8DC,metalness:0,roughness:.88}));
+  bpb.position.set(-5,.975,-10.55);bpb.userData.isBP=true;scene.add(bpb);
+  const bpp=new THREE.Mesh(new THREE.BoxGeometry(1.58,.008,1.04),new THREE.MeshStandardMaterial({map:bpTex,metalness:0,roughness:.88}));
+  bpp.position.set(-5,.985,-10.55);bpp.userData.isBP=true;scene.add(bpp);
+  bpMesh=bpp;
+  // Orange "BLUEPRINTS" header tab on paper
+  const bplb=new THREE.Mesh(new THREE.BoxGeometry(.85,.006,.1),new THREE.MeshStandardMaterial({color:0xFF7A20,emissive:0xFF4400,emissiveIntensity:.9}));
+  bplb.position.set(-5,.992,-10.04);bplb.userData.isBP=true;scene.add(bplb);
+  const wm2=new THREE.Mesh(new THREE.BoxGeometry(1.0,1.3,.72),pm(0x3A5278));wm2.position.set(7.5,.65,2);wm2.castShadow=true;env.add(wm2);
+  const cp=new THREE.Mesh(new THREE.BoxGeometry(.96,.62,.06),pm(0x28384C));cp.position.set(7.5,.75,1.65);env.add(cp);
+  [[-.2,.05],[.2,.05],[0,.2]].forEach(([dx,dy])=>{
+    const d2=new THREE.Mesh(new THREE.CircleGeometry(.055,10),new THREE.MeshStandardMaterial({color:0xDDEECC,emissive:0xAABB88,emissiveIntensity:1.2}));
+    d2.position.set(7.5+dx,.75+dy,1.62);d2.rotation.y=Math.PI;env.add(d2);
+  });
+  [[7.7,1.28,1.65,'#FF4444'],[7.9,1.28,1.65,'#FFB844'],[8.1,1.28,1.65,'#44FF88']].forEach(([x,y,z,c])=>{
+    const led=new THREE.Mesh(new THREE.SphereGeometry(.025,6,6),new THREE.MeshStandardMaterial({color:c,emissive:c,emissiveIntensity:3.5}));
+    led.position.set(x,y,z);env.add(led);
+  });
+  const cabPts=[V3(7.5,.3,1.65),V3(5,.06,1),V3(2,.06,.5)];
+  env.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(cabPts),10,.035,8,false),dm(0x282828)));
+  const tc=new THREE.Mesh(new THREE.BoxGeometry(1.4,2.2,.7),pm(0x5A6A7A));tc.position.set(-9,1.1,-1.8);tc.castShadow=true;env.add(tc);
+  [.45,.95,1.45,1.9].forEach(dy=>{
+    const dr=new THREE.Mesh(new THREE.BoxGeometry(1.28,.21,.05),dm(0x363E4A));dr.position.set(-9,dy,-1.47);env.add(dr);
+    const kn=new THREE.Mesh(new THREE.CylinderGeometry(.02,.02,.04,8),new THREE.MeshStandardMaterial({color:0xCCBB88,metalness:.9,roughness:.2}));
+    kn.position.set(-9,dy,-1.44);kn.rotation.x=Math.PI/2;env.add(kn);
+  });
+  for(let i=0;i<4;i++){const p=new THREE.Mesh(new THREE.CylinderGeometry(.11,.11,2.4,10),sm(0x6888A0));p.rotation.x=Math.PI/2;p.position.set(-7.5+i*.26,.11,4.5);p.castShadow=true;env.add(p)}
+  [[8,.35,-4],[8.7,.35,-4]].forEach(([x,y,z])=>{
+    const b=new THREE.Mesh(new THREE.CylinderGeometry(.27,.25,.7,14),pm(0x4A7A3A));b.position.set(x,y,z);b.castShadow=true;env.add(b);
+    const cap=new THREE.Mesh(new THREE.CylinderGeometry(.275,.275,.04,14),dm());cap.position.set(x,y+.37,z);env.add(cap);
+  });
+  const ext=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,.6,10),pm(0xCC2222));ext.position.set(-12.5,.3,-3);ext.castShadow=true;env.add(ext);
+  for(let i=0;i<4;i++){const sc=new THREE.Mesh(new THREE.BoxGeometry(.4+Math.random()*.5,.1,.4+Math.random()*.3),sm(0x8A8898));sc.position.set(-9+i*.65,.06,4.2+i*.25);sc.rotation.y=i*.9;env.add(sc)}
+}
+
+// ── PIECE MESH BUILDERS ─────────────────────────────────
+function mkPieceMesh(t){
+  const g=new THREE.Group();
+  if(t==='plate'){
+    const m=new THREE.Mesh(new THREE.BoxGeometry(2.0,.08,1.2),sm(0x9AAABB));m.castShadow=true;m.receiveShadow=true;g.add(m);
+    [[-0.8,0,-.44],[-.8,0,.44],[.8,0,-.44],[.8,0,.44]].forEach(([x,y,z])=>{
+      const h=new THREE.Mesh(new THREE.CylinderGeometry(.036,.036,.1,8),sm(0x1A2028));h.position.set(x,y,z);g.add(h);
+    });
+  }else if(t==='angle'){
+    const mat=sm(0x8899AA);
+    const w=new THREE.Mesh(new THREE.BoxGeometry(.065,.46,1.6),mat);w.position.set(-.18,.12,0);w.castShadow=true;g.add(w);
+    const f=new THREE.Mesh(new THREE.BoxGeometry(.38,.065,1.6),mat);f.position.y=-.16;f.castShadow=true;g.add(f);
+  }else if(t==='hbeam'){
+    const mat=sm(0x8A9AAB);
+    const w=new THREE.Mesh(new THREE.BoxGeometry(.055,.48,1.6),mat);w.castShadow=true;g.add(w);
+    const tf=new THREE.Mesh(new THREE.BoxGeometry(.38,.055,1.6),mat);tf.position.y=.22;tf.castShadow=true;g.add(tf);
+    const bf=new THREE.Mesh(new THREE.BoxGeometry(.38,.055,1.6),mat);bf.position.y=-.22;bf.castShadow=true;g.add(bf);
+    for(let z=-.55;z<=.55;z+=.4){const s=new THREE.Mesh(new THREE.BoxGeometry(.04,.38,.5),sm(0x7A8898));s.position.set(0,0,z);g.add(s)}
+  }else if(t==='sqtube'){
+    const mat=sm(0x7A8898);
+    [[.3,.06,1.6,0,.12,0],[.3,.06,1.6,0,-.12,0],[.06,.24,1.6,.12,0,0],[.06,.24,1.6,-.12,0,0]].forEach(([w,h,d,x,y,z])=>{
+      const f=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);f.position.set(x,y,z);f.castShadow=true;g.add(f);
+    });
+  }else if(t==='pipe'){
+    const mat=sm(0x6A8098);
+    const b=new THREE.Mesh(new THREE.CylinderGeometry(.18,.18,1.6,14),mat);b.rotation.x=Math.PI/2;b.castShadow=true;g.add(b);
+    [-.78,.78].forEach(z=>{const c=new THREE.Mesh(new THREE.CylinderGeometry(.215,.215,.08,14),dm());c.rotation.x=Math.PI/2;c.position.z=z;g.add(c)});
+  }
+  return g;
+}
+
+function mkNumSprite(num,color='#FF7A20'){
+  const cv=document.createElement('canvas');cv.width=cv.height=128;
+  const ctx=cv.getContext('2d');
+  ctx.fillStyle=color;ctx.beginPath();ctx.arc(64,64,52,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle='#FFD080';ctx.lineWidth=4;ctx.stroke();
+  ctx.fillStyle='#fff';ctx.font='bold 56px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(num,64,66);
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(cv),transparent:true,depthTest:false}));
+  sp.scale.set(.36,.36,1);return sp;
+}
+
+// ── WELD JOINT CLASS ─────────────────────────────────────
+let jCtr=0,aJoints=[];
+class WeldJoint{
+  constructor(sA,sB){
+    this.id=jCtr++;this.sA=sA.clone();this.sB=sB.clone();
+    this.pos=sA.clone().lerp(sB,.5);this.dir=sB.clone().sub(sA).normalize();
+    this.prog=0;this.qSum=0;this.done=false;this._ls=-1;this.bead=null;
+    const mat=new THREE.MeshStandardMaterial({color:0xFF9922,emissive:0xFF6600,emissiveIntensity:1.1,metalness:.2,roughness:.4,transparent:true,opacity:.88});
+    this.ring=new THREE.Mesh(new THREE.TorusGeometry(.17,.036,8,22),mat);
+    this.ring.position.copy(this.pos);
+    this.ring.quaternion.setFromUnitVectors(V3(0,1,0),this.dir.clone().normalize());
+    this.ring.userData.joint=this;
+    scene.add(this.ring);aJoints.push(this);
+  }
+  rebBead(){
+    if(this.bead){scene.remove(this.bead);this.bead=null}
+    if(this.prog<2)return;
+    const t=this.prog/100,tip=this.sA.clone().lerp(this.sB,t),n=Math.max(4,Math.round(t*16));
+    const pts=[];
+    // FIX 3: Guard against NaN when dir is parallel to world-up (vertical joints).
+    // If cross product length is near zero, fall back to the X axis as perp.
+    const crossRaw=V3(0,1,0).cross(this.dir);
+    const perp=crossRaw.lengthSq()>0.001?crossRaw.normalize():V3(1,0,0);
+    for(let i=0;i<=n;i++){
+      const s=i/n,pt=this.sA.clone().lerp(tip,s);
+      pt.y+=Math.sin(i*5.5+this.id*12.7)*.012;
+      pt.addScaledVector(perp,Math.cos(i*3.8+this.id*8.3)*.008);
+      pts.push(pt);
+    }
+    try{
+      const hot=this.done?0:(1-t*.5);
+      const mat=new THREE.MeshStandardMaterial({
+        color:this.done?new THREE.Color(.32,.24,.20):new THREE.Color().setHSL(.053,1,.24+hot*.2),
+        emissive:this.done?new THREE.Color(.05,.02,.01):new THREE.Color().setHSL(.04,1,.1+hot*.2),
+        emissiveIntensity:this.done?.04:1.4+hot*1.1,metalness:.88,roughness:.44
+      });
+      this.bead=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),n,.034,8,false),mat);
+      this.bead.castShadow=true;scene.add(this.bead);
+    }catch{}
+  }
+  add(amt,q){
+    if(this.done)return false;
+    this.qSum+=q*amt;this.prog=Math.min(100,this.prog+amt);
+    const step=Math.floor(this.prog/3);
+    if(step!==this._ls){this._ls=step;this.rebBead()}
+    if(this.prog>=100){this._fin();return true}
+    return false;
+  }
+  _fin(){
+    this.done=true;this.prog=100;this.rebBead();
+    this.ring.material.color.setHex(0x38FF80);this.ring.material.emissive.setHex(0x00CC44);
+    this.ring.material.emissiveIntensity=2.8;this.ring.material.opacity=1;
+  }
+  avgQ(){return this.prog>0?this.qSum/this.prog:0}
+  dist(){return cam.position.distanceTo(this.pos)}
+  tick(t){
+    if(this.done)return;
+    this.ring.scale.setScalar(.85+.2*Math.sin(t*2.1+this.id*1.4));
+    this.ring.rotation.y+=.011;
+    this.ring.material.emissiveIntensity=.7+.5*Math.sin(t*2.8+this.id*2.1);
+  }
+  dispose(){scene.remove(this.ring);if(this.bead)scene.remove(this.bead);const i=aJoints.indexOf(this);if(i>-1)aJoints.splice(i,1)}
+}
+
+// ── WELD PIECE CLASS ─────────────────────────────────────
+let pieces=[],ghosts=[];
+class WeldPiece{
+  constructor(pDef){
+    this.pDef=pDef;this.num=pDef.num;this.label=pDef.lb;this.type=pDef.t;
+    this.group=mkPieceMesh(pDef.t);
+    this.tPos=V3(...pDef.tp);this.tRot=new THREE.Euler(...pDef.tr);
+    this.placed=false;this.state='free';
+    // Pieces spawn on the floor around the fixture stand — player picks them up
+    const ang=(pDef.num/8)*Math.PI*2+Math.random()*.6;
+    const r=2.2+Math.random()*2.0;
+    this.group.position.set(
+      Math.cos(ang)*r+(Math.random()-.5)*.4,
+      0.18,
+      Math.sin(ang)*r*.6+(Math.random()-.5)*.3
+    );
+    this.group.rotation.y=Math.random()*Math.PI*2;
+    this.group.traverse(c=>{if(c.isMesh)c.userData.piece=this});
+    this.group.userData.piece=this;
+    this._sp=mkNumSprite(pDef.num);this._sp.position.set(0,.45,0);this.group.add(this._sp);
+    this._om=[];this.group.traverse(c=>{if(c.isMesh)this._om.push({m:c,e:c.material.emissive.clone(),ei:c.material.emissiveIntensity})});
+    scene.add(this.group);
+  }
+  hi(hex,i=.5){const c=new THREE.Color(hex);this.group.traverse(m=>{if(m.isMesh){m.material.emissive.copy(c);m.material.emissiveIntensity=i}})}
+  clr(){this._om.forEach(({m,e,ei})=>{m.material.emissive.copy(e);m.material.emissiveIntensity=ei})}
+  meshes(){const a=[];this.group.traverse(c=>{if(c.isMesh)a.push(c)});return a}
+  snapTo(){
+    this.group.position.copy(this.tPos);this.group.rotation.copy(this.tRot);
+    this.placed=true;this.state='placed';this.clr();
+    const gh=ghosts.find(g=>g.num===this.num);
+    if(gh)gh.g.traverse(c=>{if(c.isMesh)c.material.opacity=.06});
+    this._sp.material.opacity=.0;
+    activateJoints();notify(`PIECE ${this.num} PLACED: ${this.label}`);
+    updateObjUI();checkBP();
+  }
+  dispose(){scene.remove(this.group)}
+}
+
+function mkGhost(pDef){
+  const g=new THREE.Group();
+  const gm=new THREE.MeshStandardMaterial({color:0xFF9922,transparent:true,opacity:.25,wireframe:false,side:THREE.FrontSide});
+  const mesh=mkPieceMesh(pDef.t);
+  mesh.traverse(c=>{if(c.isMesh){c.material=gm.clone();c.castShadow=false;c.receiveShadow=false}});
+  g.add(mesh);
+  const wm=new THREE.MeshStandardMaterial({color:0xFFBB44,transparent:true,opacity:.55,wireframe:true});
+  const wMesh=mkPieceMesh(pDef.t);
+  wMesh.traverse(c=>{if(c.isMesh)c.material=wm.clone()});
+  g.add(wMesh);
+  const sp=mkNumSprite(pDef.num,'#FF9922');sp.position.set(0,.55,0);g.add(sp);
+  g.position.set(...pDef.tp);g.rotation.set(...pDef.tr);
+  g.userData.num=pDef.num;g.num=pDef.num;
+  scene.add(g);return{g,num:pDef.num};
+}
+
+// ── CONTRACT RUNTIME ─────────────────────────────────────
+let jDefs=[],actJoints=[],actCt2=null;
+// FIX 6: Guard flag to prevent finishCt() from firing multiple times
+// when the final joint completes (checkDone can be called every frame).
+let finishing=false;
+
+function startCt(uid){
+  clearCt();
+  const ct=queue.find(c=>c.uid===uid);
+  if(!ct)return;
+  actCt2=ct;ct.active=true;
+  const L=ct.L;
+  L.pieces.forEach(p=>{pieces.push(new WeldPiece(p));ghosts.push(mkGhost(p))});
+  L.joints.forEach(j=>{jDefs.push({needs:j.needs,sA:V3(...j.sA),sB:V3(...j.sB),inst:null})});
+  cam.position.set(0,1.65,7);yaw=0;pitch=-.05;
+  drawBP();updateObjUI();updateDots();
+  notify(`CONTRACT: ${L.n} — PLACE ${L.pieces.length} PIECES (SEE BLUEPRINT)`);
+  closeBoard();sv();
+}
+window.startCt=startCt;
+
+function clearCt(){
+  pieces.forEach(p=>p.dispose());pieces=[];
+  ghosts.forEach(g=>scene.remove(g.g));ghosts=[];
+  actJoints.forEach(j=>j.dispose());actJoints=[];
+  jDefs=[];actCt2=null;aJoints.length=0;
+  // FIX 4: Clear stale tgtJ reference to disposed joints.
+  tgtJ=null;
+  // Reset finish guard for next contract.
+  finishing=false;
+}
+
+function activateJoints(){
+  const placed=new Set(pieces.filter(p=>p.placed).map(p=>p.num));
+  jDefs.forEach(jd=>{
+    if(!jd.inst&&jd.needs.every(n=>placed.has(n))){
+      jd.inst=new WeldJoint(jd.sA,jd.sB);
+      actJoints.push(jd.inst);
+    }
+  });
+  updateObjUI();updateDots();
+}
+
+function checkBP(){if(actCt2)drawBP()}
+
+function checkDone(){
+  if(!actCt2||finishing)return;
+  const tot=jDefs.length,dn=jDefs.filter(j=>j.inst&&j.inst.done).length;
+  // FIX 6: Set the finishing flag before calling setTimeout so that rapid
+  // repeated calls (one per frame while holding LMB on the last joint)
+  // do not queue multiple finishCt() invocations.
+  if(dn>=tot&&tot>0){finishing=true;setTimeout(finishCt,900)}
+}
+
+function finishCt(){
+  if(!actCt2)return;
+  const ct=actCt2,L=ct.L;
+  const allJ=jDefs.filter(j=>j.inst);
+  const avgQ=allJ.length?allJ.reduce((a,j)=>a+j.inst.avgQ(),0)/allJ.length:0;
+  const bonMult=1+S.upg.bon*.12;
+  const qp=avgQ/100,qm=qp>.92?1.30:qp>.82?1.18:qp>.72?1.06:qp>.60?1.0:.85;
+  const earned=Math.round(ct.pay*qm+(qp>.72?ct.bon*qp*bonMult:0));
+  S.money+=earned;S.stats.jobs++;S.stats.joints+=allJ.filter(j=>j.inst.done).length;S.stats.earned+=earned;
+  ct.done=true;queue=queue.filter(c=>c.uid!==ct.uid);refill();
+  const ql=avgQ>88?'EXCELLENT':avgQ>75?'GOOD':avgQ>62?'ACCEPTABLE':'POOR';
+  document.getElementById('jcn').textContent=L.n;
+  document.getElementById('jce').textContent='+$'+earned.toLocaleString();
+  document.getElementById('jcq').textContent=`Avg Quality: ${Math.round(avgQ)}% (${ql})  ·  Multiplier: ×${qm.toFixed(2)}`;
+  document.getElementById('jcs').textContent=`JOINTS: ${allJ.filter(j=>j.inst.done).length}/${allJ.length}  ·  JOBS: ${S.stats.jobs}  ·  TOTAL: $${S.stats.earned.toLocaleString()}`;
+  document.getElementById('jc').style.display='flex';
+  updMoney();sv();
+}
+document.getElementById('jcc').addEventListener('click',()=>{
+  document.getElementById('jc').style.display='none';clearCt();updateObjUI();updateDots();
+});
+
+// ── BLUEPRINT CANVAS ─────────────────────────────────────
+function drawBP(){
+  if(!actCt2)return;
+  const L=actCt2.L;
+  // Draw to both: the HUD overlay canvas AND the in-world paper canvas texture
+  const targets=[document.getElementById('bpc'),bpCanvas];
+  targets.forEach((cv,ti)=>{
+    if(!cv)return;
+    const ctx=cv.getContext('2d');
+    const W=cv.width,H=cv.height;
+    // Background
+    ctx.fillStyle='#D4DCF0';ctx.fillRect(0,0,W,H);
+    // Blueprint grid lines
+    const gs=Math.round(W/24);
+    ctx.strokeStyle='rgba(80,120,200,.18)';ctx.lineWidth=1;
+    for(let i=0;i<W;i+=gs){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,H);ctx.stroke()}
+    for(let i=0;i<H;i+=gs){ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(W,i);ctx.stroke()}
+    ctx.strokeStyle='rgba(40,80,180,.45)';ctx.lineWidth=2;ctx.strokeRect(2,2,W-4,H-4);
+    // Title
+    const fs=ti===0?20:16;
+    ctx.fillStyle='#1A3080';ctx.font=`bold ${fs}px "Bebas Neue",monospace`;ctx.letterSpacing='4px';
+    ctx.textAlign='center';ctx.fillText(L.n.toUpperCase(),W/2,fs+10);
+    ctx.fillStyle='rgba(40,80,160,.7)';ctx.font=`${Math.round(fs*.45)}px monospace`;ctx.letterSpacing='1px';
+    ctx.fillText(`${L.cl}   ·   ${L.pieces.length} PCS   ·   ${L.joints.length} JOINTS`,W/2,fs+24);
+    const SC=ti===0?54:42,OX=W/2,OY=H/2+10;
+    // Joint seams
+    ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(200,80,20,.75)';ctx.lineWidth=ti===0?2:1.5;
+    L.joints.forEach(j=>{
+      const ax=OX+j.sA[0]*SC,ay=OY+j.sA[2]*SC,bx=OX+j.sB[0]*SC,by=OY+j.sB[2]*SC;
+      ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();
+      ctx.setLineDash([]);
+      const mx=(ax+bx)/2,my=(ay+by)/2,r=ti===0?5:4;
+      ctx.beginPath();ctx.arc(mx,my,r,0,Math.PI*2);
+      ctx.fillStyle='rgba(200,80,20,.8)';ctx.fill();
+      ctx.strokeStyle='rgba(200,80,20,.9)';ctx.lineWidth=1.5;ctx.stroke();
+      ctx.setLineDash([4,4]);ctx.strokeStyle='rgba(200,80,20,.75)';ctx.lineWidth=ti===0?2:1.5;
+    });
+    ctx.setLineDash([]);
+    // Piece footprints
+    const dimMap={plate:[2.0,1.2],angle:[.44,1.6],hbeam:[.44,1.6],sqtube:[.3,1.6],pipe:[.44,1.6]};
+    L.pieces.forEach(p=>{
+      const isPlaced=pieces.find(wp=>wp.num===p.num&&wp.placed);
+      const x=OX+p.tp[0]*SC,z=OY+p.tp[2]*SC;
+      const [dw,dd]=dimMap[p.t]||[1,.8];
+      const pw=dw*SC*.46,ph=dd*SC*.46;
+      ctx.strokeStyle=isPlaced?'#1A9040':'#1A4080';ctx.lineWidth=2;
+      ctx.fillStyle=isPlaced?'rgba(30,160,80,.25)':'rgba(30,80,180,.18)';
+      ctx.beginPath();ctx.rect(x-pw/2,z-ph/2,pw,ph);ctx.fill();ctx.stroke();
+      ctx.fillStyle=isPlaced?'#0A6030':'#1A3080';
+      const nfs=ti===0?15:12;
+      ctx.font=`bold ${nfs}px Arial`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(p.num,x,z);
+      ctx.fillStyle='rgba(20,40,100,.6)';ctx.font=`${Math.round(nfs*.55)}px monospace`;ctx.textBaseline='alphabetic';
+      ctx.fillText(p.lb.toUpperCase(),x,z+ph/2+10);
+      if(isPlaced){ctx.fillStyle='#1A9040';ctx.font=`${Math.round(nfs*.75)}px Arial`;ctx.fillText('✓',x+pw/2+8,z+4)}
+    });
+    // Legend
+    ctx.fillStyle='rgba(30,60,140,.55)';ctx.font=`${ti===0?8:7}px monospace`;ctx.textAlign='left';ctx.textBaseline='alphabetic';
+    ctx.fillText('● JOINT  □ PLACED  □ PENDING',10,H-8);
+  });
+  // Mark the 3D paper texture dirty so Three.js re-uploads it to the GPU
+  if(bpTex){bpTex.needsUpdate=true}
+}
+
+// ── PARTICLES ─────────────────────────────────────────────
+const MAX_SP=350,spP=new Float32Array(MAX_SP*3).fill(9999),spC=new Float32Array(MAX_SP*3);
+const spGeo=new THREE.BufferGeometry();
+spGeo.setAttribute('position',new THREE.BufferAttribute(spP,3));
+spGeo.setAttribute('color',new THREE.BufferAttribute(spC,3));
+scene.add(new THREE.Points(spGeo,new THREE.PointsMaterial({size:.08,vertexColors:true,transparent:true,opacity:.92,blending:THREE.AdditiveBlending,depthWrite:false})));
+const spPool=Array.from({length:MAX_SP},(_,i)=>({i,a:false,px:0,py:0,pz:0,vx:0,vy:0,vz:0,life:0,ml:0}));
+function emitSparks(ox,oy,oz,cnt){
+  let e=0;for(const s of spPool){
+    if(!s.a&&e<cnt){s.a=true;s.px=ox;s.py=oy;s.pz=oz;const sp=2+Math.random()*4.5,th=Math.random()*Math.PI*2,ph=(Math.random()-.1)*Math.PI;
+    s.vx=Math.cos(th)*Math.cos(ph)*sp;s.vy=Math.abs(Math.sin(ph))*sp+.7;s.vz=Math.sin(th)*Math.cos(ph)*sp;s.ml=.22+Math.random()*.5;s.life=s.ml;e++}
+    if(e>=cnt)break;
+  }
+}
+function tkSparks(dt){
+  for(const s of spPool){const b=s.i*3;
+    if(s.a){s.life-=dt;if(s.life<=0){s.a=false;spP[b]=spP[b+1]=spP[b+2]=9999;spC[b]=spC[b+1]=spC[b+2]=0;continue}
+      s.vy-=9.81*dt;s.px+=s.vx*dt;s.py+=s.vy*dt;s.pz+=s.vz*dt;
+      if(s.py<.06){s.py=.06;s.vy*=-.12;s.vx*=.45;s.vz*=.45}
+      spP[b]=s.px;spP[b+1]=s.py;spP[b+2]=s.pz;
+      const t=s.life/s.ml;
+      if(t>.65){spC[b]=1;spC[b+1]=.88;spC[b+2]=.44}
+      else if(t>.3){spC[b]=1;spC[b+1]=.38;spC[b+2]=.05}
+      else{spC[b]=t*3;spC[b+1]=t*.25;spC[b+2]=0}
+    }else spP[b]=spP[b+1]=spP[b+2]=9999;
+  }
+  spGeo.attributes.position.needsUpdate=true;spGeo.attributes.color.needsUpdate=true;
+}
+const smokes=[];
+function emitSmoke(x,y,z){
+  if(Math.random()>.45)return;
+  const m=new THREE.Mesh(new THREE.SphereGeometry(.06+Math.random()*.06,5,4),new THREE.MeshBasicMaterial({color:0x888888,transparent:true,opacity:.12,depthWrite:false}));
+  m.position.set(x+(Math.random()-.5)*.08,y,z+(Math.random()-.5)*.08);scene.add(m);
+  smokes.push({m,life:1.4+Math.random(),max:1.4,vy:.2+Math.random()*.25});
+}
+function tkSmoke(dt){
+  for(let i=smokes.length-1;i>=0;i--){const s=smokes[i];s.life-=dt;s.m.position.y+=s.vy*dt;
+    s.m.material.opacity=.12*(s.life/s.max);s.m.scale.setScalar(1+(1-s.life/s.max)*1.3);
+    if(s.life<=0){scene.remove(s.m);smokes.splice(i,1)}}
+}
+
+// ── AUDIO ─────────────────────────────────────────────────
+let actx=null,arcGain=null,arcFilt=null;
+function initAudio(){
+  if(actx)return;
+  try{
+    actx=new(window.AudioContext||window.webkitAudioContext)();
+    const sr=actx.sampleRate,buf=actx.createBuffer(1,sr,sr),d=buf.getChannelData(0);
+    for(let i=0;i<sr;i++)d[i]=Math.random()*2-1;
+    arcFilt=actx.createBiquadFilter();arcFilt.type='bandpass';arcFilt.frequency.value=1800;arcFilt.Q.value=.3;
+    arcGain=actx.createGain();arcGain.gain.value=0;
+    const src=actx.createBufferSource();src.buffer=buf;src.loop=true;
+    src.connect(arcFilt);arcFilt.connect(arcGain);arcGain.connect(actx.destination);src.start();
+  }catch{}
+}
+function arcAudio(on){if(!arcGain)return;const n=actx.currentTime;arcGain.gain.cancelScheduledValues(n);arcGain.gain.setTargetAtTime(on?.22:0,n,.06)}
+
+// ── WELD SEAM TRACKER MINIGAME ────────────────────────────
+// Real-welding feel: guide torch along a V-groove seam.
+// Mouse Y = lateral correction. Drift + tremor fight you.
+// Quality = how centered on seam + speed zone.
+const W_SEAM={torchY:0,vel:0,advance:0,beadPts:[],tremX:0,tremY:0,ph:0};
+let stabQ=0,rawMX=0,rawMY=0;
+const SEAM_MAX=1.0,TRAIL_LEN=80;
+
+function tkStab(dt){
+  W_SEAM.ph+=dt*13;
+  const tAmp=0.013+0.007*Math.sin(W_SEAM.ph*.6);
+  W_SEAM.tremX=Math.sin(W_SEAM.ph*2.1)*tAmp+Math.sin(W_SEAM.ph*5.3)*.004;
+  W_SEAM.tremY=Math.sin(W_SEAM.ph*1.8)*tAmp+Math.sin(W_SEAM.ph*4.7)*.004;
+  const mi=rawMY*0.006; rawMX=rawMY=0;
+  W_SEAM.vel+=(Math.random()-.5)*0.26*dt - mi - W_SEAM.vel*3.0*dt;
+  W_SEAM.torchY=Math.max(-SEAM_MAX,Math.min(SEAM_MAX,W_SEAM.torchY+W_SEAM.vel));
+  W_SEAM.advance=(W_SEAM.advance+dt*0.11)%1;
+  const off=Math.abs(W_SEAM.torchY)/SEAM_MAX;
+  stabQ=Math.max(0,100*(1-off*off*1.35));
+  W_SEAM.beadPts.push({y:W_SEAM.torchY,q:stabQ});
+  if(W_SEAM.beadPts.length>TRAIL_LEN)W_SEAM.beadPts.shift();
+}
+
+function resetSeamTracker(){W_SEAM.torchY=0;W_SEAM.vel=0;W_SEAM.advance=0;W_SEAM.beadPts=[];}
+
+function drawStab(){
+  const cv=document.getElementById('sg');if(!cv)return;
+  const ctx=cv.getContext('2d'),CW=cv.width,CH=cv.height,CY=CH/2;
+  const ZONE=CH*0.22,torchX=CW*0.72;
+  ctx.fillStyle='#0A0E14';ctx.fillRect(0,0,CW,CH);
+  // Metal grain
+  for(let x=0;x<CW;x+=3){ctx.strokeStyle=`rgba(255,255,255,${x%6?0.008:0.016})`;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,CH);ctx.stroke()}
+  // V-groove
+  const grd=ctx.createLinearGradient(0,CY-CH*.3,0,CY+CH*.3);
+  grd.addColorStop(0,'rgba(60,70,90,0)');grd.addColorStop(.38,'rgba(20,28,40,.9)');
+  grd.addColorStop(.5,'rgba(8,12,20,1)');grd.addColorStop(.62,'rgba(20,28,40,.9)');grd.addColorStop(1,'rgba(60,70,90,0)');
+  ctx.fillStyle=grd;ctx.fillRect(0,CY-CH*.3,CW,CH*.6);
+  // Groove bevel edges
+  ctx.strokeStyle='rgba(140,160,190,.3)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,CY-ZONE*1.1);ctx.lineTo(CW,CY-ZONE*1.1);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,CY+ZONE*1.1);ctx.lineTo(CW,CY+ZONE*1.1);ctx.stroke();
+  // Good-zone band
+  ctx.fillStyle='rgba(56,255,128,.05)';ctx.fillRect(0,CY-ZONE,CW,ZONE*2);
+  ctx.setLineDash([4,6]);ctx.strokeStyle='rgba(56,255,128,.2)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,CY-ZONE);ctx.lineTo(CW,CY-ZONE);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(0,CY+ZONE);ctx.lineTo(CW,CY+ZONE);ctx.stroke();
+  ctx.setLineDash([]);
+  // Seam center line
+  ctx.strokeStyle='rgba(80,120,180,.35)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(0,CY);ctx.lineTo(CW,CY);ctx.stroke();
+  // Bead trail
+  if(W_SEAM.beadPts.length>1){
+    for(let i=1;i<W_SEAM.beadPts.length;i++){
+      const p=W_SEAM.beadPts[i],pp=W_SEAM.beadPts[i-1];
+      const age=(W_SEAM.beadPts.length-i)/W_SEAM.beadPts.length;
+      const bx=torchX-(W_SEAM.beadPts.length-i)*2.1;
+      const pbx=torchX-(W_SEAM.beadPts.length-(i-1))*2.1;
+      if(bx<0||pbx<0)continue;
+      const by=CY+p.y*ZONE*1.4,pby=CY+pp.y*ZONE*1.4;
+      const cool=1-age,q=p.q/100;
+      const r=Math.min(255,Math.round(220*cool+35)),g=Math.round(70*cool*q),b=Math.round(8*cool);
+      ctx.strokeStyle=`rgba(${r},${g},${b},${Math.min(1,.45+age*.55)*(0.4+q*.6)})`;
+      ctx.lineWidth=2.4+q*2*(1-age*.25);ctx.lineCap='round';
+      ctx.beginPath();ctx.moveTo(pbx,pby);ctx.lineTo(bx,by);ctx.stroke();
+      if(i%8===0&&Math.random()>.65){
+        ctx.fillStyle=`rgba(${r},${Math.round(g*.4)},0,.3)`;
+        ctx.beginPath();ctx.arc(bx+(Math.random()-.5)*7,by+(Math.random()-.5)*5,Math.random()*.9+.3,0,Math.PI*2);ctx.fill();
+      }
+    }
+  }
+  // Weld puddle
+  const ty=CY+W_SEAM.torchY*ZONE*1.4+W_SEAM.tremY*CH;
+  const tx=torchX+W_SEAM.tremX*CW*.4;
+  const ht=(W.heat||0)/100,ps=5+ht*5;
+  const pg=ctx.createRadialGradient(tx,ty,0,tx,ty,ps*2.4);
+  pg.addColorStop(0,`rgba(255,210,70,${.4+ht*.25})`);pg.addColorStop(.55,`rgba(255,90,15,${.18+ht*.15})`);pg.addColorStop(1,'rgba(255,40,0,0)');
+  ctx.fillStyle=pg;ctx.beginPath();ctx.arc(tx,ty,ps*2.4,0,Math.PI*2);ctx.fill();
+  const mg=ctx.createRadialGradient(tx,ty,0,tx,ty,ps);
+  mg.addColorStop(0,`rgba(255,255,210,${.92+ht*.08})`);mg.addColorStop(.4,'rgba(255,190,50,.88)');mg.addColorStop(1,'rgba(200,55,0,.4)');
+  ctx.fillStyle=mg;ctx.beginPath();ctx.arc(tx,ty,ps,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.95)';ctx.beginPath();ctx.arc(tx,ty,1.6,0,Math.PI*2);ctx.fill();
+  // Electrode wire
+  ctx.strokeStyle='rgba(190,190,210,.65)';ctx.lineWidth=2;ctx.lineCap='butt';
+  ctx.beginPath();ctx.moveTo(CW,ty+W_SEAM.tremY*CH*.25);ctx.lineTo(tx+ps+1,ty);ctx.stroke();
+  ctx.strokeStyle='rgba(255,255,255,.2)';ctx.lineWidth=.7;
+  ctx.beginPath();ctx.moveTo(CW,ty+W_SEAM.tremY*CH*.25-1);ctx.lineTo(tx+ps+1,ty-1);ctx.stroke();
+  // Lateral offset bar (left)
+  const bH=CH-12,bX=4;
+  ctx.fillStyle='rgba(255,255,255,.05)';ctx.fillRect(bX,6,7,bH);
+  ctx.strokeStyle='rgba(255,122,32,.28)';ctx.lineWidth=1;ctx.strokeRect(bX,6,7,bH);
+  const zf=ZONE/(CH/2);
+  ctx.fillStyle='rgba(56,255,128,.3)';ctx.fillRect(bX+1,(bH/2)*(1-zf)+6,5,bH*zf);
+  const pY=6+(bH*(0.5+W_SEAM.torchY*0.5));
+  const qc=stabQ>65?'#38FF80':stabQ>35?'#FFC444':'#FF4040';
+  ctx.fillStyle=qc;ctx.fillRect(bX-1,pY-2,9,4);
+  // Label
+  const sq=document.getElementById('sq');if(sq){sq.textContent=Math.round(stabQ)+'%';sq.style.color=qc}
+  const off=Math.round(Math.abs(W_SEAM.torchY/SEAM_MAX)*100);
+  ctx.font='7px monospace';ctx.fillStyle=off<25?'rgba(56,255,128,.6)':'rgba(255,122,32,.75)';
+  ctx.textAlign='left';ctx.fillText(off<25?'ON SEAM':off<55?'DRIFTING':'OFF SEAM',16,CH-4);
+  ctx.textAlign='right';ctx.fillStyle='rgba(255,196,68,.4)';ctx.fillText('MOUSE Y = LATERAL',CW-4,CH-4);
+}
+
+
+// ── PHYSICS + COLLISION ────────────────────────────────────
+let velY=0,onGnd=false,cjmp=false;
+const FLOOR_Y=1.65,GRAV=-16;
+// AABB collision boxes {cx,cz,hw,hd}
+const COLS=[
+  {cx:0,   cz:0,    hw:1.30,hd:1.30}, // welding fixture stand
+  {cx:7.5, cz:2.0,  hw:0.65,hd:0.50}, // welding machine
+  {cx:-9,  cz:-1.8, hw:0.85,hd:0.50}, // tool cabinet
+  {cx:-9,  cz:4.5,  hw:0.85,hd:0.35}, // pipe bundle
+  {cx:-5,  cz:-10.6,hw:1.35,hd:0.50}, // blueprint counter
+];
+const PR=0.38;
+function resolveCollision(nx,nz){
+  let px=nx,pz=nz;
+  for(const c of COLS){
+    const dx=px-c.cx,dz=pz-c.cz;
+    const ox=c.hw+PR-Math.abs(dx),oz=c.hd+PR-Math.abs(dz);
+    if(ox>0&&oz>0){if(ox<oz){px+=dx>=0?ox:-ox}else{pz+=dz>=0?oz:-oz}}
+  }
+  px=Math.max(-12.6,Math.min(12.6,px));
+  pz=Math.max(-11.6,Math.min(12,pz));
+  return{x:px,z:pz};
+}
+function tkPhys(dt){
+  if(!onGnd)velY+=GRAV*dt;
+  cam.position.y+=velY*dt;
+  if(cam.position.y<=FLOOR_Y){cam.position.y=FLOOR_Y;velY=0;onGnd=true;cjmp=true}else onGnd=false;
+  const{x,z}=resolveCollision(cam.position.x,cam.position.z);
+  cam.position.x=x;cam.position.z=z;
+}
+
+// ── CURSOR MANAGEMENT ─────────────────────────────────────
+function updCursor(){
+  // Show OS cursor whenever pointer lock is NOT active (boards, menus, overlays)
+  document.body.style.cursor=pLk?'none':'auto';
+  R.domElement.style.cursor=pLk?'none':'crosshair';
+}
+
+// ── CONTROLS ───────────────────────────────────────────────
+const keys={};let yaw=0,pitch=0,pLk=false,dX=0,dY=0;
+let carried=null,cDist=3.2,hovP=null,tgtJ=null,mDn=false,gameOn=false,bdOpen=false;
+const rc=new THREE.Raycaster();
+const SNAP_D=0.85,WELD_D=4.2;
+let snapCd=null,lastCP=new THREE.Vector3(),camSpd=0;
+
+function setupCtrl(){
+  const cv=R.domElement;
+  cv.addEventListener('click',()=>{if(gameOn&&!bdOpen)cv.requestPointerLock()});
+  document.addEventListener('pointerlockchange',()=>{pLk=document.pointerLockElement===cv;updCursor()});
+  document.addEventListener('mousemove',e=>{
+    if(!pLk&&!mDn)return;
+    dX+=e.movementX;dY+=e.movementY;
+    rawMX+=e.movementX;rawMY+=e.movementY;
+  });
+  document.addEventListener('keydown',e=>{
+    keys[e.code]=true;
+    if(e.code==='Tab'){e.preventDefault();toggleBd()}
+    if(e.code==='KeyB'&&gameOn&&!bdOpen){e.preventDefault();toggleBP()}
+    if(e.code==='Escape'){
+      if(bdOpen)closeBoard();
+      else if(document.getElementById('bpo').classList.contains('v'))document.getElementById('bpo').classList.remove('v');
+      else if(carried)dropP();
+    }
+    if(e.code==='KeyE'&&pLk&&!bdOpen&&!document.getElementById('bpo').classList.contains('v'))interact();
+    if(e.code==='Space'&&cjmp&&onGnd){velY=7.5;onGnd=false;cjmp=false}
+    if(e.code==='KeyQ'&&carried)carried.group.rotation.y-=Math.PI/4;
+    if(e.code==='KeyR'&&carried)carried.group.rotation.y+=Math.PI/4;
+  });
+  document.addEventListener('keyup',e=>keys[e.code]=false);
+  document.addEventListener('mousedown',e=>{if(!pLk||bdOpen)return;if(e.button===0){initAudio();mDn=true}});
+  document.addEventListener('mouseup',e=>{if(e.button===0)mDn=false});
+  document.addEventListener('contextmenu',e=>e.preventDefault());
+  document.addEventListener('wheel',e=>{
+    if(!pLk||bdOpen)return;
+    if(carried){cDist=Math.max(1.4,Math.min(5.5,cDist-e.deltaY*.003))}
+    else{const dir=e.deltaY>0?1:-1;let n=S.tool;for(let a=0;a<4;a++){n=((n+dir)%4+4)%4;if(S.owned[n]){S.tool=n;break}}
+      updTB();notify(TOOLS[S.tool].n+' SELECTED')}
+  });
+  document.querySelectorAll('.ts').forEach((sl,i)=>{
+    sl.addEventListener('click',()=>{if(S.owned[i]){S.tool=i;updTB();notify(TOOLS[i].n+' EQUIPPED')}else notify('NOT OWNED')});
+  });
+}
+
+function interact(){
+  if(carried){
+    if(snapCd){
+      carried.snapTo();
+      // Release carry state — snapTo() only places the piece, it never clears the carrier
+      carried=null;snapCd=null;
+      document.getElementById('carry').style.display='none';
+      document.getElementById('snap').classList.remove('v');
+    }else{dropP()}
+  }else if(hovP&&!hovP.placed){grabP(hovP)}
+  else{
+    rc.setFromCamera(new THREE.Vector2(0,0),cam);
+    const h=rc.intersectObjects([bpMesh],false);
+    if(h.length&&h[0].distance<4.5)toggleBP();
+  }
+}
+function grabP(p){p.state='carried';p.hi(0x3AADFF,.45);carried=p;const ch=document.getElementById('carry');ch.style.display='block';document.getElementById('cnum').textContent='#'+p.num;document.getElementById('cnm').textContent=p.label}
+function dropP(){if(!carried)return;carried.state='free';carried.clr();carried.group.position.y=0.18;carried=null;snapCd=null;document.getElementById('carry').style.display='none';document.getElementById('snap').classList.remove('v')}
+
+function findSnap(cp){
+  const d=cp.group.position.distanceTo(cp.tPos);
+  if(d<SNAP_D)return{piece:cp};
+  return null;
+}
+
+// ── WELDING ENGINE ──────────────────────────────────────────
+const W={heat:0,qual:0,weld:false,bt:0};let lastQ=0;
+function tkWeld(dt){
+  const tool=TOOLS[S.tool];
+  const pm_=1+S.upg.pow*.18, pr=1+S.upg.prec*.06, cl=1-S.upg.cool*.20;
+  const lensR=1-S.upg.lens*.18, stabB=S.upg.stab*.10, premF=S.upg.prem*.04, spdR=S.upg.spd*.15;
+  let near=null,nDist=Infinity;
+  aJoints.forEach(j=>{if(j.done)return;const d=j.dist();if(d<nDist){nDist=d;near=j}});
+  tgtJ=(nDist<WELD_D)?near:null;
+  W.weld=mDn&&!!tgtJ&&!carried&&gameOn;
+  const ring=document.getElementById('wring');
+  if(tgtJ&&!carried){ring.classList.add('v');document.getElementById('rfe').style.strokeDashoffset=200.5*(1-tgtJ.prog/100)}
+  else ring.classList.remove('v');
+
+  if(W.weld){
+    W.heat=Math.min(100,W.heat+tool.hu*cl*dt);
+    tkStab(dt);
+    const stabFac=Math.min(1,(stabQ/100)+stabB);
+    const spFac=camSpd<.05?Math.max(0,tool.mq*pr-.7):camSpd<.18?tool.mq*pr:camSpd<.5?tool.mq*pr:Math.max(.08,tool.mq*pr-(camSpd-.5)*(.28*(1-spdR)));
+    const hPen=Math.max(0,(W.heat-65)/100)*.6*lensR;
+    W.qual=Math.max(5+premF*100,Math.min(100,(stabFac*.5+spFac*.5)*100-hPen*50));
+    lastQ=W.qual;
+    const rate=tool.wr*pm_*dt*(W.heat<85?1:.45);
+    const fin=tgtJ.add(rate,W.qual);
+    if(fin){notify(`JOINT COMPLETE — ${Math.round(tgtJ.avgQ())}% quality`);updateObjUI();updateDots();checkDone()}
+    W.bt+=dt;
+    if(W.bt>.034){W.bt=0;const p=tgtJ.pos;const tc=cam.position.clone().sub(p).normalize().multiplyScalar(.2);emitSparks(p.x+tc.x,p.y+tc.y,p.z+tc.z,tool.sp);emitSmoke(p.x,p.y+.12,p.z)}
+    arcL.position.copy(tgtJ.pos);arcL.intensity=1.8+Math.random()*1.1;arcL.color.setHSL(.07+Math.random()*.05,1,.5);
+    document.getElementById('helm').classList.add('on');document.getElementById('af').classList.add('on');
+    document.getElementById('wovr').classList.toggle('sh',W.heat>85);
+    document.getElementById('stab').classList.add('v');
+    drawStab();arcAudio(true);
+  }else{
+    W.heat=Math.max(0,W.heat-tool.hd*dt);arcL.intensity=Math.max(0,arcL.intensity-dt*8);
+    document.getElementById('helm').classList.remove('on');document.getElementById('af').classList.remove('on');
+    document.getElementById('wovr').classList.remove('sh');
+    if(!mDn)document.getElementById('stab').classList.remove('v');
+    // Seam tracker gently recenters when not welding
+    W_SEAM.torchY*=0.96;W_SEAM.vel*=0.88;
+    arcAudio(false);
+    // Drain raw mouse so seam tracker doesn't spike on weld start
+    rawMX=rawMY=0;
+  }
+  updMeters();
+}
+
+// ── MOVEMENT ────────────────────────────────────────────────
+function tkMove(dt){
+  const S_=.00125;yaw-=dX*S_;pitch-=dY*S_;pitch=Math.max(-1.22,Math.min(1.22,pitch));dX=0;dY=0;
+  cam.rotation.order='YXZ';cam.rotation.y=yaw;cam.rotation.x=pitch;
+  const sp=3.8*dt;
+  const fwd=V3(-Math.sin(yaw),0,-Math.cos(yaw));
+  const rgt=V3(Math.cos(yaw),0,-Math.sin(yaw));
+  if(keys['KeyW']||keys['ArrowUp'])cam.position.addScaledVector(fwd,sp);
+  if(keys['KeyS']||keys['ArrowDown'])cam.position.addScaledVector(fwd,-sp);
+  if(keys['KeyA']||keys['ArrowLeft'])cam.position.addScaledVector(rgt,-sp);
+  if(keys['KeyD']||keys['ArrowRight'])cam.position.addScaledVector(rgt,sp);
+  tkPhys(dt);
+  const cur=cam.position.clone();camSpd=cur.distanceTo(lastCP)/dt;lastCP.copy(cur);
+  if(carried){
+    const fd=V3(0,0,-1).applyQuaternion(cam.quaternion);
+    const tgt=cam.position.clone().addScaledVector(fd,cDist);tgt.y=Math.max(.4,tgt.y);
+    carried.group.position.lerp(tgt,.22);
+    snapCd=findSnap(carried);
+    if(snapCd){carried.hi(0x38FF80,.6);document.getElementById('snap').classList.add('v')}
+    else{carried.hi(0x3AADFF,.45);document.getElementById('snap').classList.remove('v')}
+  }
+  rc.setFromCamera(new THREE.Vector2(0,0),cam);
+  const allM=pieces.filter(p=>!p.placed).flatMap(p=>p.meshes());
+  const hits=rc.intersectObjects(allM);
+  const newH=hits.length?hits[0].object.userData.piece:null;
+  if(newH!==hovP){
+    if(hovP&&!hovP.placed&&hovP!==carried)hovP.clr();
+    hovP=newH;
+    if(hovP&&!hovP.placed&&hovP!==carried&&cam.position.distanceTo(hovP.group.position)<5.5)hovP.hi(0xFF9944,.35);
+    else hovP=null;
+  }
+  updIntUI();
+}
+
+function updIntUI(){
+  const ch=document.getElementById('ch'),il=document.getElementById('il');
+  const ilk=document.getElementById('ilk'),ild=document.getElementById('ild');
+  const canGrab=hovP&&!hovP.placed&&hovP!==carried&&cam.position.distanceTo(hovP.group.position)<5.5;
+  if(carried){
+    ch.className=snapCd?'s':'g';il.classList.add('v');
+    ilk.textContent=snapCd?'E — SNAP INTO POSITION':'E — PLACE';
+    ild.textContent=snapCd?'✓ MATCH FOUND':'ESC TO DROP';
+  }else if(W.weld&&tgtJ){ch.className='w';il.classList.remove('v')}
+  else if(tgtJ&&!mDn){
+    ch.className='';il.classList.add('v');
+    const idx=aJoints.indexOf(tgtJ)+1;
+    ilk.textContent=`HOLD LMB — WELD JOINT ${idx}`;ild.textContent='KEEP STABILITY DOT CENTERED';
+  }else if(canGrab){
+    ch.className='g';il.classList.add('v');
+    ilk.textContent=`E — GRAB PIECE #${hovP.num}: ${hovP.label.toUpperCase()}`;
+    ild.textContent='Q/R ROTATE  ·  SCROLL DISTANCE';
+  }else{
+    rc.setFromCamera(new THREE.Vector2(0,0),cam);
+    const bh=rc.intersectObjects([bpMesh],false);
+    if(bh.length&&bh[0].distance<4.5){
+      ch.className='';il.classList.add('v');ilk.textContent='E OR [B] — VIEW BLUEPRINT';ild.textContent='SHOWS ASSEMBLY INSTRUCTIONS';
+    }else{ch.className='';il.classList.remove('v')}
+  }
+}
+
+// ── UI FUNCTIONS ────────────────────────────────────────────
+function updMeters(){
+  const h=W.heat,q=W.weld?W.qual:lastQ;
+  document.getElementById('htb').style.width=h+'%';
+  document.getElementById('htv').textContent=Math.round(h*36+20)+'°C';
+  const hc=h>82?'#FF4040':h>64?'#FFAA33':'#FF7A20';
+  Object.assign(document.getElementById('htb').style,{background:hc,boxShadow:`0 0 8px ${hc}`});
+  document.getElementById('qlb').style.width=(W.weld||lastQ)?q+'%':'0%';
+  document.getElementById('qlv').textContent=(W.weld||lastQ)?Math.round(q)+'%':'—';
+  const qc=q>80?'#38FF80':q>62?'#FFC444':'#FF4040';
+  Object.assign(document.getElementById('qlb').style,{background:qc,boxShadow:`0 0 7px ${qc}`});
+}
+function updMoney(){const v='$'+S.money.toLocaleString();document.getElementById('mpv').textContent=v;document.getElementById('bdbal').textContent='Balance: '+v}
+function updTB(){document.querySelectorAll('.ts').forEach((s,i)=>{s.classList.toggle('act',i===S.tool);s.classList.toggle('lk',!S.owned[i])})}
+function updateObjUI(){
+  if(!actCt2){document.getElementById('opn').textContent='No Contract Active';document.getElementById('opcl').textContent='OPEN BOARD TO BEGIN';document.getElementById('opph').textContent='—';return}
+  document.getElementById('opn').textContent=actCt2.L.n;
+  document.getElementById('opcl').textContent=actCt2.L.cl;
+  const placed=pieces.filter(p=>p.placed).length,total=pieces.length;
+  const jdone=jDefs.filter(j=>j.inst&&j.inst.done).length,jtot=jDefs.length;
+  if(placed<total)document.getElementById('opph').textContent=`PHASE 1: PLACE PIECES (${placed}/${total})`;
+  else document.getElementById('opph').textContent=`PHASE 2: WELD JOINTS (${jdone}/${jtot})`;
+}
+function updateDots(){
+  const el=document.getElementById('opd');el.innerHTML='';
+  pieces.forEach(p=>{
+    const d=document.createElement('div');d.className='pd '+(p.placed?'ok':'nx');d.textContent='#'+p.num;el.appendChild(d);
+  });
+  if(jDefs.some(j=>j.inst)){
+    const sep=document.createElement('span');sep.style.cssText='font-family:monospace;font-size:8px;color:#6A6358;align-self:center;margin:0 3px';sep.textContent='|';el.appendChild(sep);
+    aJoints.forEach((j,i)=>{
+      const d=document.createElement('div');d.className='jd'+(j.done?' done':j===tgtJ?' act':'');el.appendChild(d);
+    });
+  }
+}
+let ntTimer=null;
+function notify(msg){const el=document.getElementById('notif');el.textContent=msg;el.classList.add('sh');if(ntTimer)clearTimeout(ntTimer);ntTimer=setTimeout(()=>el.classList.remove('sh'),2800)}
+function bdg(id){const el=document.getElementById(id);el.classList.add('sh');setTimeout(()=>el.classList.remove('sh'),2200)}
+
+// ── BLUEPRINT TOGGLE ─────────────────────────────────────────
+function toggleBP(){
+  const o=document.getElementById('bpo');
+  if(o.classList.contains('v'))o.classList.remove('v');
+  else if(actCt2){drawBP();o.classList.add('v');if(pLk)document.exitPointerLock()}
+  else notify('No active contract — accept a job first')
+}
+document.getElementById('bpo').addEventListener('click',e=>{if(e.target===document.getElementById('bpo'))document.getElementById('bpo').classList.remove('v')});
+
+// ── BOARD ────────────────────────────────────────────────────
+let curTab='ct';
+function openBd(){bdOpen=true;renderBd();document.getElementById('board').style.display='flex';if(pLk)document.exitPointerLock();updCursor()}
+function closeBoard(){bdOpen=false;document.getElementById('board').style.display='none';updCursor()}
+function toggleBd(){bdOpen?closeBoard():openBd()}
+document.getElementById('bdcl').addEventListener('click',closeBoard);
+document.getElementById('bdbtn').addEventListener('click',openBd);
+document.getElementById('btn-mbrd').addEventListener('click',openBd);
+document.querySelectorAll('.btab').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.btab').forEach(x=>x.classList.remove('on'));t.classList.add('on');
+    curTab=t.dataset.tab;
+    document.getElementById('tab-ct').style.display=curTab==='ct'?'flex':'none';
+    document.getElementById('tab-sh').style.display=curTab==='sh'?'block':'none';
+    if(curTab==='sh')renderShop();
+  });
+});
+function renderBd(){updMoney();renderCts();if(curTab==='sh')renderShop()}
+function drawContractPreview(canvas, L){
+  const ctx=canvas.getContext('2d'),W=canvas.width,H=canvas.height;
+  ctx.fillStyle='#060E1A';ctx.fillRect(0,0,W,H);
+  // Grid
+  ctx.strokeStyle='rgba(50,120,200,.12)';ctx.lineWidth=1;
+  for(let i=0;i<W;i+=12){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,H);ctx.stroke()}
+  for(let i=0;i<H;i+=12){ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(W,i);ctx.stroke()}
+  ctx.strokeStyle='rgba(50,120,200,.3)';ctx.lineWidth=1;ctx.strokeRect(1,1,W-2,H-2);
+  // Scale to fit pieces in view
+  const SC=28, OX=W/2, OY=H/2;
+  // Draw joint lines first
+  ctx.setLineDash([3,3]);ctx.strokeStyle='rgba(255,100,30,.7)';ctx.lineWidth=1.5;
+  L.joints.forEach(j=>{
+    const ax=OX+j.sA[0]*SC,ay=OY+j.sA[2]*SC,bx=OX+j.sB[0]*SC,by=OY+j.sB[2]*SC;
+    ctx.beginPath();ctx.moveTo(ax,ay);ctx.lineTo(bx,by);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.beginPath();ctx.arc((ax+bx)/2,(ay+by)/2,3,0,Math.PI*2);
+    ctx.fillStyle='rgba(255,100,30,.85)';ctx.fill();
+    ctx.setLineDash([3,3]);ctx.strokeStyle='rgba(255,100,30,.7)';
+  });
+  ctx.setLineDash([]);
+  // Draw piece footprints
+  const dimMap={plate:[2.0,1.2],angle:[.5,1.6],hbeam:[.5,1.6],sqtube:[.35,1.6],pipe:[.5,1.6]};
+  L.pieces.forEach(p=>{
+    const [dw,dd]=dimMap[p.t]||[1,.8];
+    const pw=dw*SC*.44,ph=dd*SC*.44;
+    const x=OX+p.tp[0]*SC,z=OY+p.tp[2]*SC;
+    ctx.fillStyle='rgba(58,173,255,.15)';ctx.strokeStyle='#3AADFF';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.rect(x-pw/2,z-ph/2,pw,ph);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#88CCFF';ctx.font='bold 9px Arial';ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText(p.num,x,z);
+  });
+}
+function renderCts(){
+  const el=document.getElementById('tab-ct');el.innerHTML='';
+  queue.forEach(ct=>{
+    const L=ct.L,isAct=actCt2&&actCt2.uid===ct.uid;
+    const card=document.createElement('div');card.className='cc'+(isAct?' cc-act':'');
+    let act='';
+    if(isAct)act='<button class="cbtn ip" disabled>IN PROGRESS</button>';
+    else act=`<button class="cbtn" onclick="startCt(${ct.uid})">Accept Job</button>`;
+    card.innerHTML=`
+      <canvas class="cc-prev" width="110" height="110"></canvas>
+      <div style="flex:1">
+        <div class="cccl">${L.cl}</div>
+        <div class="ccn">${L.n}</div>
+        <div class="ccd">${L.desc}</div>
+        <div class="cct">
+          <span class="tag tag-${L.dk}">${L.dl}</span>
+          <span class="tag tag-i">${L.pieces.length} PIECES</span>
+          <span class="tag tag-i">${L.joints.length} WELD JOINTS</span>
+          <span class="tag tag-i">MIN ${L.minQ}% QUALITY</span>
+        </div>
+      </div>
+      <div class="ccr">
+        <div class="ccp">$${ct.pay.toLocaleString()}</div>
+        <div class="ccb">+$${ct.bon.toLocaleString()} quality bonus</div>
+        ${act}
+      </div>`;
+    el.appendChild(card);
+    // Draw schematic after card is in DOM
+    drawContractPreview(card.querySelector('.cc-prev'), L);
+  });
+}
+function renderShop(){
+  const el=document.getElementById('tab-sh');el.innerHTML='';
+  const ts=document.createElement('div');ts.className='shsec';
+  ts.innerHTML='<div class="shh">WELDING TOOLS</div><div class="shg" id="shg"></div>';el.appendChild(ts);
+  const tg=ts.querySelector('#shg');
+  TOOLS.forEach((t,i)=>{
+    const own=S.owned[i],eq=S.tool===i,aff=S.money>=t.cost;
+    const spdP=Math.round(t.wr/62*100),qP=Math.round(t.mq*100),hP=Math.round(t.hu/34*100);
+    const card=document.createElement('div');card.className='shc'+(eq?' she':own?' sho':'');
+    let act='';
+    if(own&&eq)act='<div class="shel">⚡ EQUIPPED</div>';
+    else if(own)act=`<div class="shol">✓ OWNED</div><button class="sheq" onclick="eqTool(${i})">EQUIP</button>`;
+    else act=`<div class="shpr">$${t.cost.toLocaleString()}</div><button class="shby" onclick="byTool(${i})" ${aff?'':'disabled'}>${aff?'PURCHASE':'NEED $'+(t.cost-S.money).toLocaleString()}</button>`;
+    card.innerHTML=`<div class="shi">${t.ic}</div><div class="shtn">${t.n}</div><div class="shtd">${t.df}</div>
+      <div class="shbs">
+        <div><div class="shbh"><span class="shbl">SPEED</span><span class="shbv">${spdP}%</span></div><div class="shbb"><div class="shbf bspd" style="width:${spdP}%"></div></div></div>
+        <div><div class="shbh"><span class="shbl">MAX QUALITY</span><span class="shbv">${qP}%</span></div><div class="shbb"><div class="shbf bqlt" style="width:${qP}%"></div></div></div>
+        <div><div class="shbh"><span class="shbl">HEAT RATE</span><span class="shbv">${hP}%</span></div><div class="shbb"><div class="shbf bht" style="width:${hP}%"></div></div></div>
+      </div>${act}`;
+    tg.appendChild(card);
+  });
+  const us=document.createElement('div');us.className='shsec';
+  us.innerHTML='<div class="shh">EQUIPMENT UPGRADES</div><div class="upgg" id="upgg"></div>';el.appendChild(us);
+  const ug=us.querySelector('#upgg');
+  UPGS.forEach(u=>{
+    const lv=S.upg[u.id],mx=lv>=3,cost=mx?null:u.costs[lv],aff=cost&&S.money>=cost;
+    const card=document.createElement('div');card.className='upgc';
+    let pips='';for(let i=0;i<3;i++)pips+=`<div class="pip${i<lv?' lit':''}"></div>`;
+    card.innerHTML=`<div class="upgi">${u.ic}</div><div class="upgn">${u.n}</div><div class="upge">${u.d}<br>Level: ${lv}/3</div>
+      <div class="upgp">${pips}</div>
+      ${mx?'<div class="upgmx">✓ MAX LEVEL</div>':`<div class="upgpr">$${cost.toLocaleString()}</div><button class="upgb" onclick="byUpg('${u.id}')" ${aff?'':'disabled'}>${aff?`UPGRADE → LVL ${lv+1}`:'NEED $'+(cost-S.money).toLocaleString()}</button>`}`;
+    ug.appendChild(card);
+  });
+}
+window.byTool=i=>{const t=TOOLS[i];if(!S.owned[i]&&S.money>=t.cost){S.money-=t.cost;S.owned[i]=true;S.tool=i;sv();renderShop();updTB();updMoney();notify(t.n+' PURCHASED')}};
+window.eqTool=i=>{if(S.owned[i]){S.tool=i;sv();renderShop();updTB();notify(TOOLS[i].n+' EQUIPPED')}};
+window.byUpg=id=>{const u=UPGS.find(x=>x.id===id),lv=S.upg[id];if(lv>=3)return;const c=u.costs[lv];if(S.money>=c){S.money-=c;S.upg[id]++;sv();renderShop();updMoney();notify(u.n+` LVL ${S.upg[id]}`)}};
+
+// ── GAME LOOP ───────────────────────────────────────────────
+let astTimer=0;
+function loop(){
+  requestAnimationFrame(loop);
+  if(!gameOn){R.render(scene,cam);return}
+  const dt=Math.min(clock.getDelta(),.05);
+  if(pLk&&!bdOpen&&!document.getElementById('bpo').classList.contains('v'))tkMove(dt);
+  tkWeld(dt);tkSparks(dt);tkSmoke(dt);
+  const t=performance.now()*.001;
+  aJoints.forEach(j=>j.tick(t));
+  if(tgtJ)updateDots();
+  astTimer+=dt;if(astTimer>30){astTimer=0;sv()}
+  R.render(scene,cam);
+}
+
+// ── START ───────────────────────────────────────────────────
+function startGame(){
+  document.getElementById('menu').style.display='none';
+  document.getElementById('hud').style.display='block';
+  gameOn=true;clock.getDelta();
+  if(!actCt2)notify('Accept a contract [TAB] · Check the blueprint [B]');
+}
+document.getElementById('btn-start').addEventListener('click',startGame);
+document.getElementById('btn-cont').addEventListener('click',startGame);
+
+// ── LOADING ─────────────────────────────────────────────────
+const STEPS=[[10,'STARTING WEBGL RENDERER...'],[25,'CALIBRATING PBR LIGHTING...'],[42,'BUILDING WORKSHOP...'],[58,'LOADING PIECE GEOMETRY...'],[72,'INITIALIZING WELD PHYSICS...'],[85,'LOADING PARTICLE SYSTEMS...'],[95,'RESTORING SESSION...'],[100,'READY — ACCEPT A CONTRACT TO BEGIN']];
+let ls=0;
+function ld(){
+  if(ls>=STEPS.length){
+    setTimeout(()=>{const e=document.getElementById('loading');e.style.transition='opacity .5s';e.style.opacity='0';
+      setTimeout(()=>{e.style.display='none';if(S.stats.jobs>0||S.money!==500)document.getElementById('btn-cont').style.display='block';
+        document.getElementById('menu').style.display='flex';updMoney();updTB()},520);},420);return;
+  }
+  const[p,m]=STEPS[ls++];document.getElementById('ld-bar').style.width=p+'%';document.getElementById('ld-st').textContent=m;
+  setTimeout(ld,160+Math.random()*240);
+}
+
+function init(){
+  bldLight();bldEnv();setupCtrl();lastCP.copy(cam.position);
+  // Draw a "no contract" placeholder onto the paper mesh so it's not blank
+  if(bpCanvas&&bpTex){
+    const ctx=bpCanvas.getContext('2d'),W=bpCanvas.width,H=bpCanvas.height;
+    ctx.fillStyle='#C8D4EC';ctx.fillRect(0,0,W,H);
+    const gs=Math.round(W/24);ctx.strokeStyle='rgba(80,120,200,.15)';ctx.lineWidth=1;
+    for(let i=0;i<W;i+=gs){ctx.beginPath();ctx.moveTo(i,0);ctx.lineTo(i,H);ctx.stroke()}
+    for(let i=0;i<H;i+=gs){ctx.beginPath();ctx.moveTo(0,i);ctx.lineTo(W,i);ctx.stroke()}
+    ctx.strokeStyle='rgba(40,80,180,.4)';ctx.lineWidth=2;ctx.strokeRect(2,2,W-4,H-4);
+    ctx.fillStyle='rgba(30,60,140,.35)';ctx.font='bold 22px monospace';ctx.textAlign='center';
+    ctx.fillText('ACCEPT A CONTRACT',W/2,H/2-16);
+    ctx.font='14px monospace';ctx.fillText('TO VIEW BLUEPRINT',W/2,H/2+14);
+    bpTex.needsUpdate=true;
+  }
+  updateObjUI();updateDots();updTB();updMoney();loop();setTimeout(ld,300);
+}
+init();
+</script>
+</body>
+</html>
