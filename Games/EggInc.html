@@ -1,0 +1,2262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EGG EMPIRE — Idle Farm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════
+   DESIGN TOKENS & RESET
+═══════════════════════════════════════════════════ */
+:root {
+  --sky1: #87ceeb;
+  --sky2: #c5e8f7;
+  --ground: #7ec850;
+  --ground-dark: #5a9e30;
+  --egg-color: #fffde7;
+  --egg-glow: #fff176;
+  --gold: #ffd700;
+  --gold-dark: #f59e0b;
+  --btn-green: #4caf50;
+  --btn-green-h: #388e3c;
+  --btn-blue: #2196f3;
+  --btn-blue-h: #1565c0;
+  --btn-red: #f44336;
+  --btn-red-h: #c62828;
+  --btn-purple: #9c27b0;
+  --btn-purple-h: #6a1b9a;
+  --panel-bg: rgba(255,255,255,0.88);
+  --panel-border: rgba(255,255,255,0.6);
+  --shadow: 0 4px 20px rgba(0,0,0,0.12);
+  --shadow-heavy: 0 8px 40px rgba(0,0,0,0.2);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --font-display: 'Fredoka One', cursive;
+  --font-body: 'Nunito', sans-serif;
+
+  /* Egg type theme overrides */
+  --theme-primary: #ff8f00;
+  --theme-secondary: #fff3e0;
+  --theme-glow: rgba(255,143,0,0.3);
+  --theme-sky1: #87ceeb;
+  --theme-sky2: #c5e8f7;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
+
+body {
+  font-family: var(--font-body);
+  background: var(--theme-sky1);
+  user-select: none;
+  transition: background 1s;
+}
+
+/* ═══════════════════════════════════════════════════
+   LAYOUT SHELL
+═══════════════════════════════════════════════════ */
+#app {
+  width: 100vw;
+  height: 100vh;
+  display: grid;
+  grid-template-rows: 64px 1fr 180px;
+  grid-template-columns: 1fr 280px;
+  grid-template-areas:
+    "topbar topbar"
+    "farm   sidepanel"
+    "controls controls";
+  overflow: hidden;
+}
+
+/* ═══════════════════════════════════════════════════
+   TOP BAR
+═══════════════════════════════════════════════════ */
+#topbar {
+  grid-area: topbar;
+  background: rgba(0,0,0,0.25);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255,255,255,0.2);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 20px;
+  z-index: 100;
+}
+
+.tb-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.15);
+  border-radius: 30px;
+  padding: 6px 14px;
+  border: 1px solid rgba(255,255,255,0.25);
+  transition: all 0.3s;
+}
+
+.tb-icon { font-size: 20px; }
+
+.tb-label {
+  font-family: var(--font-display);
+  font-size: 11px;
+  color: rgba(255,255,255,0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+
+.tb-value {
+  font-family: var(--font-display);
+  font-size: 16px;
+  color: #fff;
+  line-height: 1;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+.tb-value.money { color: #ffd54f; }
+.tb-value.golden { color: #ffd700; }
+
+#tb-egg-name {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: #fff;
+  text-shadow: 0 0 20px var(--theme-glow), 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.tb-sep {
+  width: 1px;
+  height: 32px;
+  background: rgba(255,255,255,0.2);
+}
+
+.tb-prestige-info {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.soul-egg-display {
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: #ce93d8;
+  text-shadow: 0 0 10px rgba(206,147,216,0.5);
+  display: flex; align-items: center; gap: 4px;
+}
+
+/* ═══════════════════════════════════════════════════
+   FARM (CENTER)
+═══════════════════════════════════════════════════ */
+#farm {
+  grid-area: farm;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  background: linear-gradient(180deg, var(--theme-sky1) 0%, var(--theme-sky2) 55%, #a8d5a2 55%, var(--ground) 65%, var(--ground-dark) 100%);
+  transition: background 1s;
+}
+
+/* Sky clouds */
+.cloud {
+  position: absolute;
+  background: rgba(255,255,255,0.8);
+  border-radius: 50px;
+  animation: cloudFloat linear infinite;
+}
+.cloud::before, .cloud::after {
+  content: '';
+  position: absolute;
+  background: rgba(255,255,255,0.8);
+  border-radius: 50%;
+}
+
+/* Sun */
+#sun {
+  position: absolute;
+  top: 12px;
+  right: 60px;
+  width: 56px;
+  height: 56px;
+  background: radial-gradient(circle, #fffde7, #ffd54f);
+  border-radius: 50%;
+  box-shadow: 0 0 30px rgba(255,213,79,0.6), 0 0 60px rgba(255,213,79,0.3);
+  animation: sunPulse 4s ease-in-out infinite;
+}
+
+@keyframes sunPulse {
+  0%,100% { box-shadow: 0 0 30px rgba(255,213,79,0.6), 0 0 60px rgba(255,213,79,0.3); }
+  50% { box-shadow: 0 0 50px rgba(255,213,79,0.8), 0 0 100px rgba(255,213,79,0.4); }
+}
+
+@keyframes cloudFloat {
+  from { transform: translateX(-200px); }
+  to { transform: translateX(calc(100vw + 200px)); }
+}
+
+/* Farm buildings */
+#barn {
+  position: absolute;
+  bottom: 100px;
+  left: 40px;
+  transition: all 0.5s;
+}
+
+.barn-body {
+  width: 120px;
+  height: 80px;
+  background: linear-gradient(180deg, #e53935, #b71c1c);
+  border-radius: 4px 4px 0 0;
+  position: relative;
+  box-shadow: inset -8px 0 20px rgba(0,0,0,0.2);
+}
+
+.barn-roof {
+  width: 0;
+  height: 0;
+  border-left: 20px solid transparent;
+  border-right: 20px solid transparent;
+  border-bottom: 40px solid #c62828;
+  position: absolute;
+  top: -40px;
+  left: -20px;
+  width: 160px;
+  border-bottom-width: 0;
+  border-left-width: 0;
+  border-right-width: 0;
+}
+
+/* Draw barn roof properly */
+.barn-roof-tri {
+  position: absolute;
+  top: -36px;
+  left: -8px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0 68px 36px 68px;
+  border-color: transparent transparent #8b0000 transparent;
+}
+
+.barn-door {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 44px;
+  background: #4e342e;
+  border-radius: 4px 4px 0 0;
+}
+
+.barn-window {
+  position: absolute;
+  top: 14px;
+  width: 22px;
+  height: 22px;
+  background: #fff9c4;
+  border-radius: 50%;
+  border: 3px solid #8d6e63;
+  box-shadow: inset 0 0 8px rgba(255,235,59,0.5);
+}
+.barn-window.left { left: 12px; }
+.barn-window.right { right: 12px; }
+
+/* Level badge on barn */
+.barn-level {
+  position: absolute;
+  top: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--gold);
+  color: #5d4037;
+  font-family: var(--font-display);
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(255,215,0,0.4);
+}
+
+/* Silos */
+.silo {
+  width: 40px;
+  height: 80px;
+  background: linear-gradient(180deg, #cfd8dc, #b0bec5);
+  border-radius: 20px 20px 4px 4px;
+  position: absolute;
+  bottom: 100px;
+  box-shadow: inset -6px 0 15px rgba(0,0,0,0.15);
+}
+.silo::after {
+  content: '';
+  position: absolute;
+  top: -16px;
+  left: -4px;
+  width: 48px;
+  height: 24px;
+  background: #90a4ae;
+  border-radius: 50% 50% 0 0;
+}
+
+/* Egg storage conveyor area */
+#conveyor {
+  position: absolute;
+  bottom: 100px;
+  right: 60px;
+  width: 160px;
+  height: 40px;
+  background: linear-gradient(180deg, #795548, #4e342e);
+  border-radius: 8px;
+  overflow: hidden;
+}
+#conveyor::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: repeating-linear-gradient(90deg, #5d4037 0, #5d4037 16px, #4e342e 16px, #4e342e 32px);
+  animation: conveyorMove 0.5s linear infinite;
+}
+@keyframes conveyorMove {
+  to { background-position: -32px 0; }
+}
+
+.conveyor-egg {
+  position: absolute;
+  width: 14px;
+  height: 18px;
+  background: radial-gradient(ellipse at 35% 35%, #fff9c4, #fdd835);
+  border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  bottom: 12px;
+  animation: conveyorRide 2s linear infinite;
+}
+@keyframes conveyorRide {
+  from { right: -20px; }
+  to { right: 170px; opacity: 0; }
+}
+
+/* ── CHICKENS ── */
+.chicken {
+  position: absolute;
+  bottom: 102px;
+  font-size: 28px;
+  animation: chickenWalk var(--walk-speed, 4s) linear infinite;
+  cursor: pointer;
+  filter: drop-shadow(0 3px 3px rgba(0,0,0,0.2));
+  transition: transform 0.1s;
+  z-index: 5;
+}
+.chicken:hover { transform: scale(1.2) translateY(-4px); }
+.chicken:active { transform: scale(0.9); }
+
+@keyframes chickenWalk {
+  0% { left: -60px; transform: scaleX(1); }
+  49% { left: calc(65vw - 60px); transform: scaleX(1); }
+  50% { left: calc(65vw - 60px); transform: scaleX(-1); }
+  99% { left: -10px; transform: scaleX(-1); }
+  100% { left: -60px; transform: scaleX(1); }
+}
+
+/* bouncing chickens */
+.chicken.bounce {
+  animation: chickenWalk var(--walk-speed, 4s) linear infinite,
+             chickenBob 0.4s ease-in-out infinite;
+}
+@keyframes chickenBob {
+  0%,100% { margin-bottom: 0; }
+  50% { margin-bottom: 6px; }
+}
+
+/* Egg pop from chicken */
+.egg-pop {
+  position: absolute;
+  font-size: 16px;
+  pointer-events: none;
+  animation: eggPop 0.8s ease-out forwards;
+  z-index: 20;
+}
+@keyframes eggPop {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  100% { transform: translateY(-50px) scale(0.5); opacity: 0; }
+}
+
+/* ── FLOATING MONEY TEXT ── */
+.float-text {
+  position: fixed;
+  font-family: var(--font-display);
+  font-size: 16px;
+  color: #ffd54f;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.4);
+  pointer-events: none;
+  z-index: 9999;
+  animation: floatUp 1.2s ease-out forwards;
+  white-space: nowrap;
+}
+@keyframes floatUp {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  60% { opacity: 1; transform: translateY(-40px) scale(1.1); }
+  100% { opacity: 0; transform: translateY(-80px) scale(0.9); }
+}
+
+/* Click ripple */
+.ripple {
+  position: fixed;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.5);
+  transform: scale(0);
+  animation: rippleAnim 0.5s ease-out forwards;
+  pointer-events: none;
+  z-index: 9998;
+}
+@keyframes rippleAnim {
+  to { transform: scale(3); opacity: 0; }
+}
+
+/* ═══════════════════════════════════════════════════
+   SIDE PANEL
+═══════════════════════════════════════════════════ */
+#sidepanel {
+  grid-area: sidepanel;
+  background: var(--panel-bg);
+  backdrop-filter: blur(20px);
+  border-left: 1px solid var(--panel-border);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,0,0,0.2) transparent;
+}
+
+.stat-box {
+  background: linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.4));
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  border: 1px solid rgba(255,255,255,0.8);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.stat-title {
+  font-family: var(--font-display);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #888;
+  margin-bottom: 6px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 3px 0;
+  font-size: 13px;
+  color: #444;
+}
+
+.stat-row .label { color: #777; font-size: 12px; }
+.stat-row .value { font-weight: 800; color: #333; font-size: 14px; }
+.stat-row .value.highlight { color: var(--theme-primary); }
+
+/* Achievement mini display */
+.ach-mini {
+  background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  border: 1px solid #ffcc80;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+.ach-mini:hover { transform: scale(1.02); }
+.ach-mini-title {
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: #e65100;
+  margin-bottom: 4px;
+}
+.ach-progress-bar {
+  height: 6px;
+  background: rgba(0,0,0,0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.ach-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff9800, #ffc107);
+  border-radius: 3px;
+  transition: width 0.5s ease;
+}
+.ach-count { font-size: 11px; color: #bf360c; margin-top: 4px; font-weight: 700; }
+
+/* ═══════════════════════════════════════════════════
+   BOTTOM CONTROLS
+═══════════════════════════════════════════════════ */
+#controls {
+  grid-area: controls;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(20px);
+  border-top: 2px solid rgba(255,255,255,0.8);
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Tab nav */
+#tab-nav {
+  display: flex;
+  border-bottom: 1px solid rgba(0,0,0,0.08);
+  background: rgba(0,0,0,0.03);
+}
+
+.tab-btn {
+  flex: 1;
+  padding: 8px 4px;
+  background: none;
+  border: none;
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: #999;
+  cursor: pointer;
+  transition: all 0.2s;
+  border-bottom: 3px solid transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.tab-btn:hover { color: #555; background: rgba(0,0,0,0.04); }
+.tab-btn.active {
+  color: var(--theme-primary);
+  border-bottom-color: var(--theme-primary);
+  background: rgba(255,255,255,0.8);
+}
+
+/* Tab panels */
+.tab-panel { display: none; flex: 1; overflow: hidden; }
+.tab-panel.active { display: flex; }
+
+/* ── HATCH TAB ── */
+#tab-hatch {
+  padding: 10px 16px;
+  gap: 10px;
+  align-items: center;
+}
+
+#btn-hatch {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffee58, #ff8f00);
+  border: none;
+  cursor: pointer;
+  font-size: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 20px rgba(255,143,0,0.5), inset 0 -4px 8px rgba(0,0,0,0.15);
+  transition: all 0.12s;
+  flex-shrink: 0;
+  animation: hatchPulse 2s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
+}
+#btn-hatch::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.5), transparent 60%);
+  pointer-events: none;
+}
+@keyframes hatchPulse {
+  0%,100% { box-shadow: 0 6px 20px rgba(255,143,0,0.5), inset 0 -4px 8px rgba(0,0,0,0.15); }
+  50% { box-shadow: 0 8px 32px rgba(255,143,0,0.8), 0 0 40px rgba(255,213,79,0.3), inset 0 -4px 8px rgba(0,0,0,0.15); }
+}
+#btn-hatch:hover { transform: scale(1.08); }
+#btn-hatch:active { transform: scale(0.93); box-shadow: 0 2px 10px rgba(255,143,0,0.4); }
+
+.hatch-info { flex: 1; }
+.hatch-info h3 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  color: #333;
+  margin-bottom: 4px;
+}
+.hatch-info p { font-size: 12px; color: #888; line-height: 1.5; }
+
+.chicken-cap-bar {
+  height: 8px;
+  background: rgba(0,0,0,0.08);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+.chicken-cap-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #66bb6a, #43a047);
+  transition: width 0.4s ease;
+}
+
+.hatch-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: rgba(255,255,255,0.6);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  border: 1px solid rgba(0,0,0,0.06);
+  min-width: 140px;
+}
+
+.hs-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+}
+.hs-row .k { color: #999; }
+.hs-row .v { font-weight: 800; color: #333; }
+
+/* Sell eggs button */
+#btn-sell {
+  background: linear-gradient(135deg, #43a047, #1b5e20);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 12px rgba(67,160,71,0.4);
+  white-space: nowrap;
+}
+#btn-sell:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(67,160,71,0.5); }
+#btn-sell:active { transform: translateY(0); }
+
+/* ── UPGRADES TAB ── */
+#tab-upgrades {
+  padding: 6px 10px;
+  gap: 6px;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  align-content: flex-start;
+  scrollbar-width: none;
+}
+#tab-upgrades::-webkit-scrollbar { display: none; }
+
+.upgrade-card {
+  min-width: 130px;
+  max-width: 130px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.9), rgba(240,248,255,0.7));
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  border: 2px solid rgba(255,255,255,0.8);
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.upgrade-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }
+.upgrade-card.maxed { opacity: 0.5; cursor: not-allowed; }
+.upgrade-card.affordable { border-color: var(--btn-green); box-shadow: 0 2px 12px rgba(76,175,80,0.3); }
+.upgrade-card.affordable:hover { box-shadow: 0 6px 24px rgba(76,175,80,0.4); }
+
+.uc-icon { font-size: 24px; text-align: center; }
+.uc-name {
+  font-family: var(--font-display);
+  font-size: 12px;
+  color: #333;
+  line-height: 1.2;
+}
+.uc-level {
+  font-size: 10px;
+  color: #999;
+  font-weight: 700;
+}
+.uc-desc { font-size: 10px; color: #777; line-height: 1.3; }
+.uc-cost {
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: var(--btn-green);
+  display: flex; align-items: center; gap: 3px;
+}
+.uc-cost.cant-afford { color: #e57373; }
+.uc-progress {
+  height: 4px;
+  background: rgba(0,0,0,0.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.uc-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--btn-blue), #42a5f5);
+  transition: width 0.4s;
+}
+
+/* ── RESEARCH TAB ── */
+#tab-research {
+  padding: 8px 10px;
+  gap: 6px;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  scrollbar-width: none;
+}
+#tab-research::-webkit-scrollbar { display: none; }
+
+.research-card {
+  min-width: 140px;
+  max-width: 140px;
+  background: linear-gradient(135deg, rgba(243,229,245,0.9), rgba(225,190,231,0.6));
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  border: 2px solid rgba(206,147,216,0.4);
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.research-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(156,39,176,0.15); }
+.research-card.maxed-out { opacity: 0.5; cursor: not-allowed; }
+.research-card.locked { opacity: 0.4; cursor: not-allowed; filter: grayscale(1); }
+.research-card.res-affordable { border-color: #ab47bc; box-shadow: 0 2px 12px rgba(171,71,188,0.3); }
+
+.rc-icon { font-size: 24px; text-align: center; }
+.rc-name { font-family: var(--font-display); font-size: 12px; color: #6a1b9a; line-height: 1.2; }
+.rc-level { font-size: 10px; color: #ab47bc; font-weight: 700; }
+.rc-desc { font-size: 10px; color: #7b1fa2; line-height: 1.3; }
+.rc-cost { font-family: var(--font-display); font-size: 12px; color: #8e24aa; display: flex; align-items: center; gap: 3px; }
+.rc-cost.golden { color: #f59e0b; }
+
+/* ── EGG TYPE TAB ── */
+#tab-eggs {
+  padding: 8px 10px;
+  gap: 6px;
+  overflow-x: auto;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  scrollbar-width: none;
+}
+#tab-eggs::-webkit-scrollbar { display: none; }
+
+.egg-type-card {
+  min-width: 120px;
+  max-width: 120px;
+  border-radius: var(--radius-sm);
+  padding: 10px 8px;
+  border: 2px solid;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: center;
+}
+.egg-type-card:hover { transform: scale(1.04); }
+.egg-type-card.active-egg { transform: scale(1.06); }
+.egg-type-card.locked-egg { opacity: 0.4; cursor: not-allowed; filter: grayscale(0.8); }
+
+.etc-egg { font-size: 32px; }
+.etc-name { font-family: var(--font-display); font-size: 11px; line-height: 1.2; }
+.etc-mult { font-family: var(--font-display); font-size: 12px; }
+.etc-unlock { font-size: 10px; color: #888; }
+
+/* ── PRESTIGE TAB ── */
+#tab-prestige {
+  padding: 16px;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+}
+.prestige-info {
+  text-align: center;
+  max-width: 400px;
+}
+.prestige-info h2 { font-family: var(--font-display); font-size: 22px; color: #6a1b9a; margin-bottom: 6px; }
+.prestige-info p { font-size: 13px; color: #666; line-height: 1.6; }
+.prestige-gain {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: #ce93d8;
+  background: rgba(206,147,216,0.1);
+  border: 1px solid rgba(206,147,216,0.3);
+  border-radius: 12px;
+  padding: 8px 20px;
+}
+#btn-prestige {
+  background: linear-gradient(135deg, #9c27b0, #6a1b9a);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  padding: 12px 28px;
+  font-family: var(--font-display);
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 20px rgba(156,39,176,0.4);
+}
+#btn-prestige:hover { transform: translateY(-2px); box-shadow: 0 6px 30px rgba(156,39,176,0.6); }
+#btn-prestige:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* ═══════════════════════════════════════════════════
+   MODALS
+═══════════════════════════════════════════════════ */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: modalFade 0.25s ease;
+}
+.modal-backdrop.hidden { display: none; }
+@keyframes modalFade { from { opacity: 0; } to { opacity: 1; } }
+
+.modal {
+  background: white;
+  border-radius: 20px;
+  padding: 28px;
+  max-width: 420px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  animation: modalSlide 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes modalSlide {
+  from { transform: scale(0.85) translateY(20px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.modal h2 { font-family: var(--font-display); font-size: 24px; color: #333; margin-bottom: 10px; }
+.modal p { font-size: 14px; color: #666; line-height: 1.6; margin-bottom: 14px; }
+.modal-big-num {
+  font-family: var(--font-display);
+  font-size: 36px;
+  color: var(--theme-primary);
+  text-align: center;
+  padding: 12px;
+  background: var(--theme-secondary);
+  border-radius: 12px;
+  margin: 10px 0;
+}
+.modal-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  font-family: var(--font-display);
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 8px;
+}
+.modal-btn.primary {
+  background: linear-gradient(135deg, #ff8f00, #f57c00);
+  color: white;
+  box-shadow: 0 4px 14px rgba(255,143,0,0.4);
+}
+.modal-btn.primary:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(255,143,0,0.5); }
+.modal-btn.secondary {
+  background: rgba(0,0,0,0.06);
+  color: #666;
+}
+
+/* Achievement toast */
+#ach-toast {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  background: linear-gradient(135deg, #fff3e0, #ffe0b2);
+  border: 2px solid #ffcc02;
+  border-radius: 14px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 20px rgba(255,160,0,0.3);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: toastSlide 0.4s cubic-bezier(0.175,0.885,0.32,1.275);
+  max-width: 260px;
+  transition: opacity 0.3s;
+}
+#ach-toast.hiding { opacity: 0; transform: translateX(100%); transition: all 0.4s; }
+#ach-toast.hidden { display: none; }
+@keyframes toastSlide {
+  from { transform: translateX(120%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.toast-icon { font-size: 28px; }
+.toast-text h4 { font-family: var(--font-display); font-size: 13px; color: #e65100; }
+.toast-text p { font-size: 11px; color: #bf360c; }
+
+/* Egg unlock animation */
+.egg-unlock-flash {
+  position: fixed;
+  inset: 0;
+  background: var(--theme-glow);
+  z-index: 500;
+  pointer-events: none;
+  animation: eggFlash 0.6s ease-out forwards;
+}
+@keyframes eggFlash {
+  0% { opacity: 0.8; }
+  100% { opacity: 0; }
+}
+
+/* Prestige flash */
+.prestige-flash {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle, rgba(206,147,216,0.8), rgba(156,39,176,0.6));
+  z-index: 500;
+  pointer-events: none;
+  animation: prestigeAnim 1s ease-out forwards;
+}
+@keyframes prestigeAnim {
+  0% { opacity: 1; transform: scale(0.5); }
+  50% { opacity: 1; transform: scale(1.5); }
+  100% { opacity: 0; transform: scale(2); }
+}
+
+/* ═══════════════════════════════════════════════════
+   UTILITY
+═══════════════════════════════════════════════════ */
+button { font-family: var(--font-body); }
+
+.gold-icon { color: #ffd700; }
+
+/* Responsive tweaks */
+@media (max-width: 600px) {
+  #app { grid-template-columns: 1fr 220px; }
+  #sidepanel { padding: 10px 8px; }
+}
+
+/* ── SETTINGS TAB ── */
+#tab-settings {
+  padding: 0 !important;
+  overflow: hidden;
+}
+#settings-content {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+}
+#settings-content > div {
+  height: 130px; /* matches controls height minus tab nav */
+}
+
+/* Notification dot */
+.notif-dot {
+  width: 8px; height: 8px;
+  background: var(--btn-red);
+  border-radius: 50%;
+  display: inline-block;
+  margin-left: 3px;
+  animation: dotPulse 1s ease-in-out infinite;
+}
+@keyframes dotPulse {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* egg count display on farm */
+#egg-counter {
+  position: absolute;
+  bottom: 108px;
+  right: 230px;
+  background: rgba(255,255,255,0.85);
+  border-radius: 12px;
+  padding: 6px 12px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  color: #333;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Upgrade available glow on tab */
+.tab-glow { animation: tabGlow 1.5s ease-in-out infinite; }
+@keyframes tabGlow {
+  0%,100% { color: var(--theme-primary); }
+  50% { color: #ffd54f; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <div class="tb-section">
+      <span class="tb-icon" id="tb-egg-icon">🥚</span>
+      <div>
+        <div class="tb-label">Farm Type</div>
+        <div id="tb-egg-name">Edible Egg Farm</div>
+      </div>
+    </div>
+    <div class="tb-sep"></div>
+    <div class="tb-section">
+      <span class="tb-icon">💰</span>
+      <div>
+        <div class="tb-label">Balance</div>
+        <div class="tb-value money" id="tb-money">$0</div>
+      </div>
+    </div>
+    <div class="tb-section">
+      <span class="tb-icon">📦</span>
+      <div>
+        <div class="tb-label">Eggs Stored</div>
+        <div class="tb-value" id="tb-eggs">0</div>
+      </div>
+    </div>
+    <div class="tb-section">
+      <span class="tb-icon">🐔</span>
+      <div>
+        <div class="tb-label">Chickens</div>
+        <div class="tb-value" id="tb-chickens">0</div>
+      </div>
+    </div>
+    <div class="tb-prestige-info">
+      <div class="soul-egg-display">
+        <span>✨</span>
+        <span id="tb-soul-eggs">0</span> Soul Eggs
+      </div>
+      <div class="tb-section" style="margin-left:8px">
+        <span class="tb-icon">⭐</span>
+        <div>
+          <div class="tb-label">Prestige Bonus</div>
+          <div class="tb-value" id="tb-multiplier">×1.00</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AUTO-SAVE INDICATOR -->
+  <div id="autosave-indicator" style="position:fixed;bottom:190px;left:50%;transform:translateX(-50%);z-index:500;background:rgba(0,0,0,0.65);color:white;font-family:var(--font-display);font-size:11px;padding:5px 14px;border-radius:20px;display:flex;align-items:center;gap:8px;pointer-events:none;opacity:0;transition:opacity 0.4s">
+    <span id="autosave-icon">💾</span>
+    <span id="autosave-text">Saving...</span>
+  </div>
+
+  <!-- FARM -->
+  <div id="farm" onclick="farmClick(event)">
+    <div id="sun"></div>
+
+    <!-- Clouds generated by JS -->
+
+    <!-- Barn -->
+    <div id="barn">
+      <div class="barn-level" id="barn-level-badge">Coop Lv.1</div>
+      <div class="barn-body">
+        <div class="barn-roof-tri"></div>
+        <div class="barn-window left"></div>
+        <div class="barn-window right"></div>
+        <div class="barn-door"></div>
+      </div>
+    </div>
+
+    <!-- Silos (added dynamically) -->
+    <div class="silo" id="silo1" style="right:220px;display:none"></div>
+    <div class="silo" id="silo2" style="right:272px;display:none"></div>
+
+    <!-- Conveyor -->
+    <div id="conveyor">
+      <div class="conveyor-egg" style="animation-delay:0s"></div>
+      <div class="conveyor-egg" style="animation-delay:0.7s"></div>
+      <div class="conveyor-egg" style="animation-delay:1.4s"></div>
+    </div>
+
+    <!-- Egg counter -->
+    <div id="egg-counter">🥚 <span id="farm-eggs">0</span></div>
+
+    <!-- Chickens container -->
+    <div id="chicken-container"></div>
+  </div>
+
+  <!-- SIDE PANEL -->
+  <div id="sidepanel">
+    <div class="stat-box">
+      <div class="stat-title">⚡ Production</div>
+      <div class="stat-row"><span class="label">Eggs/sec</span><span class="value highlight" id="s-eps">0</span></div>
+      <div class="stat-row"><span class="label">Money/sec</span><span class="value highlight" id="s-mps">$0</span></div>
+      <div class="stat-row"><span class="label">Egg value</span><span class="value" id="s-eggval">$0.25</span></div>
+    </div>
+
+    <div class="stat-box">
+      <div class="stat-title">🐔 Chickens</div>
+      <div class="stat-row"><span class="label">Current</span><span class="value" id="s-chickens">0</span></div>
+      <div class="stat-row"><span class="label">Max capacity</span><span class="value" id="s-cap">100</span></div>
+      <div class="stat-row"><span class="label">Auto-hatch</span><span class="value" id="s-autohatch">0/min</span></div>
+    </div>
+
+    <div class="stat-box">
+      <div class="stat-title">📊 Lifetime</div>
+      <div class="stat-row"><span class="label">Total earned</span><span class="value" id="s-lifetime">$0</span></div>
+      <div class="stat-row"><span class="label">Eggs laid</span><span class="value" id="s-totaleggs">0</span></div>
+      <div class="stat-row"><span class="label">Prestige count</span><span class="value" id="s-prestige-count">0</span></div>
+    </div>
+
+    <div class="stat-box">
+      <div class="stat-title">✨ Multipliers</div>
+      <div class="stat-row"><span class="label">Research</span><span class="value" id="s-res-mult">×1.00</span></div>
+      <div class="stat-row"><span class="label">Prestige</span><span class="value" id="s-pres-mult">×1.00</span></div>
+      <div class="stat-row"><span class="label">Total</span><span class="value highlight" id="s-total-mult">×1.00</span></div>
+    </div>
+
+    <div class="ach-mini" onclick="showAchievements()">
+      <div class="ach-mini-title">🏆 Achievements</div>
+      <div class="ach-progress-bar"><div class="ach-progress-fill" id="ach-progress-fill" style="width:0%"></div></div>
+      <div class="ach-count"><span id="ach-count">0</span> / <span id="ach-total">15</span> unlocked</div>
+    </div>
+
+    <div class="stat-box">
+      <div class="stat-title">💾 Save</div>
+      <div style="display:flex;gap:6px;margin-top:4px">
+        <button onclick="saveGame(true)" style="flex:1;padding:6px;border-radius:8px;border:none;background:#e3f2fd;color:#1565c0;font-family:var(--font-display);font-size:12px;cursor:pointer">💾 Save</button>
+        <button onclick="resetConfirm()" style="flex:1;padding:6px;border-radius:8px;border:none;background:#fce4ec;color:#c62828;font-family:var(--font-display);font-size:12px;cursor:pointer">🗑 Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div id="controls">
+    <div id="tab-nav">
+      <button class="tab-btn active" onclick="switchTab('hatch')" id="tabn-hatch">🐔 Hatch</button>
+      <button class="tab-btn" onclick="switchTab('upgrades')" id="tabn-upgrades">⬆️ Upgrades</button>
+      <button class="tab-btn" onclick="switchTab('research')" id="tabn-research">🧪 Research</button>
+      <button class="tab-btn" onclick="switchTab('eggs')" id="tabn-eggs">🥚 Egg Types</button>
+      <button class="tab-btn" onclick="switchTab('prestige')" id="tabn-prestige">🌟 Prestige</button>
+      <button class="tab-btn" onclick="switchTab('settings')" id="tabn-settings">⚙️ Help</button>
+    </div>
+
+    <!-- HATCH TAB -->
+    <div class="tab-panel active" id="tab-hatch">
+      <button id="btn-hatch" onclick="hatchChicken(event)" title="Hatch a chicken!">🐔</button>
+      <div class="hatch-info">
+        <h3 id="hatch-title">Hatch Chicken</h3>
+        <p id="hatch-desc">Click to add a chicken to your farm! Each chicken lays eggs over time.</p>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#999;margin-top:6px">
+          <span id="cap-text">0 / 250 chickens</span>
+          <span id="auto-hatch-text">Auto: 0/min</span>
+        </div>
+        <div class="chicken-cap-bar"><div class="chicken-cap-fill" id="cap-fill" style="width:0%"></div></div>
+      </div>
+      <div class="hatch-stats">
+        <div class="hs-row"><span class="k">EPS</span><span class="v" id="hs-eps">0</span></div>
+        <div class="hs-row"><span class="k">$/sec</span><span class="v" id="hs-mps">$0</span></div>
+        <div class="hs-row"><span class="k">Egg val</span><span class="v" id="hs-val">$0.25</span></div>
+        <div class="hs-row"><span class="k">Eggs</span><span class="v" id="hs-eggs">0</span></div>
+      </div>
+      <button id="btn-sell" onclick="sellEggs()">💰 Sell Eggs</button>
+    </div>
+
+    <!-- UPGRADES TAB -->
+    <div class="tab-panel" id="tab-upgrades"></div>
+
+    <!-- RESEARCH TAB -->
+    <div class="tab-panel" id="tab-research"></div>
+
+    <!-- EGGS TAB -->
+    <div class="tab-panel" id="tab-eggs"></div>
+
+    <!-- PRESTIGE TAB -->
+    <div class="tab-panel" id="tab-prestige">
+      <div class="prestige-info">
+        <h2>🌟 Prestige (Rebirth)</h2>
+        <p>Reset your farm in exchange for <strong style="color:#9c27b0">Soul Eggs</strong> — permanent multipliers that carry through all future runs.</p>
+        <p id="prestige-req-text" style="color:#e57373;font-weight:700">Requires $1T total earned to unlock</p>
+      </div>
+      <div class="prestige-gain" id="prestige-gain-display">You will gain: 0 Soul Eggs</div>
+      <button id="btn-prestige" onclick="triggerPrestige()" disabled>🌟 Prestige Now</button>
+    </div>
+
+    <!-- SETTINGS / HELP TAB -->
+    <div class="tab-panel" id="tab-settings" style="overflow-y:auto;padding:0;flex-direction:column">
+      <div id="settings-content"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<!-- Offline earnings -->
+<div class="modal-backdrop hidden" id="offline-modal">
+  <div class="modal">
+    <h2>😴 Welcome Back!</h2>
+    <p>You were away for <strong id="offline-time"></strong>. Your farm kept working!</p>
+    <div class="modal-big-num" id="offline-earned"></div>
+    <button class="modal-btn primary" onclick="closeModal('offline-modal')">🎉 Collect Earnings!</button>
+  </div>
+</div>
+
+<!-- Prestige confirm -->
+<div class="modal-backdrop hidden" id="prestige-modal">
+  <div class="modal">
+    <h2>🌟 Confirm Prestige</h2>
+    <p>This will <strong>reset your farm</strong> (chickens, money, eggs, upgrades) but you'll keep your egg type progress and gain Soul Eggs.</p>
+    <div class="modal-big-num" id="prestige-modal-gain">+0 Soul Eggs</div>
+    <button class="modal-btn primary" style="background:linear-gradient(135deg,#9c27b0,#6a1b9a)" onclick="confirmPrestige()">✨ Yes, Prestige!</button>
+    <button class="modal-btn secondary" onclick="closeModal('prestige-modal')">Cancel</button>
+  </div>
+</div>
+
+<!-- Achievements -->
+<div class="modal-backdrop hidden" id="ach-modal">
+  <div class="modal" style="max-width:500px">
+    <h2>🏆 Achievements</h2>
+    <div id="ach-list" style="max-height:360px;overflow-y:auto;display:grid;grid-template-columns:1fr 1fr;gap:8px;padding-right:4px"></div>
+    <button class="modal-btn secondary" style="margin-top:12px" onclick="closeModal('ach-modal')">Close</button>
+  </div>
+</div>
+
+<!-- Reset confirm -->
+<div class="modal-backdrop hidden" id="reset-modal">
+  <div class="modal">
+    <h2>⚠️ Full Reset</h2>
+    <p>This will delete <strong>ALL</strong> progress including Soul Eggs and prestige history. This cannot be undone.</p>
+    <button class="modal-btn primary" style="background:var(--btn-red)" onclick="fullReset()">Delete Everything</button>
+    <button class="modal-btn secondary" onclick="closeModal('reset-modal')">Cancel</button>
+  </div>
+</div>
+
+<!-- Achievement toast -->
+<div id="ach-toast" class="hidden">
+  <span class="toast-icon" id="toast-icon">🏆</span>
+  <div class="toast-text">
+    <h4>Achievement Unlocked!</h4>
+    <p id="toast-name">First Egg</p>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+/* ═══════════════════════════════════════════════════
+   GAME DATA DEFINITIONS
+═══════════════════════════════════════════════════ */
+
+const EGG_TYPES = [
+  { id:'edible',    name:'Edible Egg',     icon:'🥚',  mult:1,        unlockMoney:0,          color:'#ff8f00', secondary:'#fff3e0', glow:'rgba(255,143,0,0.3)',   sky1:'#87ceeb', sky2:'#c5e8f7' },
+  { id:'superfood', name:'Superfood Egg',  icon:'🥗',  mult:5,        unlockMoney:1e6,         color:'#43a047', secondary:'#e8f5e9', glow:'rgba(67,160,71,0.3)',   sky1:'#a5d6a7', sky2:'#c8e6c9' },
+  { id:'medical',   name:'Medical Egg',    icon:'💊',  mult:20,       unlockMoney:1e9,         color:'#1e88e5', secondary:'#e3f2fd', glow:'rgba(30,136,229,0.3)',  sky1:'#90caf9', sky2:'#bbdefb' },
+  { id:'rocket',    name:'Rocket Fuel',    icon:'🚀',  mult:100,      unlockMoney:1e12,        color:'#e53935', secondary:'#ffebee', glow:'rgba(229,57,53,0.3)',   sky1:'#ef9a9a', sky2:'#ffcdd2' },
+  { id:'quantum',   name:'Quantum Egg',    icon:'⚛️',  mult:1000,     unlockMoney:1e15,        color:'#8e24aa', secondary:'#f3e5f5', glow:'rgba(142,36,170,0.3)',  sky1:'#ce93d8', sky2:'#e1bee7' },
+  { id:'immortal',  name:'Immortal Egg',   icon:'👁️',  mult:10000,    unlockMoney:1e18,        color:'#00acc1', secondary:'#e0f7fa', glow:'rgba(0,172,193,0.3)',   sky1:'#80deea', sky2:'#b2ebf2' },
+  { id:'universe',  name:'Universe Egg',   icon:'🌌',  mult:1000000,  unlockMoney:1e21,        color:'#546e7a', secondary:'#eceff1', glow:'rgba(84,110,122,0.4)',  sky1:'#37474f', sky2:'#546e7a' },
+];
+
+const UPGRADES_DEF = [
+  { id:'hatchery',   name:'Hatchery',       icon:'🏠', desc:'Auto-hatch +2/min per level',     baseCost:200,     costMult:3.2,  maxLevel:20, effect:'autohatch' },
+  { id:'feed',       name:'Feed Quality',   icon:'🌾', desc:'Egg value +20% per level',        baseCost:750,     costMult:3.5,  maxLevel:15, effect:'feedmult'  },
+  { id:'transport',  name:'Transport',      icon:'🚛', desc:'Earn +20% per level',             baseCost:2000,    costMult:3.2,  maxLevel:15, effect:'sellmult'  },
+  { id:'coop',       name:'Coop Size',      icon:'🏚️', desc:'Max chickens +150 per level',    baseCost:5000,    costMult:4.5,  maxLevel:20, effect:'coopsize'  },
+  { id:'incubator',  name:'Incubator',      icon:'🔬', desc:'Hatch 3 extra chickens per click',baseCost:25000,   costMult:4.5,  maxLevel:10, effect:'clickmult' },
+  { id:'lab',        name:'Egg Lab',        icon:'⚗️', desc:'Base egg value ×1.8 per level',  baseCost:250000,  costMult:6,    maxLevel:10, effect:'labmult'   },
+  { id:'drones',     name:'Delivery Drones',icon:'🛸', desc:'+15% sell speed per level',      baseCost:2500000, costMult:5,    maxLevel:8,  effect:'sellspeed' },
+  { id:'quantum_ac', name:'Quantum Accel',  icon:'⚡', desc:'All production ×1.3 per level',  baseCost:25e6,    costMult:7,    maxLevel:8,  effect:'quantmult' },
+];
+
+const RESEARCH_DEF = [
+  { id:'eggval',    name:'Egg Value',       icon:'💎', desc:'+15% egg value per level', costPerLevel:8,   maxLevel:10, currency:'golden', effect:'eggval_pct'  },
+  { id:'prodspd',   name:'Prod Speed',      icon:'⚡', desc:'+15% production per level',costPerLevel:8,   maxLevel:8,  currency:'golden', effect:'prod_pct'   },
+  { id:'chickeniq', name:'Chicken IQ',      icon:'🧠', desc:'Chickens lay ×1.2 per level',costPerLevel:6, maxLevel:8,  currency:'golden', effect:'chickeniq'  },
+  { id:'nanotech',  name:'Nano-Tech',       icon:'🔩', desc:'+25% sell rate per level', costPerLevel:10,  maxLevel:6,  currency:'golden', effect:'nanotech'   },
+  { id:'timewarp',  name:'Time Warp',       icon:'⏰', desc:'Offline time ×1.5 per level',costPerLevel:15,maxLevel:5,  currency:'golden', effect:'timewarp'   },
+  { id:'megafarm',  name:'Mega Farm',       icon:'🌍', desc:'+500 coop cap per level',  costPerLevel:20,  maxLevel:5,  currency:'golden', effect:'megafarm'   },
+  { id:'goldenhen', name:'Golden Hen',      icon:'🐓', desc:'+5% gold on sell per level',costPerLevel:30, maxLevel:5,  currency:'golden', effect:'goldenhen'  },
+  { id:'eggfusion', name:'Egg Fusion',      icon:'🌀', desc:'×1.8 egg mult per level',  costPerLevel:80,  maxLevel:4,  currency:'golden', effect:'eggfusion'  },
+];
+
+const ACHIEVEMENTS_DEF = [
+  { id:'first_egg',    name:'First Egg',         icon:'🥚', desc:'Lay your first egg',              check: s => s.totalEggsLaid >= 1        },
+  { id:'dozen',        name:'A Dozen',            icon:'🥚', desc:'Lay 12 eggs',                     check: s => s.totalEggsLaid >= 12       },
+  { id:'first_k',      name:'First Grand',        icon:'💰', desc:'Earn $1,000',                     check: s => s.lifetimeEarned >= 1000    },
+  { id:'first_m',      name:'Millionaire',        icon:'💵', desc:'Earn $1,000,000',                 check: s => s.lifetimeEarned >= 1e6     },
+  { id:'first_b',      name:'Billionaire',        icon:'💸', desc:'Earn $1,000,000,000',             check: s => s.lifetimeEarned >= 1e9     },
+  { id:'first_t',      name:'Trillionaire',       icon:'🤑', desc:'Earn $1,000,000,000,000',         check: s => s.lifetimeEarned >= 1e12    },
+  { id:'chickens10',   name:'Hen Party',          icon:'🐔', desc:'Have 10 chickens',                check: s => s.chickens >= 10            },
+  { id:'chickens100',  name:'Flock Master',       icon:'🐓', desc:'Have 100 chickens',               check: s => s.chickens >= 100           },
+  { id:'chickens1000', name:'Egg Army',           icon:'🐣', desc:'Have 1,000 chickens',             check: s => s.chickens >= 1000          },
+  { id:'superfood_u',  name:'Health Nut',         icon:'🥗', desc:'Unlock the Superfood Egg',        check: s => s.eggsUnlocked.includes('superfood') },
+  { id:'medical_u',    name:'Big Pharma',         icon:'💊', desc:'Unlock the Medical Egg',          check: s => s.eggsUnlocked.includes('medical')   },
+  { id:'rocket_u',     name:'Rocket Science',     icon:'🚀', desc:'Unlock the Rocket Fuel Egg',      check: s => s.eggsUnlocked.includes('rocket')    },
+  { id:'first_prestige','name':'Reborn',          icon:'✨', desc:'Prestige for the first time',     check: s => s.prestigeCount >= 1        },
+  { id:'upgrades10',   name:'Upgrade Junkie',     icon:'⬆️', desc:'Buy 10 upgrades total',           check: s => s.totalUpgradesBought >= 10 },
+  { id:'research5',    name:'Scientist',          icon:'🧪', desc:'Unlock 5 research items',         check: s => Object.values(s.researchLevels).reduce((a,b)=>a+b,0) >= 5 },
+];
+
+/* ═══════════════════════════════════════════════════
+   GAME STATE
+═══════════════════════════════════════════════════ */
+const DEFAULT_STATE = () => ({
+  money: 0,
+  eggs: 0,
+  chickens: 0,
+  goldenEggs: 3, // start with 3 golden eggs — earn more through achievements
+  soulEggs: 0,
+  currentEggId: 'edible',
+  eggsUnlocked: ['edible'],
+
+  // Upgrade levels
+  upgradeLevels: { hatchery:0, feed:0, transport:0, coop:0, incubator:0, lab:0, drones:0, quantum_ac:0 },
+  // Research levels
+  researchLevels: { eggval:0, prodspd:0, chickeniq:0, nanotech:0, timewarp:0, megafarm:0, goldenhen:0, eggfusion:0 },
+  // Achievements
+  achievementsUnlocked: [],
+
+  // Lifetime stats
+  lifetimeEarned: 0,
+  totalEggsLaid: 0,
+  prestigeCount: 0,
+  totalUpgradesBought: 0,
+
+  // Time tracking
+  lastSave: Date.now(),
+  playTime: 0,
+});
+
+let G = DEFAULT_STATE();
+
+/* ═══════════════════════════════════════════════════
+   DERIVED STATS (computed each tick)
+═══════════════════════════════════════════════════ */
+function getStats() {
+  const egg = EGG_TYPES.find(e => e.id === G.currentEggId);
+  const ul = G.upgradeLevels;
+  const rl = G.researchLevels;
+
+  // Base egg value
+  let eggValue = 0.25 * egg.mult;
+  eggValue *= Math.pow(1.20, ul.feed);      // feed upgrade
+  eggValue *= Math.pow(1.8, ul.lab);         // lab upgrade
+  eggValue *= (1 + rl.eggval * 0.20);       // research: egg value
+  eggValue *= Math.pow(1.8, rl.eggfusion);  // research: egg fusion
+  eggValue *= getSoulMultiplier();
+  eggValue *= (1 + ul.quantum_ac * 0.3);   // quantum accel
+
+  // Production speed multiplier
+  let prodMult = 1;
+  prodMult *= (1 + rl.prodspd * 0.15);
+  prodMult *= (1 + ul.quantum_ac * 0.3);
+  prodMult *= (1 + rl.chickeniq * 0.2);
+
+  // Eggs per second
+  const eps = G.chickens * eggValue * prodMult / 5; // 1 egg per 5s base
+
+  // Sell multiplier
+  let sellMult = 1;
+  sellMult *= (1 + ul.transport * 0.20);
+  sellMult *= (1 + rl.nanotech * 0.25);
+  sellMult *= (1 + ul.quantum_ac * 0.3);
+  sellMult *= (1 + rl.goldenhen * 0.05);
+
+  // Money per second
+  const mps = eps * eggValue * sellMult;
+
+  // Coop capacity
+  const baseCapacity = 100;
+  const coopCap = baseCapacity + ul.coop * 150 + rl.megafarm * 300;
+
+  // Auto hatch per minute
+  const autoHatchPerMin = ul.hatchery * 1;
+
+  // Click hatches
+  const clickHatch = 1 + ul.incubator * 2;
+
+  // Offline time multiplier (hours available)
+  const offlineHours = 6 * (1 + rl.timewarp * 0.5);
+
+  // Total multiplier for display
+  const totalMult = prodMult * sellMult * getSoulMultiplier();
+
+  return { eggValue, eps, mps, coopCap, autoHatchPerMin, clickHatch, sellMult, prodMult, totalMult, offlineHours };
+}
+
+function getSoulMultiplier() {
+  return 1 + G.soulEggs * 0.08;
+}
+
+function calcSoulEggsGain() {
+  // Soul eggs = sqrt(lifetimeEarned / 1e12) * 100, capped relative
+  return Math.floor(Math.sqrt(G.lifetimeEarned / 1e12) * 100);
+}
+
+/* ═══════════════════════════════════════════════════
+   GAME LOOP
+═══════════════════════════════════════════════════ */
+let lastTick = Date.now();
+let autoHatchAccum = 0;
+let eggSellAccum = 0;
+let autoSaveTimer = 0;
+let uiUpdateTimer = 0;
+let chickenSpawnTimer = 0;
+let floatTextTimer = 0;
+let upgradeNotifTimer = 0;
+
+function gameTick() {
+  const now = Date.now();
+  const dt = Math.min((now - lastTick) / 1000, 5); // cap at 5s
+  lastTick = now;
+
+  const stats = getStats();
+
+  // Auto hatch chickens
+  if (G.chickens < stats.coopCap) {
+    autoHatchAccum += (stats.autoHatchPerMin / 60) * dt;
+    while (autoHatchAccum >= 1 && G.chickens < stats.coopCap) {
+      G.chickens++;
+      autoHatchAccum--;
+      spawnChickenVisual();
+    }
+  }
+
+  // Egg production
+  const eggsProduced = stats.eps * dt;
+  G.eggs += eggsProduced;
+  G.totalEggsLaid += eggsProduced;
+
+  // Auto-sell eggs (continuous)
+  const moneyEarned = stats.mps * dt;
+  G.money += moneyEarned;
+  G.lifetimeEarned += moneyEarned;
+
+  // Drain eggs as they sell
+  const eggsDrained = Math.min(G.eggs, (stats.eps * 1.1) * dt);
+  G.eggs = Math.max(0, G.eggs - eggsDrained);
+
+  // Check egg unlocks
+  checkEggUnlocks();
+
+  // Check achievements
+  checkAchievements();
+
+  // Spawn conveyor eggs visual
+  eggSellAccum += moneyEarned;
+
+  // Update UI periodically
+  uiUpdateTimer += dt;
+  if (uiUpdateTimer >= 0.1) {
+    updateUI(stats);
+    uiUpdateTimer = 0;
+  }
+
+  // Auto save
+  autoSaveTimer += dt;
+  if (autoSaveTimer >= autoSaveInterval) {
+    saveGame(false);
+    autoSaveTimer = 0;
+    flashAutoSave();
+  }
+
+  // Update settings golden eggs display if visible
+  const sgEl = el('settings-golden');
+  if (sgEl) sgEl.textContent = fmt(G.goldenEggs);
+
+  // Check upgrade affordability
+  upgradeNotifTimer += dt;
+  if (upgradeNotifTimer >= 2) {
+    checkUpgradeAffordability();
+    upgradeNotifTimer = 0;
+  }
+
+  // Earn display: floating money
+  floatTextTimer += dt;
+  if (floatTextTimer >= 2 && moneyEarned > 0) {
+    // periodic farm area floats
+    floatTextTimer = 0;
+  }
+}
+
+setInterval(gameTick, 100);
+
+/* ═══════════════════════════════════════════════════
+   UI UPDATE
+═══════════════════════════════════════════════════ */
+function updateUI(stats) {
+  const egg = EGG_TYPES.find(e => e.id === G.currentEggId);
+
+  // Top bar
+  el('tb-money').textContent = '$' + fmt(G.money);
+  el('tb-eggs').textContent = fmt(Math.floor(G.eggs));
+  el('tb-chickens').textContent = fmt(G.chickens);
+  el('tb-soul-eggs').textContent = fmt(G.soulEggs);
+  el('tb-multiplier').textContent = '×' + stats.totalMult.toFixed(2);
+  el('tb-egg-name').textContent = egg.name + ' Farm';
+  el('tb-egg-icon').textContent = egg.icon;
+
+  // Side panel stats
+  el('s-eps').textContent = fmt(stats.eps.toFixed(1)) + '/s';
+  el('s-mps').textContent = '$' + fmt(stats.mps);
+  el('s-eggval').textContent = '$' + fmtShort(stats.eggValue);
+  el('s-chickens').textContent = fmt(G.chickens);
+  el('s-cap').textContent = fmt(stats.coopCap);
+  el('s-autohatch').textContent = fmt(stats.autoHatchPerMin) + '/min';
+  el('s-lifetime').textContent = '$' + fmt(G.lifetimeEarned);
+  el('s-totaleggs').textContent = fmt(Math.floor(G.totalEggsLaid));
+  el('s-prestige-count').textContent = G.prestigeCount;
+  el('s-res-mult').textContent = '×' + stats.prodMult.toFixed(2);
+  el('s-pres-mult').textContent = '×' + getSoulMultiplier().toFixed(2);
+  el('s-total-mult').textContent = '×' + stats.totalMult.toFixed(2);
+
+  // Hatch tab
+  el('hs-eps').textContent = fmt(stats.eps.toFixed(1));
+  el('hs-mps').textContent = '$' + fmt(stats.mps);
+  el('hs-val').textContent = '$' + fmtShort(stats.eggValue);
+  el('hs-eggs').textContent = fmt(Math.floor(G.eggs));
+  el('farm-eggs').textContent = fmt(Math.floor(G.eggs));
+  el('cap-text').textContent = `${fmt(G.chickens)} / ${fmt(stats.coopCap)} chickens`;
+  el('auto-hatch-text').textContent = `Auto: ${fmt(stats.autoHatchPerMin)}/min`;
+  el('cap-fill').style.width = Math.min(100, G.chickens / stats.coopCap * 100) + '%';
+  el('hatch-title').textContent = G.chickens >= stats.coopCap ? 'Coop Full!' : 'Hatch Chicken';
+  el('hatch-desc').textContent = G.chickens >= stats.coopCap
+    ? 'Upgrade Coop Size to house more chickens!'
+    : `Click to add ${stats.clickHatch} chicken${stats.clickHatch > 1 ? 's' : ''} (×${stats.clickHatch} with incubator)`;
+
+  // Barn level
+  const coopLevel = G.upgradeLevels.coop + 1;
+  el('barn-level-badge').textContent = `Coop Lv.${coopLevel}`;
+  if (coopLevel >= 5) {
+    el('silo1').style.display = '';
+    document.querySelector('.barn-body').style.width = '140px';
+  }
+  if (coopLevel >= 10) el('silo2').style.display = '';
+
+  // Prestige tab
+  const soulGain = calcSoulEggsGain();
+  const canPrestige = G.lifetimeEarned >= 1e12;
+  el('btn-prestige').disabled = !canPrestige;
+  el('prestige-gain-display').textContent = `You will gain: ${fmt(soulGain)} Soul Eggs`;
+  el('prestige-req-text').style.display = canPrestige ? 'none' : '';
+
+  // Achievement progress
+  const achUnlocked = G.achievementsUnlocked.length;
+  const achTotal = ACHIEVEMENTS_DEF.length;
+  el('ach-count').textContent = achUnlocked;
+  el('ach-total').textContent = achTotal;
+  el('ach-progress-fill').style.width = (achUnlocked / achTotal * 100) + '%';
+
+  // Update upgrade cards
+  updateUpgradeCards();
+  updateResearchCards();
+}
+
+/* ═══════════════════════════════════════════════════
+   CHICKEN VISUALS
+═══════════════════════════════════════════════════ */
+const CHICKEN_EMOJIS = ['🐔','🐓','🐣','🐥'];
+let visualChickens = 0;
+const MAX_VISUAL_CHICKENS = 20;
+
+function syncVisualChickens() {
+  const container = el('chicken-container');
+  const target = Math.min(G.chickens, MAX_VISUAL_CHICKENS);
+  while (visualChickens < target) {
+    spawnChickenVisual();
+  }
+  while (visualChickens > target) {
+    const last = container.lastChild;
+    if (last) { container.removeChild(last); visualChickens--; }
+    else break;
+  }
+}
+
+function spawnChickenVisual() {
+  if (visualChickens >= MAX_VISUAL_CHICKENS) return;
+  const container = el('chicken-container');
+  const div = document.createElement('div');
+  div.className = 'chicken bounce';
+  div.textContent = CHICKEN_EMOJIS[Math.floor(Math.random() * CHICKEN_EMOJIS.length)];
+  const speed = 3 + Math.random() * 5;
+  const yOffset = Math.floor(Math.random() * 40);
+  div.style.setProperty('--walk-speed', speed + 's');
+  div.style.animationDelay = (-Math.random() * speed) + 's';
+  div.style.bottom = (102 + yOffset) + 'px';
+  div.onclick = (e) => {
+    e.stopPropagation();
+    chickenClick(div);
+  };
+  container.appendChild(div);
+  visualChickens++;
+}
+
+function chickenClick(div) {
+  // Pop egg emoji above chicken
+  const rect = div.getBoundingClientRect();
+  const pop = document.createElement('div');
+  pop.className = 'egg-pop';
+  pop.textContent = '🥚';
+  pop.style.left = rect.left + 'px';
+  pop.style.top = rect.top + 'px';
+  document.body.appendChild(pop);
+  setTimeout(() => pop.remove(), 900);
+  // Instant sell tiny amount
+  const stats = getStats();
+  const bonus = stats.eggValue * 3;
+  G.money += bonus;
+  G.lifetimeEarned += bonus;
+  spawnFloat(`+$${fmtShort(bonus)}`, rect.left + 20, rect.top - 10);
+}
+
+/* ═══════════════════════════════════════════════════
+   PLAYER ACTIONS
+═══════════════════════════════════════════════════ */
+function farmClick(e) {
+  // Create ripple
+  const r = document.createElement('div');
+  r.className = 'ripple';
+  r.style.left = (e.clientX - 30) + 'px';
+  r.style.top = (e.clientY - 30) + 'px';
+  r.style.width = '60px';
+  r.style.height = '60px';
+  document.body.appendChild(r);
+  setTimeout(() => r.remove(), 600);
+}
+
+function hatchChicken(e) {
+  e && e.stopPropagation();
+  const stats = getStats();
+  if (G.chickens >= stats.coopCap) {
+    shakElement('btn-hatch');
+    return;
+  }
+  const n = Math.min(stats.clickHatch, stats.coopCap - G.chickens);
+  G.chickens += n;
+  syncVisualChickens();
+
+  // Visual feedback
+  const btn = el('btn-hatch');
+  btn.style.transform = 'scale(0.88)';
+  setTimeout(() => btn.style.transform = '', 120);
+
+  // Float text
+  if (e) spawnFloat(`+${n} 🐔`, e.clientX, e.clientY - 20);
+}
+
+function sellEggs() {
+  if (G.eggs < 1) return;
+  const stats = getStats();
+  const earned = G.eggs * stats.eggValue * stats.sellMult;
+  G.money += earned;
+  G.lifetimeEarned += earned;
+  const sold = G.eggs;
+  G.eggs = 0;
+  spawnFloat(`+$${fmt(earned)} 💰`, window.innerWidth / 2, window.innerHeight - 220);
+  checkEggUnlocks();
+}
+
+/* ═══════════════════════════════════════════════════
+   UPGRADES
+═══════════════════════════════════════════════════ */
+function getUpgradeCost(upg) {
+  const level = G.upgradeLevels[upg.id];
+  return Math.floor(upg.baseCost * Math.pow(upg.costMult, level));
+}
+
+function buyUpgrade(id) {
+  const upg = UPGRADES_DEF.find(u => u.id === id);
+  if (!upg) return;
+  const level = G.upgradeLevels[id];
+  if (level >= upg.maxLevel) return;
+  const cost = getUpgradeCost(upg);
+  if (G.money < cost) { shakElement(`upg-${id}`); return; }
+  G.money -= cost;
+  G.upgradeLevels[id]++;
+  G.totalUpgradesBought++;
+  spawnFloat(`⬆️ ${upg.name} Lv.${G.upgradeLevels[id]}`, window.innerWidth / 2, window.innerHeight - 200);
+  renderUpgrades();
+  renderResearch();
+}
+
+function getResearchCost(res) {
+  const level = G.researchLevels[res.id];
+  return res.costPerLevel * (level + 1);
+}
+
+function buyResearch(id) {
+  const res = RESEARCH_DEF.find(r => r.id === id);
+  if (!res) return;
+  const level = G.researchLevels[id];
+  if (level >= res.maxLevel) return;
+  const cost = getResearchCost(res);
+  if (G.goldenEggs < cost) { shakElement(`res-${id}`); return; }
+  G.goldenEggs -= cost;
+  G.researchLevels[id]++;
+  spawnFloat(`🧪 ${res.name}!`, window.innerWidth / 2, window.innerHeight - 200);
+  renderResearch();
+}
+
+function renderUpgrades() {
+  const panel = el('tab-upgrades');
+  panel.innerHTML = '';
+  UPGRADES_DEF.forEach(upg => {
+    const level = G.upgradeLevels[upg.id];
+    const maxed = level >= upg.maxLevel;
+    const cost = getUpgradeCost(upg);
+    const canAfford = G.money >= cost && !maxed;
+    const card = document.createElement('div');
+    card.className = 'upgrade-card' + (maxed ? ' maxed' : '') + (canAfford ? ' affordable' : '');
+    card.id = `upg-${upg.id}`;
+    card.innerHTML = `
+      <div class="uc-icon">${upg.icon}</div>
+      <div class="uc-name">${upg.name}</div>
+      <div class="uc-level">Lv.${level} / ${upg.maxLevel}</div>
+      <div class="uc-desc">${upg.desc}</div>
+      <div class="uc-cost ${canAfford ? '' : 'cant-afford'}">
+        ${maxed ? '✅ MAX' : `💰 $${fmt(cost)}`}
+      </div>
+      <div class="uc-progress"><div class="uc-progress-fill" style="width:${level/upg.maxLevel*100}%"></div></div>
+    `;
+    if (!maxed) card.onclick = () => buyUpgrade(upg.id);
+    panel.appendChild(card);
+  });
+}
+
+function renderResearch() {
+  const panel = el('tab-research');
+  panel.innerHTML = '';
+  RESEARCH_DEF.forEach(res => {
+    const level = G.researchLevels[res.id];
+    const maxed = level >= res.maxLevel;
+    const cost = getResearchCost(res);
+    const canAfford = G.goldenEggs >= cost && !maxed;
+    const card = document.createElement('div');
+    card.className = 'research-card' + (maxed ? ' maxed-out' : '') + (canAfford ? ' res-affordable' : '');
+    card.id = `res-${res.id}`;
+    card.innerHTML = `
+      <div class="rc-icon">${res.icon}</div>
+      <div class="rc-name">${res.name}</div>
+      <div class="rc-level">Lv.${level} / ${res.maxLevel}</div>
+      <div class="rc-desc">${res.desc}</div>
+      <div class="rc-cost golden">
+        ${maxed ? '✅ MAX' : `✨ ${cost} Golden Eggs`}
+      </div>
+      <div class="uc-progress"><div class="uc-progress-fill" style="width:${level/res.maxLevel*100}%;background:linear-gradient(90deg,#ab47bc,#ce93d8)"></div></div>
+    `;
+    if (!maxed) card.onclick = () => buyResearch(res.id);
+    panel.appendChild(card);
+  });
+}
+
+function renderEggTypes() {
+  const panel = el('tab-eggs');
+  panel.innerHTML = '';
+  EGG_TYPES.forEach(egg => {
+    const unlocked = G.eggsUnlocked.includes(egg.id);
+    const active = G.currentEggId === egg.id;
+    const card = document.createElement('div');
+    card.className = 'egg-type-card' + (!unlocked ? ' locked-egg' : '') + (active ? ' active-egg' : '');
+    card.style.borderColor = unlocked ? egg.color : '#ddd';
+    card.style.background = unlocked ? `linear-gradient(135deg, ${egg.secondary}, white)` : '#f5f5f5';
+    card.innerHTML = `
+      <div class="etc-egg">${unlocked ? egg.icon : '🔒'}</div>
+      <div class="etc-name" style="color:${egg.color}">${egg.name}</div>
+      <div class="etc-mult" style="color:${egg.color}">×${fmt(egg.mult)}</div>
+      <div class="etc-unlock">${unlocked ? (active ? '✅ Active' : 'Click to switch') : 'Unlock: $' + fmt(egg.unlockMoney)}</div>
+    `;
+    if (unlocked && !active) card.onclick = () => switchEggType(egg.id);
+    panel.appendChild(card);
+  });
+}
+
+function updateUpgradeCards() {
+  UPGRADES_DEF.forEach(upg => {
+    const card = el(`upg-${upg.id}`);
+    if (!card) return;
+    const level = G.upgradeLevels[upg.id];
+    const maxed = level >= upg.maxLevel;
+    const cost = getUpgradeCost(upg);
+    const canAfford = G.money >= cost && !maxed;
+    card.classList.toggle('affordable', canAfford);
+    const costEl = card.querySelector('.uc-cost');
+    if (costEl && !maxed) {
+      costEl.textContent = `💰 $${fmt(cost)}`;
+      costEl.className = `uc-cost ${canAfford ? '' : 'cant-afford'}`;
+    }
+  });
+}
+
+function updateResearchCards() {
+  RESEARCH_DEF.forEach(res => {
+    const card = el(`res-${res.id}`);
+    if (!card) return;
+    const level = G.researchLevels[res.id];
+    const maxed = level >= res.maxLevel;
+    const cost = getResearchCost(res);
+    const canAfford = G.goldenEggs >= cost && !maxed;
+    card.classList.toggle('res-affordable', canAfford);
+  });
+}
+
+function checkUpgradeAffordability() {
+  const hasAffordable = UPGRADES_DEF.some(u => {
+    const level = G.upgradeLevels[u.id];
+    return level < u.maxLevel && G.money >= getUpgradeCost(u);
+  });
+  const tabn = el('tabn-upgrades');
+  if (hasAffordable) {
+    if (!tabn.querySelector('.notif-dot')) {
+      const dot = document.createElement('span');
+      dot.className = 'notif-dot';
+      tabn.appendChild(dot);
+    }
+  } else {
+    const dot = tabn.querySelector('.notif-dot');
+    if (dot) dot.remove();
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   EGG TYPE SYSTEM
+═══════════════════════════════════════════════════ */
+function checkEggUnlocks() {
+  EGG_TYPES.forEach(egg => {
+    if (!G.eggsUnlocked.includes(egg.id) && G.lifetimeEarned >= egg.unlockMoney) {
+      G.eggsUnlocked.push(egg.id);
+      unlockEggType(egg);
+    }
+  });
+}
+
+function unlockEggType(egg) {
+  // Flash
+  const flash = document.createElement('div');
+  flash.className = 'egg-unlock-flash';
+  document.body.appendChild(flash);
+  setTimeout(() => flash.remove(), 700);
+
+  // Show modal
+  showEggUnlockModal(egg);
+  renderEggTypes();
+}
+
+function showEggUnlockModal(egg) {
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal" style="text-align:center">
+      <div style="font-size:60px;margin-bottom:10px">${egg.icon}</div>
+      <h2 style="color:${egg.color}">New Egg Unlocked!</h2>
+      <p><strong>${egg.name}</strong> is now available!<br>Value multiplier: ×${fmt(egg.mult)}</p>
+      <button class="modal-btn primary" style="background:${egg.color}" onclick="this.closest('.modal-backdrop').remove();switchEggType('${egg.id}')">Switch to ${egg.name} →</button>
+      <button class="modal-btn secondary" onclick="this.closest('.modal-backdrop').remove()">Keep Current</button>
+    </div>`;
+  document.body.appendChild(backdrop);
+}
+
+function switchEggType(id) {
+  G.currentEggId = id;
+  const egg = EGG_TYPES.find(e => e.id === id);
+  applyEggTheme(egg);
+  renderEggTypes();
+}
+
+function applyEggTheme(egg) {
+  document.documentElement.style.setProperty('--theme-primary', egg.color);
+  document.documentElement.style.setProperty('--theme-secondary', egg.secondary);
+  document.documentElement.style.setProperty('--theme-glow', egg.glow);
+  document.documentElement.style.setProperty('--theme-sky1', egg.sky1);
+  document.documentElement.style.setProperty('--theme-sky2', egg.sky2);
+  document.getElementById('farm').style.background =
+    `linear-gradient(180deg, ${egg.sky1} 0%, ${egg.sky2} 55%, #a8d5a2 55%, #7ec850 65%, #5a9e30 100%)`;
+}
+
+/* ═══════════════════════════════════════════════════
+   PRESTIGE
+═══════════════════════════════════════════════════ */
+function triggerPrestige() {
+  const gain = calcSoulEggsGain();
+  el('prestige-modal-gain').textContent = `+${fmt(gain)} Soul Eggs`;
+  showModal('prestige-modal');
+}
+
+function confirmPrestige() {
+  closeModal('prestige-modal');
+  const gain = calcSoulEggsGain();
+  G.soulEggs += gain;
+  G.prestigeCount++;
+  G.goldenEggs += 5 + G.prestigeCount * 2; // bonus golden eggs per prestige
+
+  // Flash effect
+  const flash = document.createElement('div');
+  flash.className = 'prestige-flash';
+  document.body.appendChild(flash);
+  setTimeout(() => flash.remove(), 1200);
+
+  // Reset run-specific state
+  G.money = 0;
+  G.eggs = 0;
+  G.chickens = 0;
+  G.upgradeLevels = { hatchery:0, feed:0, transport:0, coop:0, incubator:0, lab:0, drones:0, quantum_ac:0 };
+  G.currentEggId = 'edible';
+  // Keep: soulEggs, goldenEggs, researchLevels, eggsUnlocked, achievementsUnlocked, lifetimeEarned, prestigeCount
+
+  visualChickens = 0;
+  el('chicken-container').innerHTML = '';
+  applyEggTheme(EGG_TYPES[0]);
+  renderAll();
+  saveGame(false);
+
+  spawnFloat(`✨ +${fmt(gain)} Soul Eggs!`, window.innerWidth/2, window.innerHeight/2);
+}
+
+/* ═══════════════════════════════════════════════════
+   ACHIEVEMENTS
+═══════════════════════════════════════════════════ */
+function checkAchievements() {
+  ACHIEVEMENTS_DEF.forEach(ach => {
+    if (!G.achievementsUnlocked.includes(ach.id) && ach.check(G)) {
+      G.achievementsUnlocked.push(ach.id);
+      showAchievementToast(ach);
+      // Bonus golden eggs for achievements
+      G.goldenEggs += 2;
+    }
+  });
+}
+
+function showAchievementToast(ach) {
+  const toast = el('ach-toast');
+  el('toast-icon').textContent = ach.icon;
+  el('toast-name').textContent = ach.name;
+  toast.classList.remove('hidden', 'hiding');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => {
+    toast.classList.add('hiding');
+    setTimeout(() => toast.classList.add('hidden'), 400);
+  }, 3500);
+}
+
+function showAchievements() {
+  const list = el('ach-list');
+  list.innerHTML = ACHIEVEMENTS_DEF.map(ach => {
+    const unlocked = G.achievementsUnlocked.includes(ach.id);
+    return `<div style="padding:10px;border-radius:10px;border:2px solid ${unlocked ? '#ffcc80' : '#eee'};background:${unlocked ? 'linear-gradient(135deg,#fff3e0,#ffe0b2)' : '#fafafa'};opacity:${unlocked ? 1 : 0.5}">
+      <div style="font-size:24px;margin-bottom:4px">${ach.icon}</div>
+      <div style="font-family:var(--font-display);font-size:12px;color:${unlocked ? '#e65100' : '#999'}">${ach.name}</div>
+      <div style="font-size:11px;color:#888">${ach.desc}</div>
+      ${unlocked ? '<div style="font-size:10px;color:#fb8c00;font-weight:700;margin-top:2px">✅ Unlocked</div>' : ''}
+    </div>`;
+  }).join('');
+  showModal('ach-modal');
+}
+
+/* ═══════════════════════════════════════════════════
+   SAVE / LOAD
+═══════════════════════════════════════════════════ */
+function saveGame(notify) {
+  try {
+    G.lastSave = Date.now();
+    localStorage.setItem('eggemp_save', JSON.stringify(G));
+    if (notify) spawnFloat('💾 Saved!', window.innerWidth - 100, window.innerHeight - 250);
+  } catch(e) { console.warn('Save failed', e); }
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem('eggemp_save');
+    if (!raw) return false;
+    const saved = JSON.parse(raw);
+    // Merge with defaults to handle new fields
+    G = Object.assign(DEFAULT_STATE(), saved);
+    return true;
+  } catch(e) { console.warn('Load failed', e); return false; }
+}
+
+function calcOfflineEarnings(secondsAway, stats) {
+  const maxOfflineSeconds = stats.offlineHours * 3600;
+  const effectiveSeconds = Math.min(secondsAway, maxOfflineSeconds);
+  return stats.mps * effectiveSeconds * 0.3; // 30% efficiency offline
+}
+
+function resetConfirm() { showModal('reset-modal'); }
+
+function fullReset() {
+  localStorage.removeItem('eggemp_save');
+  G = DEFAULT_STATE();
+  visualChickens = 0;
+  el('chicken-container').innerHTML = '';
+  applyEggTheme(EGG_TYPES[0]);
+  renderAll();
+  closeModal('reset-modal');
+}
+
+/* ═══════════════════════════════════════════════════
+   CLOUDS
+═══════════════════════════════════════════════════ */
+function spawnClouds() {
+  const farm = el('farm');
+  for (let i = 0; i < 6; i++) {
+    const cloud = document.createElement('div');
+    cloud.className = 'cloud';
+    const w = 80 + Math.random() * 100;
+    const h = 24 + Math.random() * 16;
+    cloud.style.cssText = `
+      width:${w}px;height:${h}px;
+      top:${5 + Math.random() * 35}%;
+      animation-duration:${25 + Math.random() * 30}s;
+      animation-delay:${-Math.random() * 40}s;
+      opacity:${0.4 + Math.random() * 0.5};
+    `;
+    cloud.style.left = (Math.random() * 80) + '%';
+    farm.appendChild(cloud);
+  }
+}
+
+/* ═══════════════════════════════════════════════════
+   FLOATING TEXT
+═══════════════════════════════════════════════════ */
+function spawnFloat(text, x, y) {
+  const el2 = document.createElement('div');
+  el2.className = 'float-text';
+  el2.textContent = text;
+  el2.style.left = x + 'px';
+  el2.style.top = y + 'px';
+  document.body.appendChild(el2);
+  setTimeout(() => el2.remove(), 1300);
+}
+
+/* ═══════════════════════════════════════════════════
+   TAB SWITCHING
+═══════════════════════════════════════════════════ */
+function switchTab(id) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  el(`tabn-${id}`).classList.add('active');
+  el(`tab-${id}`).classList.add('active');
+  if (id === 'upgrades') {
+    const dot = el('tabn-upgrades').querySelector('.notif-dot');
+    if (dot) dot.remove();
+  }
+  if (id === 'settings') renderSettings();
+}
+
+/* ═══════════════════════════════════════════════════
+   MODAL HELPERS
+═══════════════════════════════════════════════════ */
+function showModal(id) { el(id).classList.remove('hidden'); }
+function closeModal(id) { el(id).classList.add('hidden'); }
+
+/* ═══════════════════════════════════════════════════
+   NUMBER FORMATTING
+═══════════════════════════════════════════════════ */
+function fmt(n) {
+  n = parseFloat(n);
+  if (isNaN(n)) return '0';
+  if (n < 1000) return n % 1 === 0 ? n.toString() : n.toFixed(2);
+  const tiers = [
+    [1e24, 'Sp'], [1e21, 'Sx'], [1e18, 'Qi'], [1e15, 'Qa'],
+    [1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']
+  ];
+  for (const [val, suffix] of tiers) {
+    if (n >= val) return (n / val).toFixed(2) + suffix;
+  }
+  return n.toFixed(0);
+}
+
+function fmtShort(n) {
+  n = parseFloat(n);
+  if (n < 0.01) return n.toExponential(2);
+  if (n < 1000) return n.toFixed(3);
+  return fmt(n);
+}
+
+/* ═══════════════════════════════════════════════════
+   DOM HELPERS
+═══════════════════════════════════════════════════ */
+function el(id) { return document.getElementById(id); }
+
+function shakElement(id) {
+  const elem = el(id);
+  if (!elem) return;
+  elem.animate([
+    {transform:'translateX(-5px)'},{transform:'translateX(5px)'},
+    {transform:'translateX(-3px)'},{transform:'translateX(3px)'},
+    {transform:'translateX(0)'}
+  ], { duration: 300 });
+}
+
+/* ═══════════════════════════════════════════════════
+   RENDER ALL
+═══════════════════════════════════════════════════ */
+function renderAll() {
+  renderUpgrades();
+  renderResearch();
+  renderEggTypes();
+  applyEggTheme(EGG_TYPES.find(e => e.id === G.currentEggId));
+  syncVisualChickens();
+}
+
+/* ═══════════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════════ */
+window.addEventListener('load', () => {
+  const hasLoad = loadGame();
+
+  // Offline earnings
+  if (hasLoad) {
+    const secondsAway = (Date.now() - G.lastSave) / 1000;
+    if (secondsAway > 60) {
+      const stats = getStats();
+      const earned = calcOfflineEarnings(secondsAway, stats);
+      if (earned > 0.01) {
+        G.money += earned;
+        G.lifetimeEarned += earned;
+        el('offline-time').textContent = formatTime(secondsAway);
+        el('offline-earned').textContent = '$' + fmt(earned);
+        showModal('offline-modal');
+      }
+    }
+  }
+
+  spawnClouds();
+  renderAll();
+  lastTick = Date.now();
+
+  // Auto-save on page unload
+  window.addEventListener('beforeunload', () => saveGame(false));
+});
+
+function flashAutoSave() {
+  const ind = el('autosave-indicator');
+  if (!ind) return;
+  el('autosave-icon').textContent = '💾';
+  el('autosave-text').textContent = 'Auto-saved!';
+  ind.style.opacity = '1';
+  clearTimeout(window._saveFlashTimer);
+  window._saveFlashTimer = setTimeout(() => { ind.style.opacity = '0'; }, 2000);
+}
+
+let autoSaveInterval = 30; // seconds, adjustable
+
+function renderSettings() {
+  const cont = el('settings-content');
+  if (!cont) return;
+  cont.innerHTML = `
+<div style="display:flex;gap:0;height:100%">
+
+  <!-- LEFT: HOW TO PLAY -->
+  <div style="flex:1;overflow-y:auto;padding:14px 16px;border-right:1px solid rgba(0,0,0,0.08);min-width:0">
+    <div style="font-family:var(--font-display);font-size:15px;color:#e65100;margin-bottom:10px">📖 How To Play</div>
+
+    <div style="display:flex;flex-direction:column;gap:8px">
+
+      <div style="background:#fff8e1;border-radius:10px;padding:10px 12px;border:1px solid #ffe082">
+        <div style="font-family:var(--font-display);font-size:12px;color:#f57f17;margin-bottom:4px">🐔 Step 1 — Hatch Chickens</div>
+        <div style="font-size:11px;color:#555;line-height:1.5">Click the big egg button on the <b>Hatch tab</b> to add chickens to your farm. Each chicken automatically lays eggs over time. You start with a small coop — upgrade it to house more birds.</div>
+      </div>
+
+      <div style="background:#e8f5e9;border-radius:10px;padding:10px 12px;border:1px solid #a5d6a7">
+        <div style="font-family:var(--font-display);font-size:12px;color:#2e7d32;margin-bottom:4px">💰 Step 2 — Earn Money</div>
+        <div style="font-size:11px;color:#555;line-height:1.5">Eggs are automatically sold every second. Hit <b>Sell Eggs</b> manually to cash out your stockpile instantly. Money is used to buy <b>Upgrades</b> — do this early and often!</div>
+      </div>
+
+      <div style="background:#e3f2fd;border-radius:10px;padding:10px 12px;border:1px solid #90caf9">
+        <div style="font-family:var(--font-display);font-size:12px;color:#1565c0;margin-bottom:4px">⬆️ Step 3 — Buy Upgrades</div>
+        <div style="font-size:11px;color:#555;line-height:1.5">The <b>Upgrades tab</b> has 8 types. Prioritize: <b>Coop Size</b> first (more chickens = more income), then <b>Hatchery</b> (auto-hatches chickens), then <b>Feed Quality</b> (better eggs). Green border = you can afford it!</div>
+      </div>
+
+      <div style="background:#f3e5f5;border-radius:10px;padding:10px 12px;border:1px solid #ce93d8">
+        <div style="font-family:var(--font-display);font-size:12px;color:#6a1b9a;margin-bottom:4px">🧪 Step 4 — Research Lab</div>
+        <div style="font-size:11px;color:#555;line-height:1.5">Research is bought with <b>Golden Eggs ✨</b> — a rare premium currency. Earn them from <b>Achievements</b> (2 per unlock). Research boosts are <i>permanent</i> and carry through prestiges. Spend wisely!</div>
+      </div>
+
+      <div style="background:#fff3e0;border-radius:10px;padding:10px 12px;border:1px solid #ffcc80">
+        <div style="font-family:var(--font-display);font-size:12px;color:#e65100;margin-bottom:4px">🥚 Step 5 — Unlock Egg Types</div>
+        <div style="font-size:11px;color:#555;line-height:1.5">Earn enough money to unlock better egg types (Superfood at $1M, Medical at $1B, etc). Each new egg multiplies your base value dramatically and changes the farm's color theme. Switch from the <b>Egg Types tab</b>.</div>
+      </div>
+
+      <div style="background:linear-gradient(135deg,#f3e5f5,#e8eaf6);border-radius:10px;padding:10px 12px;border:1px solid #ce93d8">
+        <div style="font-family:var(--font-display);font-size:12px;color:#6a1b9a;margin-bottom:4px">🌟 Step 6 — Prestige</div>
+        <div style="font-size:11px;color:#555;line-height:1.5">Once you reach <b>$1 Trillion</b> lifetime earned, you can Prestige. This <b>resets money, chickens and upgrades</b> but grants <b>Soul Eggs ✨</b> — each giving +8% to all production permanently. Prestige multiple times for huge bonuses.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: TIPS + SETTINGS -->
+  <div style="width:220px;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:8px;flex-shrink:0">
+
+    <div style="font-family:var(--font-display);font-size:14px;color:#1565c0;margin-bottom:2px">⚙️ Settings</div>
+
+    <!-- Auto-save interval -->
+    <div style="background:rgba(255,255,255,0.8);border-radius:10px;padding:10px 12px;border:1px solid rgba(0,0,0,0.1)">
+      <div style="font-family:var(--font-display);font-size:11px;color:#555;margin-bottom:6px">💾 Auto-Save Interval</div>
+      <div style="display:flex;align-items:center;gap:6px">
+        <input type="range" id="save-interval-slider" min="10" max="120" step="10" value="${autoSaveInterval}"
+          oninput="updateSaveInterval(this.value)"
+          style="flex:1;accent-color:var(--theme-primary)">
+        <span id="save-interval-label" style="font-family:var(--font-display);font-size:12px;color:#333;min-width:32px">${autoSaveInterval}s</span>
+      </div>
+      <div style="font-size:10px;color:#999;margin-top:3px">Current: saves every ${autoSaveInterval} seconds</div>
+    </div>
+
+    <!-- Manual save -->
+    <button onclick="saveGame(true)" style="padding:8px;border-radius:8px;border:1.5px solid #90caf9;background:#e3f2fd;color:#1565c0;font-family:var(--font-display);font-size:12px;cursor:pointer;width:100%">💾 Save Now</button>
+
+    <!-- Golden egg display -->
+    <div style="background:#fffde7;border-radius:10px;padding:10px 12px;border:1px solid #ffe082;text-align:center">
+      <div style="font-size:22px">✨</div>
+      <div style="font-family:var(--font-display);font-size:18px;color:#f57f17" id="settings-golden">${G.goldenEggs}</div>
+      <div style="font-size:10px;color:#888">Golden Eggs</div>
+      <div style="font-size:10px;color:#aaa;margin-top:2px">Earn by unlocking achievements</div>
+    </div>
+
+    <div style="font-family:var(--font-display);font-size:12px;color:#e65100;margin-top:4px">💡 Pro Tips</div>
+
+    <div style="background:#fff8e1;border-radius:10px;padding:9px 10px;border:1px solid #ffe082">
+      <div style="font-size:11px;color:#555;line-height:1.55">
+        🔸 <b>Coop Size</b> is your #1 priority early on — more chickens = exponentially more income.<br><br>
+        🔸 Each chicken click also works if you <b>click on the chickens</b> walking on the farm!<br><br>
+        🔸 <b>Golden Eggs</b> are rare — save them for <b>Egg Fusion</b> or <b>Egg Value</b> research for max impact.<br><br>
+        🔸 Prestige as soon as you can — Soul Eggs stack multiplicatively over runs.<br><br>
+        🔸 The game saves automatically, but use <b>Save Now</b> before closing to be safe.
+      </div>
+    </div>
+
+    <!-- Difficulty note -->
+    <div style="background:#fce4ec;border-radius:10px;padding:9px 10px;border:1px solid #f48fb1">
+      <div style="font-family:var(--font-display);font-size:11px;color:#c62828;margin-bottom:3px">⚠️ Difficulty</div>
+      <div style="font-size:10px;color:#666;line-height:1.5">This is a <b>challenging</b> idle game. Progress is slow early — that's intentional! Stick with it, the snowball effect kicks in after your first few upgrades.</div>
+    </div>
+
+    <!-- Reset -->
+    <button onclick="resetConfirm()" style="padding:8px;border-radius:8px;border:1.5px solid #ef9a9a;background:#fce4ec;color:#c62828;font-family:var(--font-display);font-size:12px;cursor:pointer;width:100%">🗑️ Reset All Progress</button>
+  </div>
+</div>
+  `;
+}
+
+function updateSaveInterval(val) {
+  autoSaveInterval = parseInt(val);
+  const lbl = el('save-interval-label');
+  if (lbl) lbl.textContent = val + 's';
+}
+
+function formatTime(seconds) {
+  if (seconds < 60) return Math.floor(seconds) + ' seconds';
+  if (seconds < 3600) return Math.floor(seconds / 60) + ' minutes';
+  if (seconds < 86400) return (seconds / 3600).toFixed(1) + ' hours';
+  return (seconds / 86400).toFixed(1) + ' days';
+}
+</script>
+</body>
+</html>
