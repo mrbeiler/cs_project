@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SURVIVOR</title>
+<title>GROUND ZERO (ARCADE)</title>
+<link rel="icon" type="image/png" href="All_Images/Images/GZ no backround.png">
+<link rel="apple-touch-icon" href="All_Images/Images/GZ no backround.png">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
   *{margin:0;padding:0;box-sizing:border-box;}
@@ -43,7 +45,7 @@
   .choiceRarity{font-size:9px;letter-spacing:2px;margin-bottom:8px;}
   .rare{color:#44aaff;}.common{color:#88aacc;}.epic{color:#aa44ff;}.legendary{color:#ffaa00;text-shadow:0 0 8px #ffaa00;}
   #startScreen,#gameOverScreen{position:absolute;top:0;left:0;width:100%;height:100%;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:all;}
-  #gameOverScreen{display:none;}
+  #gameOverScreen{display:none;z-index:5;}
   .screenTitle{font-family:'Orbitron',monospace;color:#00ccff;font-size:48px;font-weight:900;letter-spacing:6px;text-shadow:0 0 30px #00ccff,0 0 60px rgba(0,200,255,0.3);margin-bottom:8px;}
   .screenSub{color:#446;font-size:12px;letter-spacing:4px;margin-bottom:40px;}
   .bigBtn{background:transparent;border:1px solid #00ccff;color:#00ccff;font-family:'Orbitron',monospace;font-size:14px;letter-spacing:3px;padding:14px 40px;cursor:pointer;transition:all 0.2s;}
@@ -111,15 +113,25 @@
   #tabWeaponsBtn .sKey{border:1px solid #334;color:#446;padding:2px 5px;border-radius:2px;font-size:9px;}
   .settingsScreen{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.96);display:none;flex-direction:column;align-items:center;justify-content:flex-start;pointer-events:all;z-index:30;padding-top:0;box-sizing:border-box;}
   .settingsHeader{padding:28px 0 0 0;text-align:center;flex-shrink:0;position:relative;width:100%;}
-  .saveSettingsBtn{position:absolute;top:28px;right:20px;background:transparent;border:1px solid #334;color:#446;font-family:'Orbitron',monospace;font-size:8px;letter-spacing:2px;padding:6px 12px;cursor:pointer;transition:all 0.2s;}
+  .saveSettingsBtn{position:absolute;top:28px;right:20px;background:transparent;border:1px solid #00ccff55;color:#00ccff99;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;padding:8px 16px;cursor:pointer;transition:all 0.2s;}
   .saveSettingsBtn:hover{border-color:#44ff88;color:#44ff88;}
   .saveSettingsBtn.saved{border-color:#44ff88;color:#44ff88;}
+  .saveSettingsBtn.disabled{opacity:0.35;pointer-events:none;cursor:default;border-color:#334;color:#446;}
+  .customBtnGroup{display:flex;align-items:stretch;gap:0;}
+  .customBtnGroup .presetBtn{border-radius:2px 0 0 2px !important;}
+  .slotStepper{display:none;flex-direction:row;align-items:center;border:1px solid #aa44ff66;border-left:none;border-radius:0 2px 2px 0;background:#0d0d1a;transition:border-color 0.15s;}
+  .slotStepper:hover{border-color:#aa44ff;}
+  .slotStepLabel{color:#aa44ff;font-family:'Orbitron',monospace;font-size:8px;letter-spacing:1px;padding:0 6px;min-width:18px;text-align:center;}
+  .slotArrows{display:flex;flex-direction:column;border-left:1px solid #aa44ff33;height:100%;}
+  .slotArrow{background:transparent;border:none;color:#aa44ff88;font-size:7px;padding:1px 5px;cursor:pointer;transition:all 0.15s;line-height:1;flex:1;display:flex;align-items:center;justify-content:center;}
+  .slotArrow:hover{background:#aa44ff22;color:#cc88ff;}
+  .specialDiffSection{width:520px;margin-bottom:18px;}
   .settingsScrollBody{overflow-y:auto;flex:1;width:100%;display:flex;flex-direction:column;align-items:center;padding:0 0 12px 0;scrollbar-width:thin;scrollbar-color:#334 transparent;}
   .settingsScrollBody::-webkit-scrollbar{width:6px;}
   .settingsScrollBody::-webkit-scrollbar-track{background:transparent;}
   .settingsScrollBody::-webkit-scrollbar-thumb{background:#334;border-radius:3px;}
   .settingsFooter{flex-shrink:0;padding:12px 0 18px 0;display:flex;gap:12px;background:rgba(0,0,0,0.96);border-top:1px solid #1a1a2e;width:100%;justify-content:center;}
-  #settingsTitle{font-family:'Orbitron',monospace;color:#00ccff;font-size:24px;font-weight:900;letter-spacing:5px;margin-bottom:4px;text-shadow:0 0 20px #00ccff;}
+  #settingsTitle,#classicSettingsTitle{font-family:'Orbitron',monospace;color:#00ccff;font-size:24px;font-weight:900;letter-spacing:5px;margin-bottom:4px;text-shadow:0 0 20px #00ccff;}
   #settingsSub{color:#334;font-size:9px;letter-spacing:3px;margin-bottom:24px;}
   .settingsSection{width:520px;margin-bottom:18px;}
   .sectionLabel{font-family:'Orbitron',monospace;color:#446;font-size:9px;letter-spacing:3px;margin-bottom:8px;border-bottom:1px solid #1a1a2e;padding-bottom:4px;}
@@ -136,6 +148,7 @@
   .presetBtn.hard.active{background:#ff6600;border-color:#ff6600;color:#000;}
   .presetBtn.hardcore.active{background:#ff0044;border-color:#ff0044;color:#fff;}
   .presetBtn.custom.active{background:#aa44ff;border-color:#aa44ff;color:#fff;}
+  .presetBtn.overpowered.active{background:#00ffcc;border-color:#00ffcc;color:#000;text-shadow:none;}
   .triBtn{background:transparent;border:1px solid #334;color:#556;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1px;padding:5px 10px;cursor:pointer;transition:all 0.15s;}
   .triBtn:hover{border-color:#00ccff;color:#00ccff;}
   .triBtn.active{background:#00ccff;border-color:#00ccff;color:#000;font-weight:700;}
@@ -150,6 +163,8 @@
   .settingSlider{-webkit-appearance:none;appearance:none;width:200px;height:4px;background:#1a1a2e;border-radius:2px;outline:none;cursor:pointer;}
   .settingSlider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#00ccff;cursor:pointer;box-shadow:0 0 6px #00ccff;}
   .sliderVal{color:#00ccff;font-family:'Orbitron',monospace;font-size:10px;width:40px;text-align:right;}
+  /* Preset-locked: greyed out, non-interactive */
+  .preset-locked{opacity:0.28;pointer-events:none;}
   /* Settings close */
   #settingsCloseBtn,#settingsCloseBtn2,#settingsCloseBtn3{background:transparent;border:1px solid #334;color:#446;font-family:'Orbitron',monospace;font-size:10px;letter-spacing:3px;padding:10px 0;cursor:pointer;margin-top:8px;transition:all 0.2s;width:160px;}
   #settingsCloseBtn:hover,#settingsCloseBtn2:hover,#settingsCloseBtn3:hover{border-color:#00ccff;color:#00ccff;}
@@ -206,6 +221,101 @@
   #lbBackBtn:hover{border-color:#00ccff;color:#00ccff;}
   #lbClearBtn{background:transparent;border:1px solid #332222;color:#443333;font-family:'Orbitron',monospace;font-size:10px;letter-spacing:3px;padding:10px 0;cursor:pointer;transition:all 0.2s;width:160px;}
   #lbClearBtn:hover{border-color:#ff4466;color:#ff4466;}
+
+  /* ── UPDATED LEADERBOARD TABLE STYLES ── */
+  #lbFilterBar{display:flex;gap:8px;justify-content:center;padding:0 0 10px 0;flex-wrap:wrap;}
+  .lbFilterBtn{background:transparent;border:1px solid #334;color:#556;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;padding:7px 18px;cursor:pointer;transition:all 0.2s;border-radius:2px;}
+  .lbFilterBtn:hover{border-color:#00ccff;color:#00ccff;}
+  .lbFilterBtn.active{background:#00ccff22;border-color:#00ccff;color:#00ccff;font-weight:700;}
+  .lbFilterBtn.f-classic.active{background:#ff446622;border-color:#ff4466;color:#ff4466;}
+  .lbFilterBtn.f-fortress.active{background:#cc44ff22;border-color:#cc44ff;color:#cc44ff;}
+  .lbFilterBtn.f-roam.active{background:#44ffaa22;border-color:#44ffaa;color:#44ffaa;}
+  #lbSortBar{display:flex;gap:6px;justify-content:center;align-items:center;padding:0 0 18px 0;flex-wrap:wrap;}
+  .lbSortFieldBtn{background:transparent;border:1px solid #334;color:#556;font-family:'Orbitron',monospace;font-size:8px;letter-spacing:2px;padding:5px 14px;cursor:pointer;transition:all 0.15s;border-radius:2px;}
+  .lbSortFieldBtn:hover{border-color:#00ccff;color:#00ccff;}
+  .lbSortFieldBtn.active{background:#00ccff22;border-color:#00ccff;color:#00ccff;font-weight:700;}
+  #lbSortDirGroup{display:flex;border:1px solid #334;border-radius:2px;overflow:hidden;margin-left:4px;}
+  .lbDirBtn{background:transparent;border:none;color:#556;font-family:'Orbitron',monospace;font-size:10px;letter-spacing:1px;padding:5px 12px;cursor:pointer;transition:all 0.15s;}
+  .lbDirBtn:hover{background:#1a1a2e;color:#aaa;}
+  .lbDirBtn.active{background:#00ccff22;color:#00ccff;}
+  #lbMoreWrap{padding:14px 0 4px;text-align:center;}
+  #lbMoreBtn{background:transparent;border:1px solid #223;color:#334;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:2px;padding:8px 28px;cursor:pointer;transition:all 0.2s;border-radius:2px;}
+  #lbMoreBtn:hover{border-color:#00ccff;color:#00ccff;}
+  #lbTable{width:680px;border-collapse:collapse;}
+  #lbTable thead tr{border-bottom:1px solid #223;}
+  #lbTable thead th{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:2px;color:#334;padding:0 8px 8px;text-align:left;font-weight:400;}
+  #lbTable thead th.right{text-align:right;}
+  #lbTable tbody tr{border-bottom:1px solid #0d0d1a;transition:background 0.1s;}
+  #lbTable tbody tr:hover{background:#0a0a18;}
+  #lbTable tbody tr.myRow td{color:#fff;}
+  #lbTable tbody td{padding:9px 8px;font-size:11px;color:#556;}
+  .lbRank{font-family:'Orbitron',monospace;font-size:12px;font-weight:700;color:#334;width:32px;}
+  .lbRank.gold{color:#ffcc00;text-shadow:0 0 8px #ffcc00;}
+  .lbRank.silver{color:#aabbcc;}
+  .lbRank.bronze{color:#cc7744;}
+  .lbGtag{font-family:'Orbitron',monospace;font-size:11px;color:#aaccff;letter-spacing:0.5px;}
+  .lbGtag.me{color:#00ffcc;text-shadow:0 0 6px #00ffcc88;}
+  .lbModeBadge{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:1px;padding:3px 7px;border-radius:2px;}
+  .lbModeBadge.classic{background:#2255aa22;color:#7aaee8;border:1px solid #4488cc44;}
+  .lbModeBadge.fortress{background:#aabbcc18;color:#aabbcc;border:1px solid #aabbcc33;}
+  .lbModeBadge.roam{background:#336a7a22;color:#7abccc;border:1px solid #4499aa33;}
+  .lbDiffBadge{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:1px;padding:3px 7px;border-radius:2px;}
+  .lbDiffBadge.overpowered{background:#00ffcc22;color:#00ffcc;border:1px solid #00ffcc44;}
+  .lbDiffBadge.easy{background:#44ff8822;color:#44ff88;border:1px solid #44ff8844;}
+  .lbDiffBadge.medium{background:#ffcc0022;color:#ffcc00;border:1px solid #ffcc0044;}
+  .lbDiffBadge.hard{background:#ff660022;color:#ff6600;border:1px solid #ff660044;}
+  .lbDiffBadge.hardcore{background:#ff004422;color:#ff4466;border:1px solid #ff004444;}
+  .lbDiffBadge.custom{background:#aa44ff22;color:#aa44ff;border:1px solid #aa44ff44;}
+
+  /* MID-GAME DIFFICULTY CHANGED OVERLAY */
+  #diffChangeOverlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:all;z-index:40;backdrop-filter:blur(4px);}
+  #diffChangeTitle{font-family:'Orbitron',monospace;color:#ffcc00;font-size:18px;font-weight:900;letter-spacing:4px;margin-bottom:8px;text-shadow:0 0 16px #ffcc00;}
+  #diffChangeSub{color:#556;font-size:11px;letter-spacing:2px;margin-bottom:10px;text-align:center;line-height:1.7;}
+  #diffChangeBtns{display:flex;gap:12px;margin-top:16px;}
+  .diffRevertBtn{background:transparent;border:1px solid #334;color:#446;font-family:'Orbitron',monospace;font-size:10px;letter-spacing:3px;padding:10px 0;cursor:pointer;transition:all 0.2s;width:160px;}
+  .diffRevertBtn:hover{border-color:#00ccff;color:#00ccff;}
+  .lbNumVal{font-family:'Orbitron',monospace;font-size:12px;color:#00ccff;font-weight:700;text-align:right;}
+  .lbScoreVal{font-family:'Orbitron',monospace;font-size:13px;color:#ffcc00;font-weight:700;text-align:right;}
+  #lbEmpty{color:#223;font-size:11px;letter-spacing:3px;padding:40px 0;text-align:center;width:100%;}
+  #lbCurrentUser{font-family:'Orbitron',monospace;font-size:9px;color:#336;letter-spacing:2px;margin-bottom:16px;}
+  #lbCurrentUser span{color:#00ccff88;}
+
+  /* ── LOGIN SCREEN ── */
+  #loginScreen{position:absolute;top:0;left:0;width:100%;height:100%;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:all;z-index:50;}
+  #loginTitle{font-family:'Orbitron',monospace;color:#00ccff;font-size:46px;font-weight:900;letter-spacing:6px;text-shadow:0 0 30px #00ccff,0 0 60px rgba(0,200,255,0.3);margin-bottom:6px;}
+  #loginSub{color:#334;font-size:11px;letter-spacing:4px;margin-bottom:36px;}
+  #loginBox{background:#07070f;border:1px solid #223;border-radius:6px;padding:28px 32px;width:320px;display:flex;flex-direction:column;gap:0;}
+  #loginMsg{font-size:10px;letter-spacing:1px;text-align:center;min-height:16px;margin-bottom:12px;transition:all 0.2s;}
+  #loginMsg.err{color:#ff4466;}
+  #loginMsg.ok{color:#44ffaa;}
+  .loginLabel{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:3px;color:#334;margin-bottom:5px;margin-top:14px;}
+  .loginLabel:first-of-type{margin-top:0;}
+  .loginInput{background:#0d0d1a;border:1px solid #223;color:#aaccff;font-family:'Share Tech Mono',monospace;font-size:14px;padding:10px 12px;border-radius:3px;outline:none;width:100%;transition:border 0.2s;letter-spacing:1px;}
+  .loginInput:focus{border-color:#00ccff55;}
+  .loginInput::placeholder{color:#223;}
+  #loginPinWrap{display:flex;gap:8px;justify-content:space-between;}
+  .pinDigit{background:#0d0d1a;border:1px solid #223;color:#00ccff;font-family:'Orbitron',monospace;font-size:22px;font-weight:700;text-align:center;width:56px;height:56px;border-radius:4px;outline:none;transition:border 0.2s;caret-color:transparent;}
+  .pinDigit:focus{border-color:#00ccff88;background:#0a1520;}
+  #loginBtn{background:transparent;border:1px solid #00ccff;color:#00ccff;font-family:'Orbitron',monospace;font-size:12px;letter-spacing:3px;padding:12px;cursor:pointer;transition:all 0.2s;margin-top:22px;border-radius:3px;}
+  #loginBtn:hover{background:#00ccff;color:#000;box-shadow:0 0 20px rgba(0,200,255,0.4);}
+  #loginHint{color:#223;font-size:9px;letter-spacing:1px;margin-top:10px;text-align:center;line-height:1.6;}
+  #logoutBtn{position:absolute;top:10px;right:12px;background:transparent;border:1px solid #223;color:#334;font-family:'Orbitron',monospace;font-size:8px;letter-spacing:2px;padding:5px 10px;cursor:pointer;transition:all 0.2s;pointer-events:all;}
+  #logoutBtn:hover{border-color:#ff4466;color:#ff4466;}
+  #loginUserDisplay{position:absolute;top:32px;right:12px;font-family:'Orbitron',monospace;font-size:8px;color:#336;letter-spacing:2px;padding:5px 0;text-align:right;}
+  #lbClearBtn.confirming{border-color:#ff4466;color:#ff4466;background:#ff446618;}
+
+  /* DEV MODE WARNING OVERLAY */
+  #devWarnOverlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.96);display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:all;z-index:60;backdrop-filter:blur(4px);}
+  #devWarnIcon{font-size:48px;margin-bottom:12px;}
+  #devWarnTitle{font-family:'Orbitron',monospace;color:#ffcc00;font-size:22px;font-weight:900;letter-spacing:4px;margin-bottom:10px;text-shadow:0 0 16px #ffcc00;}
+  #devWarnBody{color:#888;font-size:11px;letter-spacing:2px;text-align:center;line-height:1.9;max-width:400px;margin-bottom:28px;}
+  #devWarnBody span{color:#aabbcc;font-family:'Orbitron',monospace;font-weight:700;}
+  #devWarnBtns{display:flex;gap:14px;}
+  .devWarnBtn{background:transparent;font-family:'Orbitron',monospace;font-size:10px;letter-spacing:3px;padding:11px 0;cursor:pointer;transition:all 0.2s;width:160px;border-radius:2px;}
+  #devWarnConfirm{border:1px solid #ff880066;color:#ff8800;}
+  #devWarnConfirm:hover{background:#ff880022;border-color:#ff8800;}
+  #devWarnCancel{border:1px solid #334;color:#446;}
+  #devWarnCancel:hover{border-color:#00ccff;color:#00ccff;}
 </style>
 </head>
 <body>
@@ -267,53 +377,84 @@
   <!-- CLASSIC MODE SETTINGS -->
   <div id="classicSettingsScreen" class="settingsScreen">
     <div class="settingsHeader">
-      <div id="settingsTitle">⚙ CLASSIC SETTINGS</div>
+      <div id="classicSettingsTitle">⚙ CLASSIC SETTINGS</div>
       <div id="settingsSub">CUSTOMIZE YOUR RUN</div>
-      <button class="saveSettingsBtn" id="saveClassicBtn" onclick="saveSettings('classic')">SAVE</button>
+      <button class="saveSettingsBtn disabled" id="saveClassicBtn" onclick="saveSettings('classic')">SAVE</button>
     </div>
     <div class="settingsScrollBody">
     <div class="settingsSection">
-      <div class="settingRow">
+      <div class="sectionLabel">DIFFICULTY PRESET</div>
+      <div class="settingRow" style="border:none;">
+        <div class="presetGroup">
+          <button class="presetBtn easy cPresetBtn"        data-preset="easy"        onclick="applyPreset('easy','classic')">EASY</button>
+          <button class="presetBtn medium cPresetBtn"      data-preset="medium"      onclick="applyPreset('medium','classic')">MEDIUM</button>
+          <button class="presetBtn hard cPresetBtn"        data-preset="hard"        onclick="applyPreset('hard','classic')">HARD</button>
+          <button class="presetBtn hardcore cPresetBtn"    data-preset="hardcore"    onclick="applyPreset('hardcore','classic')">HARDCORE</button>
+          <div class="customBtnGroup">
+            <button class="presetBtn custom cPresetBtn" data-preset="custom" onclick="applyPreset('custom','classic')">CUSTOM</button>
+            <div id="cCustomSlotWrap" class="slotStepper">
+              <span id="cCustomSlotLabel" class="slotStepLabel">1</span>
+              <div class="slotArrows">
+                <button class="slotArrow" onclick="stepSlot('classic',1)">▲</button>
+                <button class="slotArrow" onclick="stepSlot('classic',-1)">▼</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="settingsSection">
+      <div class="sectionLabel">SPECIAL DIFFICULTIES</div>
+      <div class="settingRow" style="border:none;">
+        <div class="presetGroup">
+          <button class="presetBtn overpowered cPresetBtn" data-preset="overpowered" onclick="applyPreset('overpowered','classic')">OVERPOWERED</button>
+        </div>
+      </div>
+    </div>
+    <div class="settingsSection">
+      <div class="settingRow" style="border:none;">
+        <div><div class="settingName">AIM LASER</div><div class="settingDesc">Laser sight from barrel toward cursor</div></div>
+        <div style="display:flex;gap:4px;">
+          <button class="triBtn" id="setAimFull"    onclick="setAimLaser('classic','full')">FULL</button>
+          <button class="triBtn active" id="setAimPartial" onclick="setAimLaser('classic','partial')">PARTIAL</button>
+          <button class="triBtn" id="setAimOff" onclick="setAimLaser('classic','off')">OFF</button>
+        </div>
+      </div>
+    </div>
+    <div class="settingsSection">
+      <div class="settingRow" data-preset-ctrl="classic">
         <div><div class="settingName">INFINITE AMMO</div><div class="settingDesc">Weapons never run out of ammo</div></div>
         <div class="toggleWrap" onclick="document.getElementById('setInfiniteAmmo').click()">
-          <input type="checkbox" id="setInfiniteAmmo"><span class="toggleSlider"></span>
+          <input type="checkbox" id="setInfiniteAmmo" onchange="SETTINGS.infiniteAmmo=this.checked"><span class="toggleSlider"></span>
         </div>
       </div>
-      <div class="settingRow">
+      <div class="settingRow" id="classicAllWeaponsRow" style="display:none;">
         <div><div class="settingName" style="color:#ffaa00;">ALL WEAPONS UNLOCKED</div><div class="settingDesc">Start with every weapon in your arsenal</div></div>
         <div class="toggleWrap" onclick="document.getElementById('setAllWeapons').click()">
-          <input type="checkbox" id="setAllWeapons"><span class="toggleSlider"></span>
+          <input type="checkbox" id="setAllWeapons" onchange="SETTINGS.allWeaponsUnlocked=this.checked"><span class="toggleSlider"></span>
         </div>
       </div>
-      <div class="settingRow">
+      <div class="settingRow" data-preset-ctrl="classic">
         <div><div class="settingName">RELOAD</div><div class="settingDesc">Disable to skip reload entirely</div></div>
-        <div class="toggleWrap" onclick="var cb=document.getElementById('setReload');cb.checked=!cb.checked;toggleReloadSpeed(cb.checked)">
+        <div class="toggleWrap" onclick="var cb=document.getElementById('setReload');cb.checked=!cb.checked;toggleReloadSpeed(cb.checked);SETTINGS.reload=cb.checked">
           <input type="checkbox" id="setReload" checked><span class="toggleSlider"></span>
         </div>
       </div>
-      <div id="reloadSpeedRow" style="padding:6px 0 6px 16px;border-left:2px solid #1a2a1a;margin-left:4px;display:flex;align-items:center;justify-content:space-between;">
+      <div id="reloadSpeedRow" data-preset-ctrl="classic" style="padding:6px 0 6px 16px;border-left:2px solid #1a2a1a;margin-left:4px;display:flex;align-items:center;justify-content:space-between;">
         <div><div class="settingName" style="color:#44aa66;font-size:10px;">RELOAD SPEED</div><div class="settingDesc">Higher = faster (2× = half the time)</div></div>
         <div style="display:flex;align-items:center;gap:10px;">
           <input type="range" class="settingSlider" id="setReloadSpeed" min="0.5" max="4.0" step="0.1" value="1.0" oninput="onSlider('setReloadSpeed','reloadSpeedVal',v=>v+'x')">
           <span class="sliderVal" id="reloadSpeedVal">1.0x</span>
         </div>
       </div>
-      <div class="settingRow" style="border:none;">
+      <div class="settingRow" data-preset-ctrl="classic" style="border:none;">
         <div><div class="settingName">AUTO-COLLECT LOOT</div><div class="settingDesc">Pull all XP gems toward you automatically</div></div>
         <div class="toggleWrap" onclick="document.getElementById('setAutoCollect').click()">
-          <input type="checkbox" id="setAutoCollect" checked><span class="toggleSlider"></span>
-        </div>
-      </div>
-      <div class="settingRow" style="border:none;">
-        <div><div class="settingName">AIM LASER</div><div class="settingDesc">Laser sight from barrel toward cursor</div></div>
-        <div style="display:flex;gap:4px;">
-          <button class="triBtn" id="setAimFull"    onclick="setAimLaser('classic','full')">FULL</button>
-          <button class="triBtn" id="setAimPartial" onclick="setAimLaser('classic','partial')">PARTIAL</button>
-          <button class="triBtn active" id="setAimOff" onclick="setAimLaser('classic','off')">OFF</button>
+          <input type="checkbox" id="setAutoCollect" checked onchange="SETTINGS.autoCollect=this.checked"><span class="toggleSlider"></span>
         </div>
       </div>
     </div>
-    <div class="settingsSection">
+    <div class="settingsSection" data-preset-ctrl="classic">
       <div class="sectionLabel">ENEMY TUNING</div>
       <div class="settingRow">
         <div><div class="settingName">SPAWN RATE</div><div class="settingDesc">How quickly enemies appear</div></div>
@@ -330,30 +471,30 @@
         </div>
       </div>
     </div>
-    <div class="settingsSection">
+    <div class="settingsSection" data-preset-ctrl="classic">
       <div class="sectionLabel">AMMO DROP RATES</div>
       <div class="settingRow">
         <div><div class="settingName" style="color:#aaddff;">LIGHT AMMO</div><div class="settingDesc">Relative drop frequency for light ammo</div></div>
         <div style="display:flex;align-items:center;gap:8px;">
           <button class="triBtn active" id="setLightEnable" style="font-size:8px;padding:4px 8px;" onclick="toggleAmmoEnabled('light')">ON</button>
-          <input type="range" class="settingSlider" id="setLightDrop" min="0" max="10" step="1" value="5" oninput="onSlider('setLightDrop','lightDropVal',v=>v)">
-          <span class="sliderVal" id="lightDropVal">5</span>
+          <input type="range" class="settingSlider" id="setLightDrop" min="0" max="10" step="1" value="8" oninput="onSlider('setLightDrop','lightDropVal',v=>v)">
+          <span class="sliderVal" id="lightDropVal">8</span>
         </div>
       </div>
       <div class="settingRow">
         <div><div class="settingName" style="color:#ffcc44;">MEDIUM AMMO</div><div class="settingDesc">Relative drop frequency for medium ammo</div></div>
         <div style="display:flex;align-items:center;gap:8px;">
           <button class="triBtn active" id="setMediumEnable" style="font-size:8px;padding:4px 8px;" onclick="toggleAmmoEnabled('medium')">ON</button>
-          <input type="range" class="settingSlider" id="setMediumDrop" min="0" max="10" step="1" value="3" oninput="onSlider('setMediumDrop','mediumDropVal',v=>v)">
-          <span class="sliderVal" id="mediumDropVal">3</span>
+          <input type="range" class="settingSlider" id="setMediumDrop" min="0" max="10" step="1" value="5" oninput="onSlider('setMediumDrop','mediumDropVal',v=>v)">
+          <span class="sliderVal" id="mediumDropVal">5</span>
         </div>
       </div>
       <div class="settingRow" style="border:none;">
         <div><div class="settingName" style="color:#ff5533;">HEAVY AMMO</div><div class="settingDesc">Relative drop frequency for heavy ammo</div></div>
         <div style="display:flex;align-items:center;gap:8px;">
           <button class="triBtn active" id="setHeavyEnable" style="font-size:8px;padding:4px 8px;" onclick="toggleAmmoEnabled('heavy')">ON</button>
-          <input type="range" class="settingSlider" id="setHeavyDrop" min="0" max="10" step="1" value="2" oninput="onSlider('setHeavyDrop','heavyDropVal',v=>v)">
-          <span class="sliderVal" id="heavyDropVal">2</span>
+          <input type="range" class="settingSlider" id="setHeavyDrop" min="0" max="10" step="1" value="4" oninput="onSlider('setHeavyDrop','heavyDropVal',v=>v)">
+          <span class="sliderVal" id="heavyDropVal">4</span>
         </div>
       </div>
     </div>
@@ -370,38 +511,39 @@
     <div class="settingsHeader">
       <div id="settingsTitle">⚙ FORTRESS SETTINGS</div>
       <div id="settingsSub">CUSTOMIZE YOUR DEFENSE</div>
-      <button class="saveSettingsBtn" id="saveFortressBtn" onclick="saveSettings('fortress')">SAVE</button>
+      <button class="saveSettingsBtn disabled" id="saveFortressBtn" onclick="saveSettings('fortress')">SAVE</button>
     </div>
     <div class="settingsScrollBody">
     <div class="settingsSection">
-      <div class="settingRow">
-        <div><div class="settingName">INFINITE AMMO</div><div class="settingDesc">Weapons never run out of ammo</div></div>
-        <div class="toggleWrap" onclick="document.getElementById('fSetInfiniteAmmo').click()">
-          <input type="checkbox" id="fSetInfiniteAmmo"><span class="toggleSlider"></span>
-        </div>
-      </div>
-      <div class="settingRow">
-        <div><div class="settingName" style="color:#ffaa00;">ALL WEAPONS UNLOCKED</div><div class="settingDesc">Start with every weapon in your arsenal</div></div>
-        <div class="toggleWrap" onclick="document.getElementById('fSetAllWeapons').click()">
-          <input type="checkbox" id="fSetAllWeapons"><span class="toggleSlider"></span>
-        </div>
-      </div>
+      <div class="sectionLabel">DIFFICULTY PRESET</div>
       <div class="settingRow" style="border:none;">
-        <div><div class="settingName">RELOAD</div><div class="settingDesc">Disable to skip reload entirely</div></div>
-        <div class="toggleWrap" onclick="var cb=document.getElementById('fSetReload');cb.checked=!cb.checked;fToggleReloadSpeed(cb.checked)">
-          <input type="checkbox" id="fSetReload" checked><span class="toggleSlider"></span>
-        </div>
-      </div>
-      <div id="fReloadSpeedRow" style="padding:6px 0 6px 16px;border-left:2px solid #1a2a1a;margin-left:4px;display:flex;align-items:center;justify-content:space-between;">
-        <div><div class="settingName" style="color:#44aa66;font-size:10px;">RELOAD SPEED</div><div class="settingDesc">Higher = faster (2× = half the time)</div></div>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <input type="range" class="settingSlider" id="fSetReloadSpeed" min="0.5" max="4.0" step="0.1" value="1.0" oninput="fOnSlider('fSetReloadSpeed','fReloadSpeedVal',v=>v+'x')">
-          <span class="sliderVal" id="fReloadSpeedVal">1.0x</span>
+        <div class="presetGroup">
+          <button class="presetBtn easy fPresetBtn"        data-preset="easy"        onclick="applyPreset('easy','fortress')">EASY</button>
+          <button class="presetBtn medium fPresetBtn"      data-preset="medium"      onclick="applyPreset('medium','fortress')">MEDIUM</button>
+          <button class="presetBtn hard fPresetBtn"        data-preset="hard"        onclick="applyPreset('hard','fortress')">HARD</button>
+          <button class="presetBtn hardcore fPresetBtn"    data-preset="hardcore"    onclick="applyPreset('hardcore','fortress')">HARDCORE</button>
+          <div class="customBtnGroup">
+            <button class="presetBtn custom fPresetBtn" data-preset="custom" onclick="applyPreset('custom','fortress')">CUSTOM</button>
+            <div id="fCustomSlotWrap" class="slotStepper">
+              <span id="fCustomSlotLabel" class="slotStepLabel">1</span>
+              <div class="slotArrows">
+                <button class="slotArrow" onclick="stepSlot('fortress',1)">▲</button>
+                <button class="slotArrow" onclick="stepSlot('fortress',-1)">▼</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
     <div class="settingsSection">
-      <div class="sectionLabel">DISPLAY</div>
+      <div class="sectionLabel">SPECIAL DIFFICULTIES</div>
+      <div class="settingRow" style="border:none;">
+        <div class="presetGroup">
+          <button class="presetBtn overpowered fPresetBtn" data-preset="overpowered" onclick="applyPreset('overpowered','fortress')">OVERPOWERED</button>
+        </div>
+      </div>
+    </div>
+    <div class="settingsSection">
       <div class="settingRow" style="border:none;">
         <div><div class="settingName">AIM LASER</div><div class="settingDesc">Laser sight from main barrel</div></div>
         <div style="display:flex;gap:4px;">
@@ -422,8 +564,14 @@
       <div class="settingRow" style="border:none;">
         <div><div class="settingName">OVERKILL</div><div class="settingDesc">Extra damage fired per target before switching (ensures kill)</div></div>
         <div style="display:flex;align-items:center;gap:10px;">
-          <input type="range" class="settingSlider" id="fSetOverkill" min="0" max="2.0" step="0.05" value="0" oninput="fOnSlider('fSetOverkill','fOverkillVal',v=>Math.round(v*100)+'%')">
+          <input type="range" class="settingSlider" id="fSetOverkill" min="0" max="2.0" step="0.05" value="0" oninput="fOnOverkillSlider('fOverkillVal',v=>Math.ceil(v*100)+'%')">
           <span class="sliderVal" id="fOverkillVal">0%</span>
+        </div>
+      </div>
+      <div class="settingRow" style="border:none;">
+        <div><div class="settingName">EMERGENCY MODE</div><div class="settingDesc">Fast secondaries spray freely + 50% reload speed when enemies breach 100px</div></div>
+        <div class="toggleWrap" onclick="document.getElementById('fSetEmergencyMode').click()">
+          <input type="checkbox" id="fSetEmergencyMode" checked onchange="FORTRESS_SETTINGS.emergencyMode=this.checked"><span class="toggleSlider"></span>
         </div>
       </div>
       <div class="settingRow" style="border:none;">
@@ -434,6 +582,33 @@
       </div>
     </div>
     <div class="settingsSection">
+      <div class="settingRow" data-preset-ctrl="fortress">
+        <div><div class="settingName">INFINITE AMMO</div><div class="settingDesc">Weapons never run out of ammo</div></div>
+        <div class="toggleWrap" onclick="document.getElementById('fSetInfiniteAmmo').click()">
+          <input type="checkbox" id="fSetInfiniteAmmo" onchange="FORTRESS_SETTINGS.infiniteAmmo=this.checked"><span class="toggleSlider"></span>
+        </div>
+      </div>
+      <div class="settingRow" id="fortressAllWeaponsRow" style="display:none;">
+        <div><div class="settingName" style="color:#ffaa00;">ALL WEAPONS UNLOCKED</div><div class="settingDesc">Start with every weapon in your arsenal</div></div>
+        <div class="toggleWrap" onclick="document.getElementById('fSetAllWeapons').click()">
+          <input type="checkbox" id="fSetAllWeapons" onchange="FORTRESS_SETTINGS.allWeaponsUnlocked=this.checked"><span class="toggleSlider"></span>
+        </div>
+      </div>
+      <div class="settingRow" data-preset-ctrl="fortress" style="border:none;">
+        <div><div class="settingName">RELOAD</div><div class="settingDesc">Disable to skip reload entirely</div></div>
+        <div class="toggleWrap" onclick="var cb=document.getElementById('fSetReload');cb.checked=!cb.checked;fToggleReloadSpeed(cb.checked);FORTRESS_SETTINGS.reload=cb.checked">
+          <input type="checkbox" id="fSetReload" checked><span class="toggleSlider"></span>
+        </div>
+      </div>
+      <div id="fReloadSpeedRow" data-preset-ctrl="fortress" style="padding:6px 0 6px 16px;border-left:2px solid #1a2a1a;margin-left:4px;display:flex;align-items:center;justify-content:space-between;">
+        <div><div class="settingName" style="color:#44aa66;font-size:10px;">RELOAD SPEED</div><div class="settingDesc">Higher = faster (2× = half the time)</div></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="range" class="settingSlider" id="fSetReloadSpeed" min="0.5" max="4.0" step="0.1" value="1.0" oninput="fOnSlider('fSetReloadSpeed','fReloadSpeedVal',v=>v+'x')">
+          <span class="sliderVal" id="fReloadSpeedVal">1.0x</span>
+        </div>
+      </div>
+    </div>
+    <div class="settingsSection" data-preset-ctrl="fortress">
       <div class="sectionLabel">ENEMY TUNING</div>
       <div class="settingRow">
         <div><div class="settingName">SPAWN RATE</div><div class="settingDesc">How quickly enemies appear</div></div>
@@ -450,22 +625,22 @@
         </div>
       </div>
     </div>
-    <div class="settingsSection">
+    <div class="settingsSection" data-preset-ctrl="fortress">
       <div class="sectionLabel">AMMO DROP RATES</div>
       <div class="settingRow">
         <div><div class="settingName" style="color:#ff9900;">MAIN AMMO</div><div class="settingDesc">Relative drop frequency for main weapon ammo</div></div>
         <div style="display:flex;align-items:center;gap:8px;">
           <button class="triBtn active" id="fSetMainEnable" style="font-size:8px;padding:4px 8px;" onclick="toggleAmmoEnabled('main')">ON</button>
-          <input type="range" class="settingSlider" id="fSetMainDrop" min="0" max="10" step="1" value="3" oninput="fOnSlider('fSetMainDrop','fMainDropVal',v=>v)">
-          <span class="sliderVal" id="fMainDropVal">3</span>
+          <input type="range" class="settingSlider" id="fSetMainDrop" min="0" max="10" step="1" value="5" oninput="fOnSlider('fSetMainDrop','fMainDropVal',v=>v)">
+          <span class="sliderVal" id="fMainDropVal">5</span>
         </div>
       </div>
       <div class="settingRow" style="border:none;">
         <div><div class="settingName" style="color:#cc44ff;">SECONDARY AMMO</div><div class="settingDesc">Relative drop frequency for secondary weapon ammo</div></div>
         <div style="display:flex;align-items:center;gap:8px;">
           <button class="triBtn active" id="fSetSecEnable" style="font-size:8px;padding:4px 8px;" onclick="toggleAmmoEnabled('secondary')">ON</button>
-          <input type="range" class="settingSlider" id="fSetSecDrop" min="0" max="10" step="1" value="2" oninput="fOnSlider('fSetSecDrop','fSecDropVal',v=>v)">
-          <span class="sliderVal" id="fSecDropVal">2</span>
+          <input type="range" class="settingSlider" id="fSetSecDrop" min="0" max="10" step="1" value="4" oninput="fOnSlider('fSetSecDrop','fSecDropVal',v=>v)">
+          <span class="sliderVal" id="fSecDropVal">4</span>
         </div>
       </div>
     </div>
@@ -490,7 +665,7 @@
         </div>
       </div>
       <div class="modeCard">
-        <div class="modeIcon"><img src="All_Images/Images/Shocktrain Icon.png" style="width:48px;height:48px;mix-blend-mode:screen;" alt="Turret"></div>
+        <div class="modeIcon"><img src="All_Images/Images/Shocktrain Icon.png" style="width:45.6px;height:45.6px;mix-blend-mode:screen;" alt="Turret"></div>
         <div class="modeName">FORTRESS</div>
         <div class="modeDesc">Hold your ground. You cannot move — only aim and fire.</div>
         <div style="display:flex;gap:6px;margin-top:auto;padding-top:8px;">
@@ -499,7 +674,7 @@
         </div>
       </div>
       <div class="modeCard">
-        <div class="modeIcon"><img src="All_Images/Images/Roam icon.png" style="width:48px;height:48px;mix-blend-mode:screen;image-rendering:auto;" alt="Roam"></div>
+        <div class="modeIcon"><img src="All_Images/Images/Roam icon.png" style="width:52.8px;height:52.8px;mix-blend-mode:screen;image-rendering:auto;" alt="Roam"></div>
         <div class="modeName">ROAM</div>
         <div class="modeDesc">Classic rules, open world. Camera follows you through a vast arena.</div>
         <div style="display:flex;gap:6px;margin-top:auto;padding-top:8px;">
@@ -510,8 +685,40 @@
     </div>
     <button id="modeBackBtn" onclick="showStartScreen()">← BACK</button>
   </div>
-  <div id="startScreen">
-    <div class="screenTitle">SURVIVOR</div>
+  <!-- LOGIN SCREEN -->
+  <div id="loginScreen">
+    <div id="loginTitle">GROUND ZERO</div>
+    <div id="loginSub">IDENTIFY YOURSELF, SOLDIER</div>
+    <div id="loginBox">
+      <div id="loginMsg"></div>
+      <div class="loginLabel">GAMERTAG</div>
+      <input class="loginInput" id="loginGtag" type="text" maxlength="16" placeholder="YOUR_TAG" autocomplete="off" spellcheck="false">
+      <div class="loginLabel">4-DIGIT PIN</div>
+      <div id="loginPinWrap">
+        <input class="pinDigit" id="pin0" type="password" maxlength="1" inputmode="numeric" pattern="[0-9]">
+        <input class="pinDigit" id="pin1" type="password" maxlength="1" inputmode="numeric" pattern="[0-9]">
+        <input class="pinDigit" id="pin2" type="password" maxlength="1" inputmode="numeric" pattern="[0-9]">
+        <input class="pinDigit" id="pin3" type="password" maxlength="1" inputmode="numeric" pattern="[0-9]">
+      </div>
+      <button id="loginBtn" onclick="doLogin()">ENTER</button>
+      <div id="loginHint">New gamertag? We'll create your account.<br>Existing tag? PIN must match.</div>
+    </div>
+  </div>
+
+  <div id="startScreen" style="display:none;">
+    <div id="logoutBtn" onclick="doLogout()">LOGOUT</div>
+    <div id="loginUserDisplay"></div>
+    <div style="position:relative;display:inline-block;margin-bottom:4px;">
+      <div class="screenTitle" style="margin-bottom:0;">GROUND ZERO</div>
+      <div style="display:flex;justify-content:space-between;width:100%;box-sizing:border-box;padding:0 50px;margin-top:3px;">
+        <span style="font-family:'Orbitron',monospace;font-size:14px;font-weight:900;color:#00ccff;opacity:0.7;letter-spacing:0;">A</span>
+        <span style="font-family:'Orbitron',monospace;font-size:14px;font-weight:900;color:#00ccff;opacity:0.7;letter-spacing:0;">R</span>
+        <span style="font-family:'Orbitron',monospace;font-size:14px;font-weight:900;color:#00ccff;opacity:0.7;letter-spacing:0;">C</span>
+        <span style="font-family:'Orbitron',monospace;font-size:14px;font-weight:900;color:#00ccff;opacity:0.7;letter-spacing:0;">A</span>
+        <span style="font-family:'Orbitron',monospace;font-size:14px;font-weight:900;color:#00ccff;opacity:0.7;letter-spacing:0;">D</span>
+        <span style="font-family:'Orbitron',monospace;font-size:14px;font-weight:900;color:#00ccff;opacity:0.7;letter-spacing:0;">E</span>
+      </div>
+    </div>
     <div class="screenSub">SURVIVE THE HORDE</div>
     <button class="bigBtn" onclick="showModeScreen()">START GAME</button>
     <button class="mainMenuSettingsBtn" onclick="showMainSettings()">⚙ SETTINGS</button>
@@ -522,14 +729,32 @@
   <!-- LEADERBOARD SCREEN -->
   <div id="leaderboardScreen">
     <div id="lbHeader">
-      <div id="lbTitle">Leaderboard</div>
-      <div id="lbSub">PERSONAL BEST · BY MODE</div>
+      <div id="lbTitle">LEADERBOARD</div>
+      <div id="lbSub">TOP PLAYERS · ALL MODES</div>
+      <div id="lbCurrentUser">SIGNED IN AS <span id="lbUserTag">—</span></div>
+      <div id="lbFilterBar">
+        <button class="lbFilterBtn active" data-mode="all" onclick="setLbFilter('all',this)">ALL MODES</button>
+        <button class="lbFilterBtn f-classic" data-mode="classic" onclick="setLbFilter('classic',this)">CLASSIC</button>
+        <button class="lbFilterBtn f-fortress" data-mode="fortress" onclick="setLbFilter('fortress',this)">FORTRESS</button>
+        <button class="lbFilterBtn f-roam" data-mode="roam" onclick="setLbFilter('roam',this)">ROAM</button>
+      </div>
+      <div id="lbSortBar">
+        <button class="lbSortFieldBtn active" data-field="score"      onclick="setLbSortField('score',this)">SCORE</button>
+        <button class="lbSortFieldBtn"        data-field="time"       onclick="setLbSortField('time',this)">TIME</button>
+        <button class="lbSortFieldBtn"        data-field="kills"      onclick="setLbSortField('kills',this)">KILLS</button>
+        <button class="lbSortFieldBtn"        data-field="level"      onclick="setLbSortField('level',this)">LEVEL</button>
+        <button class="lbSortFieldBtn"        data-field="difficulty" onclick="setLbSortField('difficulty',this)">DIFF</button>
+        <div id="lbSortDirGroup">
+          <button class="lbDirBtn active" id="lbDirDesc" onclick="setLbDir('desc')">▼</button>
+          <button class="lbDirBtn"        id="lbDirAsc"  onclick="setLbDir('asc')">▲</button>
+        </div>
+      </div>
     </div>
     <div id="lbBody">
       <!-- populated by JS -->
     </div>
     <div id="lbFooter">
-      <button id="lbClearBtn" onclick="clearLeaderboard()">CLEAR ALL</button>
+      <button id="lbClearBtn" onclick="clearLeaderboard()">CLEAR MY SCORES</button>
       <button id="lbBackBtn" onclick="hideLeaderboard()">← BACK</button>
     </div>
   </div>
@@ -552,9 +777,18 @@
         <div class="settingRow" id="windowSizeRow" style="border:none;">
           <div><div class="settingName">WINDOW SIZE</div><div class="settingDesc">Scale the game window up or down</div></div>
           <div style="display:flex;align-items:center;gap:10px;">
-            <input type="range" class="settingSlider" id="windowSizeSlider" min="50" max="150" step="5" value="100" oninput="applyWindowScale(this.value)">
+            <input type="range" class="settingSlider" id="windowSizeSlider" min="70" max="150" step="5" value="100" oninput="applyWindowScale(this.value)">
             <span class="sliderVal" id="windowSizeVal">100%</span>
           </div>
+        </div>
+      </div>
+    </div>
+    <div class="settingsSection">
+      <div class="sectionLabel">ADVANCED</div>
+      <div class="settingRow" style="border:none;">
+        <div><div class="settingName" style="color:#aa44ff;">DEVELOPER SETTINGS</div><div class="settingDesc">GAMES PLAYED WITH DEVELOPER MODE ON WILL NOT SAVE TO LEADERBOARD!</div></div>
+        <div class="toggleWrap" onclick="toggleDevSettings()">
+          <input type="checkbox" id="devSettingsToggle"><span class="toggleSlider"></span>
         </div>
       </div>
     </div>
@@ -567,6 +801,25 @@
     <div id="goStats"></div>
     <button class="bigBtn" style="border-color:#ff4466;color:#ff4466;" onclick="launchMode(game.mode||'classic')">PLAY AGAIN</button>
     <button class="bigBtn" style="border-color:#334;color:#446;margin-top:10px;font-size:11px;padding:10px 30px;" onclick="showStartScreen()">MAIN MENU</button>
+  </div>
+  <!-- DIFFICULTY CHANGED MID-GAME OVERLAY -->
+  <div id="diffChangeOverlay">
+    <div id="diffChangeTitle">⚠ DIFFICULTY CHANGED</div>
+    <div id="diffChangeSub">You changed difficulty mid-run.<br>You must restart or revert to continue.</div>
+    <div id="diffChangeBtns">
+      <button class="settingsStartBtn warning" onclick="diffChangeRestart()">↺ RESTART</button>
+      <button class="diffRevertBtn" onclick="diffChangeRevert()">⟲ REVERT</button>
+    </div>
+  </div>
+  <!-- DEV MODE WARNING OVERLAY -->
+  <div id="devWarnOverlay">
+    <div id="devWarnIcon">⚠</div>
+    <div id="devWarnTitle">DEVELOPER MODE</div>
+    <div id="devWarnBody">You are enabling <span>DEVELOPER SETTINGS</span>.<br>Any games played while developer mode is active<br>will <span>NOT be saved to the leaderboard</span>.<br><br>Developer mode resets to OFF on every page load.</div>
+    <div id="devWarnBtns">
+      <button class="devWarnBtn" id="devWarnConfirm" onclick="confirmDevMode()">ENABLE ANYWAY</button>
+      <button class="devWarnBtn" id="devWarnCancel" onclick="cancelDevMode()">CANCEL</button>
+    </div>
   </div>
   </div><!-- end #gameUI -->
 </div>
@@ -815,36 +1068,107 @@ const GLOBAL = {};
 // Per-mode settings
 const SETTINGS = {
   infiniteAmmo: false, reload: true, reloadSpeedMult: 1.0,
-  spawnRateMult: 1.0, enemySpeedMult: 1.0, autoCollect: true, aimLaser: 'off', preset: 'medium',
-  lightDropWeight: 5, mediumDropWeight: 3, heavyDropWeight: 2,
+  spawnRateMult: 1.0, enemySpeedMult: 1.0, autoCollect: true, aimLaser: 'partial', preset: 'medium',
+  lightDropWeight: 8, mediumDropWeight: 5, heavyDropWeight: 4,
   lightEnabled: true, mediumEnabled: true, heavyEnabled: true, allWeaponsUnlocked: false
 };
 const FORTRESS_SETTINGS = {
   infiniteAmmo: false, reload: true, reloadSpeedMult: 1.0,
-  spawnRateMult: 1.0, enemySpeedMult: 1.0, autoCollect: true, autoSecondary: true, aimLaser: 'partial',
-  mainDropWeight: 3, secDropWeight: 2,
+  spawnRateMult: 1.0, enemySpeedMult: 1.0, autoCollect: true, autoSecondary: true, aimLaser: 'partial', preset: 'medium',
+  mainDropWeight: 5, secDropWeight: 4,
   mainEnabled: true, secEnabled: true, allWeaponsUnlocked: false,
-  overkillMult: 0.0, showEmergencyZone: true
+  overkillMult: 0.0, showEmergencyZone: true, emergencyMode: true
 };
 
 // Return whichever settings apply to the current game mode
 function activeSettings(){ return (game.mode==='fortress') ? FORTRESS_SETTINGS : SETTINGS; }
 
 const PRESETS = {
-  easy:     {infiniteAmmo:true,  reload:false, spawnRateMult:0.6, enemySpeedMult:0.7},
-  medium:   {infiniteAmmo:false, reload:true,  spawnRateMult:1.0, enemySpeedMult:1.0},
-  hard:     {infiniteAmmo:false, reload:true,  spawnRateMult:1.6, enemySpeedMult:1.4},
-  hardcore: {infiniteAmmo:false, reload:true,  spawnRateMult:2.4, enemySpeedMult:2.0},
+  //                                                           ── classic ammo ──────────────────  ── fortress ammo ──
+  overpowered: {infiniteAmmo:true,  reload:false, reloadSpeedMult:2.0, spawnRateMult:3.0, enemySpeedMult:0.3, autoCollect:true,
+                lightDropWeight:0, mediumDropWeight:0, heavyDropWeight:0, mainDropWeight:0, secDropWeight:0},
+  easy:        {infiniteAmmo:true,  reload:false, reloadSpeedMult:1.0, spawnRateMult:0.8, enemySpeedMult:0.6, autoCollect:true,
+                lightDropWeight:0, mediumDropWeight:0, heavyDropWeight:0, mainDropWeight:0, secDropWeight:0},
+  medium:      {infiniteAmmo:false, reload:true,  reloadSpeedMult:1.5, spawnRateMult:1.0, enemySpeedMult:1.0, autoCollect:true,
+                lightDropWeight:9,  mediumDropWeight:6, heavyDropWeight:5, mainDropWeight:5, secDropWeight:9},
+  hard:        {infiniteAmmo:false, reload:true,  reloadSpeedMult:1.0, spawnRateMult:1.5, enemySpeedMult:1.0, autoCollect:true,
+                lightDropWeight:6,  mediumDropWeight:4, heavyDropWeight:3, mainDropWeight:3, secDropWeight:6},
+  hardcore:    {infiniteAmmo:false, reload:true,  reloadSpeedMult:0.8, spawnRateMult:2.4, enemySpeedMult:2.0, autoCollect:false,
+                lightDropWeight:5,  mediumDropWeight:2, heavyDropWeight:1, mainDropWeight:1, secDropWeight:5},
 };
 
-function applyPreset(name){
-  const p=PRESETS[name];
+// Returns the name of the matching preset if all preset-relevant fields match,
+// otherwise returns 'custom'.
+function detectPreset(s){
+  const r = v => Math.round(v * 100) / 100; // round to 2dp to avoid float drift
+  const isFort = s.mainDropWeight !== undefined;
+  for(const [name, p] of Object.entries(PRESETS)){
+    const baseMatch =
+       s.infiniteAmmo        === p.infiniteAmmo        &&
+       s.reload              === p.reload              &&
+       r(s.reloadSpeedMult)  === r(p.reloadSpeedMult)  &&
+       r(s.spawnRateMult)    === r(p.spawnRateMult)    &&
+       r(s.enemySpeedMult)   === r(p.enemySpeedMult)   &&
+       (isFort || s.autoCollect === p.autoCollect);
+    if(!baseMatch) continue;
+    const ammoMatch = isFort
+      ? (s.mainDropWeight === p.mainDropWeight && s.secDropWeight  === p.secDropWeight)
+      : (s.lightDropWeight === p.lightDropWeight && s.mediumDropWeight === p.mediumDropWeight && s.heavyDropWeight === p.heavyDropWeight);
+    if(ammoMatch) return name;
+  }
+  return 'custom';
+}
+
+function syncClassicPreset(){
+  SETTINGS.preset = detectPreset(SETTINGS);
+  syncPresetBtns('classic', SETTINGS.preset);
+  updateCustomControls('classic', SETTINGS.preset === 'custom');
+}
+function syncFortressPreset(){
+  FORTRESS_SETTINGS.preset = detectPreset(FORTRESS_SETTINGS);
+  syncPresetBtns('fortress', FORTRESS_SETTINGS.preset);
+  updateCustomControls('fortress', FORTRESS_SETTINGS.preset === 'custom');
+}
+
+function syncPresetBtns(mode, preset){
+  const sel = mode==='fortress' ? '.fPresetBtn' : '.cPresetBtn';
+  document.querySelectorAll(sel).forEach(b=>{
+    b.classList.toggle('active', b.dataset.preset === preset);
+  });
+}
+
+function applyPreset(name, mode){
+  const p = PRESETS[name];
+  const s = (mode==='fortress') ? FORTRESS_SETTINGS : SETTINGS;
   if(p){
-    SETTINGS.infiniteAmmo=p.infiniteAmmo; SETTINGS.reload=p.reload;
-    SETTINGS.spawnRateMult=p.spawnRateMult; SETTINGS.enemySpeedMult=p.enemySpeedMult;
-    SETTINGS.preset=name;
-  } else { SETTINGS.preset='custom'; }
-  syncClassicUI();
+    s.infiniteAmmo    = p.infiniteAmmo;
+    s.reload          = p.reload;
+    s.reloadSpeedMult = p.reloadSpeedMult;
+    s.spawnRateMult   = p.spawnRateMult;
+    s.enemySpeedMult  = p.enemySpeedMult;
+    s.autoCollect     = p.autoCollect;
+    s.preset          = name;
+    if(mode==='fortress'){
+      s.mainDropWeight = p.mainDropWeight;
+      s.secDropWeight  = p.secDropWeight;
+      s.mainEnabled    = true;
+      s.secEnabled     = true;
+      syncFortressUI();
+    } else {
+      s.lightDropWeight  = p.lightDropWeight;
+      s.mediumDropWeight = p.mediumDropWeight;
+      s.heavyDropWeight  = p.heavyDropWeight;
+      s.lightEnabled  = true;
+      s.mediumEnabled = true;
+      s.heavyEnabled  = true;
+      syncClassicUI();
+    }
+  } else {
+    // 'custom' — just label it, leave all settings and UI untouched
+    s.preset = 'custom';
+    updateCustomControls(mode || 'classic', true);
+  }
+  syncPresetBtns(mode || 'classic', s.preset);
 }
 
 function onSlider(inputId, labelId, fmt){
@@ -866,7 +1190,13 @@ function fOnSlider(inputId, labelId, fmt){
   FORTRESS_SETTINGS.reloadSpeedMult=parseFloat(document.getElementById('fSetReloadSpeed').value);
   FORTRESS_SETTINGS.mainDropWeight=parseInt(document.getElementById('fSetMainDrop').value);
   FORTRESS_SETTINGS.secDropWeight=parseInt(document.getElementById('fSetSecDrop').value);
-  FORTRESS_SETTINGS.overkillMult=parseFloat(document.getElementById('fSetOverkill').value);
+}
+
+// Overkill is a secondary armament setting — update value/label but do NOT mark custom
+function fOnOverkillSlider(labelId, fmt){
+  const val = parseFloat(document.getElementById('fSetOverkill').value);
+  document.getElementById(labelId).textContent = fmt(Number.isInteger(val) ? val : val.toFixed(1));
+  FORTRESS_SETTINGS.overkillMult = val;
 }
 
 function toggleAmmoEnabled(slot){
@@ -915,15 +1245,21 @@ function syncAmmoEnableBtn(btnId, sliderId, enabled){
 function toggleReloadSpeed(on){ document.getElementById('reloadSpeedRow').style.display=on?'':'none'; }
 function fToggleReloadSpeed(on){ document.getElementById('fReloadSpeedRow').style.display=on?'':'none'; }
 
+function _customSlotKey(mode, slot){ const u = _currentUser ? _currentUser.key : 'guest'; return 'survivorCustom_'+u+'_'+mode+'_'+slot; }
+function _activeSlotKey(mode){ const u = _currentUser ? _currentUser.key : 'guest'; return 'survivorCustomSlot_'+u+'_'+mode; }
+function _getActiveSlot(mode){ try{ return localStorage.getItem(_activeSlotKey(mode)) || '1'; }catch(e){ return '1'; } }
+
 function saveSettings(mode){
   if(mode==='classic'){
     readClassicUI();
     if(_settingsSnapshot) _settingsSnapshot.classic = JSON.parse(JSON.stringify(SETTINGS));
-    localStorage.setItem('survivorClassicSettings', JSON.stringify(SETTINGS));
+    const slot = _getActiveSlot('classic');
+    try{ localStorage.setItem(_customSlotKey('classic', slot), JSON.stringify(SETTINGS)); }catch(e){}
   } else {
     readFortressUI();
     if(_settingsSnapshot) _settingsSnapshot.fortress = JSON.parse(JSON.stringify(FORTRESS_SETTINGS));
-    localStorage.setItem('survivorFortressSettings', JSON.stringify(FORTRESS_SETTINGS));
+    const slot = _getActiveSlot('fortress');
+    try{ localStorage.setItem(_customSlotKey('fortress', slot), JSON.stringify(FORTRESS_SETTINGS)); }catch(e){}
   }
   const btnId = mode==='classic' ? 'saveClassicBtn' : 'saveFortressBtn';
   const btn = document.getElementById(btnId);
@@ -934,15 +1270,82 @@ function saveSettings(mode){
   }
 }
 
+// Load a specific custom slot and apply its settings
+function loadCustomSlot(mode, slot){
+  if(!slot) return;
+  try{ localStorage.setItem(_activeSlotKey(mode), slot); }catch(e){}
+  const key = _customSlotKey(mode, slot);
+  let saved = null;
+  try{ const r = localStorage.getItem(key); if(r) saved = JSON.parse(r); }catch(e){}
+  if(saved){
+    if(mode==='classic'){ Object.assign(SETTINGS, saved); SETTINGS.preset='custom'; syncClassicUI(); }
+    else{ Object.assign(FORTRESS_SETTINGS, saved); FORTRESS_SETTINGS.preset='custom'; syncFortressUI(); }
+  }
+  updateCustomControls(mode, true);
+  // Update the stepper label to the loaded slot
+  const slotLabel = document.getElementById(mode==='classic' ? 'cCustomSlotLabel' : 'fCustomSlotLabel');
+  if(slotLabel) slotLabel.textContent = slot;
+}
+
+// Step through custom slots with up/down arrows
+const SLOT_COUNT = 3;
+function stepSlot(mode, dir){
+  const current = parseInt(_getActiveSlot(mode)) || 1;
+  const next = ((current - 1 + dir + SLOT_COUNT) % SLOT_COUNT) + 1;
+  loadCustomSlot(mode, String(next));
+}
+
 function loadSavedSettings(){
+  // Classic: load active custom slot (fall back to legacy key)
+  const cSlot = _getActiveSlot('classic');
   try {
-    const cs = localStorage.getItem('survivorClassicSettings');
-    if(cs){ const d=JSON.parse(cs); Object.assign(SETTINGS, d); }
+    const slotData = localStorage.getItem(_customSlotKey('classic', cSlot));
+    if(slotData){ Object.assign(SETTINGS, JSON.parse(slotData)); }
+    else {
+      const legacy = localStorage.getItem('survivorClassicSettings');
+      if(legacy){ Object.assign(SETTINGS, JSON.parse(legacy)); }
+    }
   } catch(e){}
+  // Fortress: load active custom slot (fall back to legacy key)
+  const fSlot = _getActiveSlot('fortress');
   try {
-    const fs = localStorage.getItem('survivorFortressSettings');
-    if(fs){ const d=JSON.parse(fs); Object.assign(FORTRESS_SETTINGS, d); }
+    const slotData = localStorage.getItem(_customSlotKey('fortress', fSlot));
+    if(slotData){ Object.assign(FORTRESS_SETTINGS, JSON.parse(slotData)); }
+    else {
+      const legacy = localStorage.getItem('survivorFortressSettings');
+      if(legacy){ Object.assign(FORTRESS_SETTINGS, JSON.parse(legacy)); }
+    }
   } catch(e){}
+  // Strip allWeaponsUnlocked if dev mode is off
+  const devOn = localStorage.getItem('survivorDevSettings') === '1';
+  if(!devOn){
+    SETTINGS.allWeaponsUnlocked = false;
+    FORTRESS_SETTINGS.allWeaponsUnlocked = false;
+  }
+}
+
+// Show/hide save button and slot stepper based on whether preset is custom
+function updateCustomControls(mode, isCustom){
+  const saveBtn = document.getElementById(mode==='classic' ? 'saveClassicBtn' : 'saveFortressBtn');
+  const slotWrap = document.getElementById(mode==='classic' ? 'cCustomSlotWrap' : 'fCustomSlotWrap');
+  const slotLabel = document.getElementById(mode==='classic' ? 'cCustomSlotLabel' : 'fCustomSlotLabel');
+  if(saveBtn){ saveBtn.classList.toggle('disabled', !isCustom); }
+  if(slotWrap){
+    slotWrap.style.display = isCustom ? 'flex' : 'none';
+    if(isCustom && slotLabel){
+      const slot = _getActiveSlot(mode);
+      slotLabel.textContent = slot;
+    }
+  }
+  // Grey out (or restore) all preset-controlled elements
+  document.querySelectorAll('[data-preset-ctrl="'+mode+'"]').forEach(el=>{
+    el.classList.toggle('preset-locked', !isCustom);
+  });
+  // When switching to custom, re-apply reload speed sub-row visibility based on reload toggle
+  if(isCustom){
+    if(mode==='classic') toggleReloadSpeed(document.getElementById('setReload').checked);
+    else fToggleReloadSpeed(document.getElementById('fSetReload').checked);
+  }
 }
 
 function syncClassicUI(){
@@ -967,7 +1370,12 @@ function syncClassicUI(){
   syncAmmoEnableBtn('setMediumEnable','setMediumDrop', SETTINGS.mediumEnabled !== false);
   syncAmmoEnableBtn('setHeavyEnable','setHeavyDrop',   SETTINGS.heavyEnabled  !== false);
   document.getElementById('setAllWeapons').checked = !!SETTINGS.allWeaponsUnlocked;
-  // presets removed
+  syncClassicPreset();
+  // allWeaponsRow visibility handled by updateCustomControls via syncClassicPreset;
+  // only show if dev mode is also on
+  const devOn = document.getElementById('devSettingsToggle').checked;
+  const isCustom = SETTINGS.preset === 'custom';
+  document.getElementById('classicAllWeaponsRow').style.display = (devOn && isCustom) ? '' : 'none';
 }
 
 function syncFortressUI(){
@@ -991,8 +1399,14 @@ function syncFortressUI(){
   document.getElementById('fSetAllWeapons').checked = !!FORTRESS_SETTINGS.allWeaponsUnlocked;
   const ok = FORTRESS_SETTINGS.overkillMult || 0;
   document.getElementById('fSetOverkill').value = ok;
-  document.getElementById('fOverkillVal').textContent = Math.round(ok*100)+'%';
+  document.getElementById('fOverkillVal').textContent = Math.ceil(ok*100)+'%';
   document.getElementById('fSetShowEmrgZone').checked = FORTRESS_SETTINGS.showEmergencyZone !== false;
+  document.getElementById('fSetEmergencyMode').checked = FORTRESS_SETTINGS.emergencyMode !== false;
+  syncFortressPreset();
+  // allWeaponsRow visibility: only show if dev mode is also on
+  const devOn = document.getElementById('devSettingsToggle').checked;
+  const isCustom = FORTRESS_SETTINGS.preset === 'custom';
+  document.getElementById('fortressAllWeaponsRow').style.display = (devOn && isCustom) ? '' : 'none';
 }
 
 function readClassicUI(){
@@ -1028,6 +1442,7 @@ function readFortressUI(){
   FORTRESS_SETTINGS.allWeaponsUnlocked = document.getElementById('fSetAllWeapons').checked;
   FORTRESS_SETTINGS.overkillMult = parseFloat(document.getElementById('fSetOverkill').value);
   FORTRESS_SETTINGS.showEmergencyZone = document.getElementById('fSetShowEmrgZone').checked;
+  FORTRESS_SETTINGS.emergencyMode = document.getElementById('fSetEmergencyMode').checked;
 }
 
 function updateSettingsBtnVisibility(){
@@ -1069,13 +1484,20 @@ function updateSettingsButtons(){
 }
 
 function leaveToMenu(){
-  closeSettings();
+  // Discard any settings changes and leave — skip the diff-change check entirely
+  if(_settingsSnapshot){
+    Object.assign(SETTINGS, _settingsSnapshot.classic);
+    Object.assign(FORTRESS_SETTINGS, _settingsSnapshot.fortress);
+    _settingsSnapshot = null;
+  }
+  if(_activeSettingsScreen) document.getElementById(_activeSettingsScreen).style.display='none';
+  _activeSettingsScreen = null;
+  game.paused = false;
   showModeScreen();
 }
 
-
-
 function setAimLaser(mode, val){
+  // Aim laser is not a preset-relevant field — just update it without touching the preset
   if(mode==='classic') SETTINGS.aimLaser = val;
   else FORTRESS_SETTINGS.aimLaser = val;
   syncAimLaserBtns(mode, val);
@@ -1090,11 +1512,14 @@ function syncAimLaserBtns(mode, val){
 }
 
 function settingsAction(mode){
-  // Commit settings before closing — this is the "Start Game" path
+  // Commit settings before closing — this is the "Start Game / Restart" path
   if(_activeSettingsScreen==='classicSettingsScreen') readClassicUI();
   else if(_activeSettingsScreen==='fortressSettingsScreen') readFortressUI();
-  _settingsSnapshot = null; // mark as saved so closeSettings won't restore
-  closeSettings();
+  _settingsSnapshot = null; // mark as saved so closeSettings won't check for changes
+  document.getElementById('diffChangeOverlay').style.display='none';
+  if(_activeSettingsScreen) document.getElementById(_activeSettingsScreen).style.display='none';
+  _activeSettingsScreen=null;
+  game.paused=false;
   const launchAs = game._pendingMode || mode;
   game._pendingMode = null;
   launchMode(launchAs);
@@ -1105,8 +1530,18 @@ function openModeSettings(mode){
     classic:  JSON.parse(JSON.stringify(SETTINGS)),
     fortress: JSON.parse(JSON.stringify(FORTRESS_SETTINGS)),
   };
-  if(mode==='fortress'){ syncFortressUI(); document.getElementById('fortressSettingsScreen').style.display='flex'; _activeSettingsScreen='fortressSettingsScreen'; }
-  else { syncClassicUI(); document.getElementById('classicSettingsScreen').style.display='flex'; _activeSettingsScreen='classicSettingsScreen'; }
+  if(mode==='fortress'){
+    syncFortressUI();
+    document.getElementById('fortressSettingsScreen').style.display='flex';
+    _activeSettingsScreen='fortressSettingsScreen';
+  } else {
+    syncClassicUI();
+    document.getElementById('classicSettingsScreen').style.display='flex';
+    _activeSettingsScreen='classicSettingsScreen';
+    // Update title to match the actual mode (Classic vs Roam both use this screen)
+    const titleEl = document.getElementById('classicSettingsTitle');
+    if(titleEl) titleEl.textContent = mode==='roam' ? '⚙ ROAM SETTINGS' : '⚙ CLASSIC SETTINGS';
+  }
   // Remember which mode triggered settings (for restart button)
   if(!game.running) game._pendingMode = mode;
   updateSettingsButtons();
@@ -1123,9 +1558,26 @@ function openGameSettings(){
 function closeSettings(){
   if(_settingsSnapshot){
     if(game.running){
-      // Mid-game resume: commit current UI changes (same as restart path)
+      // Mid-game resume: commit current UI changes
       if(_activeSettingsScreen==='classicSettingsScreen') readClassicUI();
       else if(_activeSettingsScreen==='fortressSettingsScreen') readFortressUI();
+      // Check if difficulty changed since the run started
+      const newPreset = activeSettings().preset || 'custom';
+      const oldPreset = game.startPreset || 'medium';
+      if(newPreset !== oldPreset){
+        // Don't resume — show forced choice overlay
+        document.getElementById(_activeSettingsScreen).style.display='none';
+        _activeSettingsScreen=null;
+        // Store snapshot for revert option BEFORE clearing it
+        game._diffRevertSettings = {
+          classic:  _settingsSnapshot.classic,
+          fortress: _settingsSnapshot.fortress,
+          preset:   oldPreset,
+        };
+        _settingsSnapshot=null;
+        _showDiffChangeOverlay(oldPreset, newPreset);
+        return;
+      }
     } else {
       // Pre-game cancel: restore settings to what they were when the menu opened
       Object.assign(SETTINGS, _settingsSnapshot.classic);
@@ -1136,6 +1588,31 @@ function closeSettings(){
   if(_activeSettingsScreen) document.getElementById(_activeSettingsScreen).style.display='none';
   _activeSettingsScreen=null;
   if(game.running) game.paused=false;
+}
+
+function _showDiffChangeOverlay(oldPreset, newPreset){
+  const sub = document.getElementById('diffChangeSub');
+  sub.innerHTML = `Difficulty changed from <span style="color:#aaa;font-family:'Orbitron',monospace;">${oldPreset.toUpperCase()}</span> to <span style="color:#aaa;font-family:'Orbitron',monospace;">${newPreset.toUpperCase()}</span>.<br>You must restart or revert to continue.`;
+  document.getElementById('diffChangeOverlay').style.display='flex';
+}
+
+function diffChangeRestart(){
+  document.getElementById('diffChangeOverlay').style.display='none';
+  // Update startPreset to the new one and restart
+  const mode = game.mode || 'classic';
+  launchMode(mode);
+}
+
+function diffChangeRevert(){
+  document.getElementById('diffChangeOverlay').style.display='none';
+  // Restore all settings back to what they were when the run started
+  const revert = game._diffRevertSettings;
+  if(revert){
+    if(revert.classic)  Object.assign(SETTINGS, revert.classic);
+    if(revert.fortress) Object.assign(FORTRESS_SETTINGS, revert.fortress);
+  }
+  // Re-open settings so the player can see the reverted state (still mid-game)
+  openGameSettings();
 }
 </script>
 
@@ -1154,7 +1631,7 @@ function initGame(mode) {
   const worldH = isRoam ? 3000 : H;
   game = {
     running: false, paused: false,
-    time: 0, kills: 0,
+    time: 0, kills: 0, killScore: 0,
     mode: gmode,
     worldW: worldW, worldH: worldH,
     camera: {x: 0, y: 0},
@@ -1219,10 +1696,10 @@ const WEAPONS = {
   pistol:   {name:'AUTOPISTOL',    icon:'<img src="All_Images/Images/pistol icon.png" class="weaponIcon">', rarity:'common',    cls:'light',   color:'#aaccff', cd:0.22, dmg:12, spd:520, r:4,  pierce:0, spread:0,    effect:null,                              mag:12, reload:1.4, maxRange:650, accuracy:2.5, desc:'Fast semi-auto. 12 round mag.'},
   shotgun:  {name:'SHOTGUN',       icon:'<img src="All_Images/Images/shotgun icon.png" class="weaponIcon">', rarity:'common',    cls:'medium', color:'#ff8844', cd:0.9,  dmg:9, spd:380, r:3,  pierce:0, spread:22,   effect:null,  pellets:7,                  mag:6,  reload:2.2, maxRange:420, accuracy:3.0, desc:'7 pellets, wide spread. 6 shells.'},
   sniper:   {name:'SNIPER RIFLE',  icon:'<img src="All_Images/Images/sniper icon 2.png" class="weaponIcon">', rarity:'rare',      cls:'medium', color:'#00ffcc', cd:1.1,  dmg:75, spd:900, r:4,  pierce:1, spread:0,    effect:null,                              mag:5,  reload:2.5, accuracy:0.4, desc:'Extreme damage, pierces. 5 rounds.'},
-  flamer:   {name:'FLAMETHROWER',  icon:'<img src="All_Images/Images/flamethrower icon 2.png" class="weaponIcon">', rarity:'legendary',      cls:'heavy',   color:'#ff5500', cd:0.07, dmg:0,  spd:240, r:6,  pierce:99,spread:0,    effect:null,                              mag:40, reload:2.0, maxRange:240, accuracy:4.0, desc:'40 bursts. Burns over time. Pierces all enemies.'},
-  railgun:  {name:'RAILGUN',       icon:'<img src="All_Images/Images/railgun icon.png" class="weaponIcon">', rarity:'epic',      cls:'medium', color:'#cc44ff', cd:2.2,  dmg:180,spd:1100,r:4,  pierce:99,spread:0,    effect:null,  chargeVfx:true,              mag:3,  reload:3.0, accuracy:0.0, desc:'3 shots. Full-screen pierce.'},
+  flamer:   {name:'FLAMETHROWER',  icon:'<img src="All_Images/Images/flamethrower icon 2.png" class="weaponIcon">', rarity:'legendary',      cls:'heavy',   color:'#ff5500', cd:0.07, dmg:0,  spd:240, r:6,  pierce:99,spread:0,    effect:null,                              mag:15, reload:2.0, maxRange:240, accuracy:4.0, desc:'40 bursts. Burns over time. Pierces all enemies.'},
+  railgun:  {name:'RAILGUN',       icon:'<img src="All_Images/Images/railgun icon.png" class="weaponIcon">', rarity:'epic',      cls:'heavy', color:'#cc44ff', cd:2.2,  dmg:180,spd:1100,r:4,  pierce:99,spread:0,    effect:null,  chargeVfx:true,              mag:3,  reload:3.0, accuracy:0.0, desc:'3 shots. Full-screen pierce.'},
   grenade:  {name:'GRENADE LAUNCHER',icon:'<img src="All_Images/Images/grenade launcher icon.png" class="weaponIcon">',rarity:'rare',     cls:'heavy',   color:'#ffcc00', cd:1.0,  dmg:55, spd:320, r:8,  pierce:0, spread:0,    effect:null,  explode:{r:90,dmg:30},        mag:4,  reload:2.5, maxRange:380, accuracy:3.5, desc:'4 grenades. Big explosion.'},
-  minigun:  {name:'MINIGUN',       icon:'<img src="All_Images/Images/Minigun icon.webp" class="weaponIcon">', rarity:'legendary', cls:'heavy',   color:'#ff4444', cd:0.06, dmg:9,  spd:560, r:3,  pierce:0, spread:0,    effect:null,  spinUp:true,                 mag:100,reload:3.5, accuracy:3.0, desc:'100 rounds. Spin up required.'},
+  minigun:  {name:'MINIGUN',       icon:'<img src="All_Images/Images/Minigun icon.webp" class="weaponIcon">', rarity:'legendary', cls:'light',   color:'#ff4444', cd:0.06, dmg:9,  spd:560, r:3,  pierce:0, spread:0,    effect:null,  spinUp:true,                 mag:100,reload:3.5, accuracy:3.0, desc:'100 rounds. Spin up required.'},
   burst:    {name:'BURST RIFLE',   icon:'<img src="All_Images/Images/bullpup icon.png" class="weaponIcon">', rarity:'rare',      cls:'medium', color:'#44aaff', cd:0.55, dmg:20, spd:600, r:4,  pierce:0, spread:0,    effect:null,  burstCount:3,burstDelay:0.08, mag:18, reload:1.6, accuracy:1.2, desc:'18 rounds, 3-burst. Precise.'},
 };
 
@@ -1236,14 +1713,14 @@ const FORTRESS_WEAPONS = {
   //                                                                                                                     mag  reload
   revolver: {name:'AUTO CANNON',   icon:'<img src="All_Images/Images/autocannon icon.PNG" class="weaponIcon icon-lg">', rarity:'common',    cls:'main',  color:'#aaccff', cd:0.35, dmg:60,  spd:600, r:5,  pierce:5, spread:0,    effect:null,                               mag:6,  reload:1.8, accuracy:1.5, desc:'6-shot auto cannon. High stopping power.'},
   rocket_emplace: {name:'ROCKET EMPLACEMENT', icon:'<img src="All_Images/Images/New Rocket Emplacement.png" class="weaponIcon icon-xs">', rarity:'rare', cls:'main', color:'#ff4422', cd:1.0, dmg:40, spd:80, r:6, pierce:0, spread:0, effect:null, rocket:true, explode:{r:70,dmg:80}, burstCount:4, burstDelay:0.12, mag:4, reload:3.5, accuracy:1.0, desc:'4 rockets fly to cursor & explode. Splash damage.'},
-  sec_pistol: {name:'AUTOPISTOL',       icon:'<img src="All_Images/Images/pistol icon.png" class="weaponIcon">', rarity:'common',    cls:'secondary', color:'#aaccff', cd:0.11, dmg:12,  spd:208, r:1.6, pierce:0, spread:0,    effect:null,                               mag:12, reload:1.4, maxRange:260, accuracy:2.5, aimDelay:0.12, desc:'Fast semi-auto. 12 round mag.'},
-  sec_shotgun:{name:'SHOTGUN',          icon:'<img src="All_Images/Images/shotgun icon.png" class="weaponIcon">', rarity:'common',    cls:'secondary', color:'#ff8844', cd:0.45,  dmg:9,  spd:152, r:1.2, pierce:0, spread:22,   effect:null,  pellets:7,                   mag:6,  reload:2.2, maxRange:168, accuracy:3.0, aimDelay:0.20, desc:'7 pellets, wide spread. 6 shells.'},
-  sec_sniper: {name:'SNIPER RIFLE',     icon:'<img src="All_Images/Images/sniper icon 2.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#00ffcc', cd:0.55,  dmg:75,  spd:360, r:1.6, pierce:1, spread:0,    effect:null,                               mag:5,  reload:2.5, accuracy:0.4, aimDelay:0.45, desc:'Extreme damage, pierces. 5 rounds.'},
-  sec_grenade:{name:'GRENADE LAUNCHER', icon:'<img src="All_Images/Images/grenade launcher icon.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#ffcc00', cd:0.5,  dmg:55,  spd:128, r:3.2, pierce:0, spread:0,    effect:null,  explode:{r:90,dmg:30},       mag:4,  reload:2.5, maxRange:152, accuracy:3.5, aimDelay:0.30, desc:'4 grenades. Big explosion.'},
-  sec_flamer: {name:'FLAMETHROWER',     icon:'<img src="All_Images/Images/flamethrower icon 2.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#ff5500', cd:0.035, dmg:0,   spd:96,  r:2.4, pierce:99,spread:0,    effect:null,                               mag:40, reload:2.0, maxRange:96, accuracy:2.0, aimDelay:0.00, desc:'40 bursts. Burns over time. Pierces all enemies.'},
-  sec_railgun:{name:'RAILGUN',         icon:'<img src="All_Images/Images/railgun icon.png" class="weaponIcon">', rarity:'epic',      cls:'secondary', color:'#cc44ff', cd:1.1,  dmg:180, spd:440,r:1.6, pierce:99,spread:0,    effect:null,  chargeVfx:true,               mag:3,  reload:3.0, accuracy:0.0, aimDelay:0.55, desc:'3 shots. Full-screen pierce.'},
-  sec_burst:  {name:'BURST RIFLE',     icon:'<img src="All_Images/Images/bullpup icon.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#44aaff', cd:0.275, dmg:20,  spd:240, r:1.6, pierce:0, spread:0,    effect:null,  burstCount:3,burstDelay:0.08, mag:18, reload:1.6, accuracy:1.2, aimDelay:0.18, desc:'18 rounds, 3-burst. Precise.'},
-  sec_minigun:{name:'MINIGUN',         icon:'<img src="All_Images/Images/Minigun icon.webp" class="weaponIcon">', rarity:'legendary', cls:'secondary', color:'#ff4444', cd:0.03, dmg:9,   spd:224, r:1.2, pierce:0, spread:0,    effect:null,  spinUp:true,                  mag:100,reload:3.5, accuracy:3.0, aimDelay:0.08, desc:'100 rounds. Spin up required.'},
+  sec_pistol: {name:'AUTOPISTOL',       icon:'<img src="All_Images/Images/pistol icon.png" class="weaponIcon">', rarity:'common',    cls:'secondary', color:'#aaccff', cd:0.11, dmg:12,  spd:208, r:1.6, pierce:0, spread:0,    effect:null,                               mag:12, reload:1.4, maxRange:260, accuracy:2.5, aimDelay:0.36, desc:'Fast semi-auto. 12 round mag.'},
+  sec_shotgun:{name:'SHOTGUN',          icon:'<img src="All_Images/Images/shotgun icon.png" class="weaponIcon">', rarity:'common',    cls:'secondary', color:'#ff8844', cd:0.45,  dmg:9,  spd:152, r:1.2, pierce:0, spread:22,   effect:null,  pellets:7,                   mag:6,  reload:2.2, maxRange:168, accuracy:3.0, aimDelay:0.6, desc:'7 pellets, wide spread. 6 shells.'},
+  sec_sniper: {name:'SNIPER RIFLE',     icon:'<img src="All_Images/Images/sniper icon 2.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#00ffcc', cd:0.55,  dmg:75,  spd:360, r:1.6, pierce:1, spread:0,    effect:null,                               mag:5,  reload:2.5, accuracy:0.4, aimDelay:1.35, desc:'Extreme damage, pierces. 5 rounds.'},
+  sec_grenade:{name:'GRENADE LAUNCHER', icon:'<img src="All_Images/Images/grenade launcher icon.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#ffcc00', cd:0.5,  dmg:55,  spd:128, r:3.2, pierce:0, spread:0,    effect:null,  explode:{r:90,dmg:30},       mag:4,  reload:2.5, maxRange:152, accuracy:3.5, aimDelay:0.9, desc:'4 grenades. Big explosion.'},
+  sec_flamer: {name:'FLAMETHROWER',     icon:'<img src="All_Images/Images/flamethrower icon 2.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#ff5500', cd:0.035, dmg:0,   spd:96,  r:2.4, pierce:99,spread:0,    effect:null,                               mag:40, reload:2.0, maxRange:96, accuracy:2.0, aimDelay:0.0, desc:'40 bursts. Burns over time. Pierces all enemies.'},
+  sec_railgun:{name:'RAILGUN',         icon:'<img src="All_Images/Images/railgun icon.png" class="weaponIcon">', rarity:'epic',      cls:'secondary', color:'#cc44ff', cd:1.1,  dmg:180, spd:440,r:1.6, pierce:99,spread:0,    effect:null,  chargeVfx:true,               mag:3,  reload:3.0, accuracy:0.0, aimDelay:1.65, desc:'3 shots. Full-screen pierce.'},
+  sec_burst:  {name:'BURST RIFLE',     icon:'<img src="All_Images/Images/bullpup icon.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#44aaff', cd:0.275, dmg:20,  spd:240, r:1.6, pierce:0, spread:0,    effect:null,  burstCount:3,burstDelay:0.08, mag:18, reload:1.6, accuracy:1.2, aimDelay:0.54, desc:'18 rounds, 3-burst. Precise.'},
+  sec_minigun:{name:'MINIGUN',         icon:'<img src="All_Images/Images/Minigun icon.webp" class="weaponIcon">', rarity:'legendary', cls:'secondary', color:'#ff4444', cd:0.03, dmg:9,   spd:224, r:1.2, pierce:0, spread:0,    effect:null,  spinUp:true,                  mag:100,reload:3.5, accuracy:3.0, aimDelay:0.24, desc:'100 rounds. Spin up required.'},
 };
 
 const FORTRESS_UPGRADES = [
@@ -1261,6 +1738,7 @@ const FORTRESS_UPGRADES = [
   {id:'dmg',  type:'stat', name:'Overdrive Core',  icon:'<img src="All_Images/Images/power core icon.jpg" class="weaponIcon icon-xs">', rarity:'rare',   desc:'+19% damage to all weapons'},
   {id:'atk',  type:'stat', name:'Fire Control',    icon:'⏱️', rarity:'common', desc:'+25% attack speed'},
   {id:'rspd', type:'stat', name:'Fast Reload',     icon:'<img src="All_Images/Images/quick reload icon.webp" class="weaponIcon">', rarity:'rare',   desc:'+40% reload speed'},
+  {id:'trot', type:'stat', name:'Servo Upgrade',    icon:'<img src="All_Images/Images/gears.png" class="weaponIcon">', rarity:'rare',   desc:'+30% turret rotation speed'},
 ];
 
 const UPGRADES = [
@@ -1502,7 +1980,7 @@ function spawnEnemy() {
     slime: {r:12,hp:30,maxHp:30,spd:60,dmg:10,xp:3,color:'#33ff66',score:1},
     runner: {r:9,hp:18,maxHp:18,spd:120,dmg:8,xp:2,color:'#ff9933',score:1},
     tank: {r:20,hp:120,maxHp:120,spd:35,dmg:20,xp:8,color:'#ff3366',score:3},
-    speeder: {r:8,hp:12,maxHp:12,spd:180,dmg:6,xp:2,color:'#ffff00',score:1},
+    speeder: {r:8,hp:12,maxHp:12,spd:180,dmg:6,xp:2,color:'#ffff00',score:2},
   };
   const cfg = configs[type];
   const ecfg = game.mode==='fortress'
@@ -1973,7 +2451,13 @@ function secAccumAndSwitch(w, p, target, numBullets){
   }
   pm.set(target, info);
 
-  if(info.dmg >= info.initHp * (1 + (FORTRESS_SETTINGS.overkillMult || 0) + (game.secEmergencyMode ? 0.2 : 0))){
+  // Quantise overkill to whole shot boundaries so the slider means "extra bullets",
+  // not a raw HP multiple.  shotDmg = damage per trigger pull (accounts for pellets).
+  const shotDmg   = (w.dmg || 1) * (w.pellets || 1);
+  const killShots  = Math.ceil(info.initHp / shotDmg);
+  const extraShots = Math.ceil((FORTRESS_SETTINGS.overkillMult || 0) * info.initHp / shotDmg);
+  const overkillThreshold = (killShots + extraShots) * shotDmg;
+  if(info.dmg >= overkillThreshold){
     info.committed = true;
     info.time      = game.time;
     // Switch lock to next nearest non-committed enemy
@@ -2098,7 +2582,7 @@ function startReload(w){
   if(w.reloading || w.currentMag >= w.mag) return;
   if(!s.infiniteAmmo && (game.ammo[w.cls||'light']||0) <= 0) return;
   w.reloading = true;
-  w.reloadDuration = (w.reload || 1.5) / (s.reloadSpeedMult * (game.player.reloadMult||1));
+  w.reloadDuration = (w.reload || 1.5) / (s.reloadSpeedMult * (game.player.reloadMult||1) * (game.secEmergencyMode ? 1.5 : 1.0));
   w.reloadTimer = w.reloadDuration;
 }
 
@@ -2276,7 +2760,7 @@ function updateWeapons(dt){
     // Secondary EMERGENCY mode: fire continuously whenever any enemy is within 100px range.
     // Computed BEFORE aim tracking so the aimReady check can reference it.
     let secCloseRangeFire = false;
-    if(isFortress && isSec && FORTRESS_SETTINGS.autoSecondary){
+    if(isFortress && isSec && FORTRESS_SETTINGS.autoSecondary && FORTRESS_SETTINGS.emergencyMode){
       const secRange2 = 100 * 100;
       for(const e of game.enemies){
         const dx=e.x-p.x, dy=e.y-p.y;
@@ -2318,7 +2802,15 @@ function updateWeapons(dt){
             w._secAimTarget   = aimTarget;
             w._secAimReady    = false;   // block first shot
             w._secAimSettled  = false;   // barrel not yet on new target
-            w._secAimDelay    = aimTarget ? (w.aimDelay || 0) : 0;
+            if(aimTarget){
+              const bulletSpd = w.spd || 400;
+              const effRange = w.maxRange || Math.min(2.5, (W*1.2)/bulletSpd) * bulletSpd;
+              const tdx = aimTarget.x - p.x, tdy = aimTarget.y - p.y;
+              const distFrac = Math.max(0.15, Math.sqrt(tdx*tdx+tdy*tdy) / effRange);
+              w._secAimDelay = (w.aimDelay || 0) * distFrac;
+            } else {
+              w._secAimDelay = 0;
+            }
           }
         } else {
           w._secAimTarget  = aimTarget;
@@ -2331,7 +2823,7 @@ function updateWeapons(dt){
           const pred = (!isFlamerSec && autoSecPred) ? autoSecPred : aimTarget;
           const targetAngle = Math.atan2(pred.y - p.y, pred.x - p.x);
           // Flamer rotates faster (it's a spray weapon)
-          const rotSpeed = isFlamerSec ? 6.0 : 3.2;
+          const rotSpeed = (isFlamerSec ? 6.0 : 3.2) * (game.player.turretRotMult || 1);
           let cur = game.secAimAngle !== undefined ? game.secAimAngle : targetAngle;
           let diff = targetAngle - cur;
           while(diff > Math.PI)  diff -= Math.PI*2;
@@ -2547,6 +3039,7 @@ function nearestEnemy(){
 
 function killEnemy(e, idx){
   game.kills++;
+  game.killScore += (e.score || 1);
   game.enemies.splice(idx,1);
   const now=performance.now(); if(!game._lastDeathSfx||now-game._lastDeathSfx>80){game._lastDeathSfx=now;sfxEnemyDeath();}
   spawnParticles(e.x,e.y,e.color,10);
@@ -2557,11 +3050,11 @@ function killEnemy(e, idx){
   // Drop ammo — each type rolls independently; weight 0-10 maps to 0-100% chance
   const isFort = game.mode==='fortress';
   const ammoTypes = isFort
-    ? [{type:'main',      weight:FORTRESS_SETTINGS.mainDropWeight||0, amt:10, col:'#ff9900'},
-       {type:'secondary', weight:FORTRESS_SETTINGS.secDropWeight||0,  amt:6,  col:'#cc44ff'}]
-    : [{type:'light',  weight:SETTINGS.lightDropWeight||0,  amt:10, col:'#aaddff'},
-       {type:'medium', weight:SETTINGS.mediumDropWeight||0, amt:6,  col:'#ffcc44'},
-       {type:'heavy',  weight:SETTINGS.heavyDropWeight||0,  amt:4,  col:'#ff5533'}];
+    ? [{type:'main',      weight:FORTRESS_SETTINGS.mainDropWeight||0, amt:8,  col:'#ff9900'},
+       {type:'secondary', weight:FORTRESS_SETTINGS.secDropWeight||0,  amt:20, col:'#cc44ff'}]
+    : [{type:'light',  weight:SETTINGS.lightDropWeight||0,  amt:20, col:'#aaddff'},
+       {type:'medium', weight:SETTINGS.mediumDropWeight||0, amt:12, col:'#ffcc44'},
+       {type:'heavy',  weight:SETTINGS.heavyDropWeight||0,  amt:8,  col:'#ff5533'}];
   // Scale ammo by enemy size: tiny(r≤9)=×0.5, small(r≤12)=×1, large(r≤20)=×1.5, huge(r>20)=×2
   const sizeMult = e.r <= 9 ? 0.5 : e.r <= 12 ? 1 : e.r <= 20 ? 1.5 : 2;
   let dropOffsetX = 10;
@@ -2606,12 +3099,27 @@ function checkLevelUp(){
 
 const RARITY_WEIGHTS = {common:55, rare:25, epic:14, legendary:4};
 function weightedPickUpgrades(count){
-  const upgradePool = game.mode === 'fortress' ? FORTRESS_UPGRADES : UPGRADES;
+  const isFort = game.mode === 'fortress';
+  const upgradePool = isFort ? FORTRESS_UPGRADES : UPGRADES;
+  const s = activeSettings();
+
+  // Filter out upgrades that are irrelevant given current settings
+  const slotEnabled = isFort
+    ? {main: s.mainEnabled !== false, secondary: s.secEnabled !== false}
+    : {light: s.lightEnabled !== false, medium: s.mediumEnabled !== false, heavy: s.heavyEnabled !== false};
+  const isValidUpgrade = (u) => {
+    if(u.id === 'rspd' && !s.reload) return false;
+    if(u.type === 'weapon'){
+      const def = (isFort ? FORTRESS_WEAPONS[u.id] : null) || WEAPONS[u.id];
+      if(def && slotEnabled[def.cls] === false) return false;
+    }
+    return true;
+  };
 
   // Fortress: always 1 weapon pick + 1 stat pick
-  if(game.mode === 'fortress'){
-    const weaponPool = upgradePool.filter(u=>u.type==='weapon');
-    const statPool   = upgradePool.filter(u=>u.type!=='weapon');
+  if(isFort){
+    const weaponPool = upgradePool.filter(u=>u.type==='weapon' && isValidUpgrade(u));
+    const statPool   = upgradePool.filter(u=>u.type!=='weapon' && isValidUpgrade(u));
     const pickFrom = (pool) => {
       const weighted = pool.map(u=>({u, w:RARITY_WEIGHTS[u.rarity]||5}));
       const total = weighted.reduce((s,p)=>s+p.w, 0);
@@ -2626,25 +3134,44 @@ function weightedPickUpgrades(count){
     const mainPool = weaponPool.filter(u=>{ const def=FORTRESS_WEAPONS[u.id]; return def && def.cls==='main'; });
     const chosenWeaponPool = (Math.random() < 0.75 && secPool.length) ? secPool : (mainPool.length ? mainPool : weaponPool);
     const w = pickFrom(chosenWeaponPool); if(w) picks.push(w);
-    const s = pickFrom(statPool);   if(s) picks.push(s);
+    const st = pickFrom(statPool); if(st) picks.push(st);
     return picks;
   }
 
-  // Classic: weighted random
-  const pool = upgradePool.map(u=>({u, w:RARITY_WEIGHTS[u.rarity]||5}));
-  const picks=[], used=new Set();
-  let attempts=0;
-  while(picks.length<count && attempts<200){
-    attempts++;
-    const total=pool.reduce((s,p)=>s+(used.has(p.u.id)?0:p.w),0);
-    if(total<=0) break;
-    let r=Math.random()*total;
-    for(const p of pool){
-      if(used.has(p.u.id)) continue;
-      r-=p.w;
-      if(r<=0){ picks.push(p.u); used.add(p.u.id); break; }
-    }
-  }
+  // Classic/Roam: left=weapon, right=non-weapon, middle=50/50
+  const validAll    = upgradePool.filter(isValidUpgrade);
+  const weaponPool  = validAll.filter(u => u.type === 'weapon');
+  const statPool    = validAll.filter(u => u.type !== 'weapon');
+
+  const pickFrom = (pool, exclude) => {
+    const weighted = pool
+      .filter(u => !exclude.has(u.id))
+      .map(u => ({u, w: RARITY_WEIGHTS[u.rarity] || 5}));
+    const total = weighted.reduce((s, p) => s + p.w, 0);
+    if(total <= 0) return null;
+    let r = Math.random() * total;
+    for(const p of weighted){ r -= p.w; if(r <= 0) return p.u; }
+    return weighted[weighted.length - 1].u;
+  };
+
+  const used = new Set();
+  const picks = [];
+
+  // Slot 0: always a weapon
+  const left = pickFrom(weaponPool, used) || pickFrom(statPool, used);
+  if(left){ picks.push(left); used.add(left.id); }
+
+  // Slot 1: 50/50 weapon or non-weapon
+  const middleIsWeapon = Math.random() < 0.5;
+  const middlePreferred = middleIsWeapon ? weaponPool : statPool;
+  const middleFallback  = middleIsWeapon ? statPool   : weaponPool;
+  const mid = pickFrom(middlePreferred, used) || pickFrom(middleFallback, used);
+  if(mid){ picks.push(mid); used.add(mid.id); }
+
+  // Slot 2: always a non-weapon
+  const right = pickFrom(statPool, used) || pickFrom(weaponPool, used);
+  if(right){ picks.push(right); used.add(right.id); }
+
   return picks;
 }
 
@@ -2688,6 +3215,7 @@ function applyUpgrade(u){
   else if(u.id==='dmg') p.dmgMult=(p.dmgMult||1)*1.1875;
   else if(u.id==='atk')  p.atkMult=(p.atkMult||1)*0.8;
   else if(u.id==='rspd') p.reloadMult=(p.reloadMult||1)*1.3;
+  else if(u.id==='trot') p.turretRotMult=(p.turretRotMult||1)*1.3;
   document.getElementById('levelUpScreen').style.display='none';
   game.paused=false;
   checkLevelUp();
@@ -3838,8 +4366,10 @@ function loop(ts){
   lastTime=ts;
   const dt=rawDt*timeScale;
   lastDt=dt;
-  update(dt);
-  draw();
+  if(game.running){
+    update(dt);
+    draw();
+  }
   requestAnimationFrame(loop);
 }
 
@@ -3856,6 +4386,9 @@ function showModeScreen(){
   document.getElementById('fortressSettingsScreen').style.display='none';
   _activeSettingsScreen=null;
   document.getElementById('modeScreen').style.display='flex';
+  // Reset difficulty to medium every time mode screen is shown
+  applyPreset('medium','classic');
+  applyPreset('medium','fortress');
   updateSettingsBtnVisibility();
 }
 
@@ -3870,7 +4403,16 @@ function showStartScreen(){
   document.getElementById('classicSettingsScreen').style.display='none';
   document.getElementById('fortressSettingsScreen').style.display='none';
   _activeSettingsScreen=null;
-  document.getElementById('startScreen').style.display='flex';
+  // Reset difficulty to medium every time main menu is shown
+  applyPreset('medium','classic');
+  applyPreset('medium','fortress');
+  if(_currentUser){
+    document.getElementById('startScreen').style.display='flex';
+    document.getElementById('loginScreen').style.display='none';
+  } else {
+    document.getElementById('startScreen').style.display='none';
+    document.getElementById('loginScreen').style.display='flex';
+  }
   updateSettingsBtnVisibility();
 }
 
@@ -3888,6 +4430,8 @@ function startGame(mode){
   document.getElementById('fortressSettingsScreen').style.display='none';
   _activeSettingsScreen=null;
   initGame(mode || 'classic');
+  // Record difficulty at game start for mid-game change detection
+  game.startPreset = activeSettings().preset || 'medium';
   game.running=true;
   game.paused=false;
   updateSettingsBtnVisibility();
@@ -3900,11 +4444,14 @@ function gameOver(){
   document.getElementById('levelUpScreen').style.display='none';
   document.getElementById('classicSettingsScreen').style.display='none';
   document.getElementById('fortressSettingsScreen').style.display='none';
+  document.getElementById('diffChangeOverlay').style.display='none';
   _activeSettingsScreen=null;
   const m=Math.floor(game.time/60),s=Math.floor(game.time%60);
+  const diff = game.startPreset || activeSettings().preset || 'custom';
   // Save high score
-  saveHighScore(game.mode||'classic', game.time, game.kills, game.player?game.player.level:1);
+  saveHighScore(game.mode||'classic', game.time, game.kills, game.player?game.player.level:1, diff, game.killScore||game.kills);
   document.getElementById('goStats').innerHTML=`
+    <div>Difficulty: <span>${diff.toUpperCase()}</span></div>
     <div>Time Survived: <span>${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}</span></div>
     <div>Enemies Killed: <span>${game.kills}</span></div>
     <div>Level Reached: <span>${game.player.level}</span></div>
@@ -3914,6 +4461,11 @@ function gameOver(){
 }
 
 document.addEventListener('keydown',e=>{
+  // Don't intercept keystrokes when the user is typing in an input field or has a button focused
+  const tag = document.activeElement && document.activeElement.tagName;
+  const type = document.activeElement && document.activeElement.type;
+  if(tag==='INPUT' || tag==='TEXTAREA' || tag==='SELECT' || tag==='BUTTON') return;
+
   if(e.key==='Escape'){
     e.preventDefault();
     if(_activeSettingsScreen){ closeSettings(); return; }
@@ -3999,93 +4551,338 @@ window.addEventListener('resize', ()=>{
   if(_fullscreenMode) applyFullscreenSize();
 });
 
-// ── LEADERBOARD ────────────────────────────────────────────────────
-function _lbKey(mode){ return 'survivorHighScore_' + mode; }
+// ── AUTH ────────────────────────────────────────────────────────────
+let _currentUser = null; // {gamertag, display}
 
-function saveHighScore(mode, time, kills, level){
-  try{
-    const key = _lbKey(mode);
-    let best = {};
-    try{ const raw = localStorage.getItem(key); if(raw) best = JSON.parse(raw); }catch(e){}
-    let updated = false;
-    if(!best.time  || time  > best.time)  { best.time  = time;  updated = true; }
-    if(!best.kills || kills > best.kills) { best.kills = kills; updated = true; }
-    if(!best.level || level > best.level) { best.level = level; updated = true; }
-    localStorage.setItem(key, JSON.stringify(best));
-  }catch(e){}
+function _getAccounts(){
+  try{ const r=localStorage.getItem('survivorAccounts'); return r?JSON.parse(r):{}; }catch(e){ return {}; }
+}
+function _saveAccounts(a){ try{ localStorage.setItem('survivorAccounts',JSON.stringify(a)); }catch(e){} }
+
+function _getLbEntries(){
+  try{ const r=localStorage.getItem('survivorLeaderboard'); return r?JSON.parse(r):[]; }catch(e){ return []; }
+}
+function _saveLbEntries(arr){ try{ localStorage.setItem('survivorLeaderboard',JSON.stringify(arr)); }catch(e){} }
+
+function doLogin(){
+  const raw = document.getElementById('loginGtag').value.trim();
+  const gtag = raw.toUpperCase().replace(/[^A-Z0-9_\-]/g,'');
+  const pin  = ['pin0','pin1','pin2','pin3'].map(id=>document.getElementById(id).value).join('');
+  const msg  = document.getElementById('loginMsg');
+
+  if(!gtag || gtag.length < 2){
+    msg.className='err'; msg.textContent='Gamertag must be 2–16 characters.'; return;
+  }
+  if(pin.length !== 4 || !/^\d{4}$/.test(pin)){
+    msg.className='err'; msg.textContent='Enter all 4 PIN digits.'; return;
+  }
+
+  const accounts = _getAccounts();
+  const key = gtag.toLowerCase();
+
+  if(accounts[key]){
+    if(accounts[key].pin !== pin){
+      msg.className='err'; msg.textContent='Wrong PIN. Try again.'; return;
+    }
+    msg.className='ok'; msg.textContent='Welcome back, '+accounts[key].display+'!';
+  } else {
+    accounts[key] = { pin, display: gtag };
+    _saveAccounts(accounts);
+    msg.className='ok'; msg.textContent='Account created! Welcome, '+gtag+'!';
+  }
+
+  _currentUser = { key, display: gtag };
+  try{ localStorage.setItem('survivorSession', JSON.stringify(_currentUser)); }catch(e){}
+
+  setTimeout(()=>{
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('startScreen').style.display='flex';
+    document.getElementById('loginUserDisplay').textContent = gtag;
+  }, 600);
 }
 
-function getHighScore(mode){
+function doLogout(){
+  _currentUser = null;
+  try{ localStorage.removeItem('survivorSession'); }catch(e){}
+  ['pin0','pin1','pin2','pin3'].forEach(id=>{ document.getElementById(id).value=''; });
+  document.getElementById('loginGtag').value='';
+  const msg = document.getElementById('loginMsg');
+  msg.className=''; msg.textContent='';
+  document.getElementById('startScreen').style.display='none';
+  document.getElementById('loginScreen').style.display='flex';
+  // Return focus to the gamertag field so the user can type immediately
+  setTimeout(()=>{ document.getElementById('loginGtag').focus(); }, 50);
+}
+
+// PIN input auto-advance
+(function(){
+  const pins = ['pin0','pin1','pin2','pin3'];
+  pins.forEach((id,i)=>{
+    const el = document.getElementById(id);
+
+    el.addEventListener('keydown', function(e){
+      // Backspace: clear current or go back
+      if(e.key === 'Backspace'){
+        e.preventDefault();
+        if(this.value !== ''){
+          this.value = '';
+        } else if(i > 0){
+          const prev = document.getElementById(pins[i-1]);
+          prev.value = '';
+          prev.focus();
+        }
+        return;
+      }
+      if(e.key === 'Enter'){ doLogin(); return; }
+      // Only allow digits
+      if(!/^[0-9]$/.test(e.key)){ e.preventDefault(); return; }
+      e.preventDefault();
+      this.value = e.key;
+      if(i < 3){
+        document.getElementById(pins[i+1]).focus();
+      }
+      // last digit filled — move focus to button so Enter works naturally
+      if(i === 3){
+        document.getElementById('loginBtn').focus();
+      }
+    });
+
+    // Block paste of non-digits, handle paste fill
+    el.addEventListener('paste', function(e){
+      e.preventDefault();
+      const text = (e.clipboardData||window.clipboardData).getData('text').replace(/[^0-9]/g,'');
+      for(let j=0; j<text.length && (i+j)<4; j++){
+        document.getElementById(pins[i+j]).value = text[j];
+      }
+      const next = Math.min(i+text.length, 3);
+      document.getElementById(pins[next]).focus();
+    });
+  });
+
+  document.getElementById('loginGtag').addEventListener('keydown', function(e){
+    if(e.key==='Enter'){
+      const pins = ['pin0','pin1','pin2','pin3'];
+      const allFilled = pins.every(id => document.getElementById(id).value !== '');
+      if(allFilled) doLogin(); else document.getElementById('pin0').focus();
+    }
+  });
+
+  // Restore session
   try{
-    const raw = localStorage.getItem(_lbKey(mode));
-    return raw ? JSON.parse(raw) : null;
-  }catch(e){ return null; }
+    const sess = localStorage.getItem('survivorSession');
+    if(sess){
+      const s = JSON.parse(sess);
+      const accounts = _getAccounts();
+      if(accounts[s.key]){
+        _currentUser = s;
+        document.getElementById('loginScreen').style.display='none';
+        document.getElementById('startScreen').style.display='flex';
+        document.getElementById('loginUserDisplay').textContent = s.display;
+      }
+    }
+  }catch(e){}
+})();
+
+// ── LEADERBOARD ────────────────────────────────────────────────────
+let _lbFilter = 'all';
+let _lbSortField = 'score';
+let _lbSortDir = 'desc';
+let _lbPage = 1;
+const LB_PAGE_SIZE = 100;
+
+function setLbSortField(field, btn){
+  _lbSortField = field;
+  _lbPage = 1;
+  document.querySelectorAll('.lbSortFieldBtn').forEach(b => b.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderLeaderboard();
+}
+
+function setLbDir(dir){
+  _lbSortDir = dir;
+  _lbPage = 1;
+  document.getElementById('lbDirDesc').classList.toggle('active', dir === 'desc');
+  document.getElementById('lbDirAsc').classList.toggle('active',  dir === 'asc');
+  renderLeaderboard();
+}
+
+function calcScore(time, killScore, level){
+  return Math.round((killScore * 10) + (level * 50) + (time * 2));
+}
+
+function saveHighScore(mode, time, kills, level, difficulty, killScore){
+  if(!_currentUser) return;
+  // Don't save to leaderboard if developer settings were on
+  if(document.getElementById('devSettingsToggle').checked) return;
+  const score = calcScore(time, killScore != null ? killScore : kills, level);
+  const entries = _getLbEntries();
+  const key = _currentUser.key;
+  const display = _currentUser.display;
+  const newEntry = { key, display, mode, difficulty: difficulty || 'custom', time, kills, level, score };
+
+  // Collect this user's entries for this mode, append new one, keep top 10 by score
+  const others = entries.filter(e => !(e.key === key && e.mode === mode));
+  const mine   = entries.filter(e =>   e.key === key && e.mode === mode);
+  mine.push(newEntry);
+  mine.sort((a, b) => b.score - a.score);
+  const kept = mine.slice(0, 10);
+
+  _saveLbEntries([...others, ...kept]);
+}
+
+function setLbFilter(mode, btn){
+  _lbFilter = mode;
+  _lbPage = 1;
+  document.querySelectorAll('.lbFilterBtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderLeaderboard();
 }
 
 function fmtTime(t){
-  if(t == null) return null;
+  if(t == null) return '—';
   const m=Math.floor(t/60), s=Math.floor(t%60);
   return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
 }
 
 function renderLeaderboard(){
-  const modes = [
-    {id:'classic',  label:'CLASSIC',  icon:'💀'},
-    {id:'fortress', label:'FORTRESS', icon:'🏰'},
-    {id:'roam',     label:'ROAM',     icon:'🌍'},
-  ];
+  document.getElementById('lbUserTag').textContent = _currentUser ? _currentUser.display : '—';
+  const allEntries = _getLbEntries();
+  const filtered = _lbFilter === 'all' ? allEntries : allEntries.filter(e => e.mode === _lbFilter);
+
+  const f = _lbSortField, d = _lbSortDir;
+  const DIFF_ORDER = {custom:0, overpowered:1, easy:2, medium:3, hard:4, hardcore:5};
+  const sorted = [...filtered].sort((a, b) => {
+    let av, bv;
+    if(f === 'difficulty'){
+      av = DIFF_ORDER[a.difficulty] ?? 99;
+      bv = DIFF_ORDER[b.difficulty] ?? 99;
+    } else {
+      av = a[f] ?? 0;
+      bv = b[f] ?? 0;
+    }
+    return d === 'desc' ? bv - av : av - bv;
+  });
+
   const body = document.getElementById('lbBody');
   body.innerHTML = '';
-  let anyData = false;
-  modes.forEach(m => {
-    const hs = getHighScore(m.id);
-    const sec = document.createElement('div');
-    sec.className = 'lbModeSection';
-    const hdr = document.createElement('div');
-    hdr.className = `lbModeLabel ${m.id}`;
-    hdr.textContent = m.label;
-    sec.appendChild(hdr);
-    if(!hs){
-      const nd = document.createElement('div');
-      nd.className = 'lbNoData';
-      nd.textContent = 'No runs yet';
-      sec.appendChild(nd);
-    } else {
-      anyData = true;
-      const rows = [
-        {label:'Best Time Survived', val: fmtTime(hs.time)  || '—'},
-        {label:'Most Kills',         val: hs.kills != null ? hs.kills : '—'},
-        {label:'Highest Level',      val: hs.level != null ? hs.level : '—'},
-      ];
-      rows.forEach((r, i) => {
-        const row = document.createElement('div');
-        row.className = 'lbRow' + (i === rows.length-1 ? ' lbRowLast' : '');
-        const lbl = document.createElement('span'); lbl.className='lbStat'; lbl.textContent=r.label;
-        const val = document.createElement('span'); val.className='lbVal'; val.textContent=r.val;
-        row.appendChild(lbl); row.appendChild(val);
-        sec.appendChild(row);
-      });
-    }
-    body.appendChild(sec);
+
+  if(sorted.length === 0){
+    const empty = document.createElement('div');
+    empty.id = 'lbEmpty';
+    empty.textContent = _lbFilter === 'all' ? 'No scores yet — play a game!' : 'No '+_lbFilter.toUpperCase()+' scores yet.';
+    body.appendChild(empty);
+    document.getElementById('lbClearBtn').style.visibility='hidden';
+    return;
+  }
+
+  const page = sorted.slice(0, _lbPage * LB_PAGE_SIZE);
+
+  const table = document.createElement('table');
+  table.id = 'lbTable';
+  table.innerHTML = `<thead><tr>
+    <th>#</th>
+    <th>GAMERTAG</th>
+    <th>MODE</th>
+    <th class="right">TIME</th>
+    <th class="right">KILLS</th>
+    <th class="right">LVL</th>
+    <th class="right">SCORE</th>
+    <th>DIFF</th>
+  </tr></thead><tbody></tbody>`;
+  const tbody = table.querySelector('tbody');
+
+  page.forEach((e, i) => {
+    const rank = i + 1;
+    const isMe = _currentUser && e.key === _currentUser.key;
+    const tr = document.createElement('tr');
+    if(isMe) tr.className = 'myRow';
+
+    let rankClass = 'lbRank';
+    if(rank===1) rankClass += ' gold';
+    else if(rank===2) rankClass += ' silver';
+    else if(rank===3) rankClass += ' bronze';
+
+    const rankEmoji = rank===1 ? '🥇' : rank===2 ? '🥈' : rank===3 ? '🥉' : rank;
+    const diff = e.difficulty || 'custom';
+
+    tr.innerHTML = `
+      <td class="${rankClass}">${rankEmoji}</td>
+      <td class="lbGtag${isMe?' me':''}">${e.display}${isMe?' ◀':''}</td>
+      <td><span class="lbModeBadge ${e.mode}">${e.mode.toUpperCase()}</span></td>
+      <td class="lbNumVal">${fmtTime(e.time)}</td>
+      <td class="lbNumVal">${e.kills}</td>
+      <td class="lbNumVal">${e.level}</td>
+      <td class="lbScoreVal">${e.score.toLocaleString()}</td>
+      <td><span class="lbDiffBadge ${diff}">${diff.toUpperCase()}</span></td>`;
+    tbody.appendChild(tr);
   });
-  document.getElementById('lbClearBtn').style.visibility = anyData ? 'visible' : 'hidden';
+
+  body.appendChild(table);
+
+  // Load More button if there are more entries
+  if(sorted.length > _lbPage * LB_PAGE_SIZE){
+    const moreWrap = document.createElement('div');
+    moreWrap.id = 'lbMoreWrap';
+    const moreBtn = document.createElement('button');
+    moreBtn.id = 'lbMoreBtn';
+    moreBtn.textContent = 'LOAD MORE';
+    moreBtn.onclick = () => { _lbPage++; renderLeaderboard(); };
+    moreWrap.appendChild(moreBtn);
+    body.appendChild(moreWrap);
+  }
+
+  const myScores = allEntries.filter(e => _currentUser && e.key === _currentUser.key);
+  document.getElementById('lbClearBtn').style.visibility = myScores.length > 0 ? 'visible' : 'hidden';
 }
 
 function showLeaderboard(){
+  _lbFilter = 'all';
+  _lbSortField = 'score';
+  _lbSortDir = 'desc';
+  _lbPage = 1;
+  clearTimeout(_clearConfirmTimer);
+  const btn = document.getElementById('lbClearBtn');
+  btn.classList.remove('confirming');
+  btn.textContent = 'CLEAR MY SCORES';
+  document.querySelectorAll('.lbFilterBtn').forEach(b=>b.classList.remove('active'));
+  const allBtn = document.querySelector('.lbFilterBtn[data-mode="all"]');
+  if(allBtn) allBtn.classList.add('active');
+  document.querySelectorAll('.lbSortFieldBtn').forEach(b=>b.classList.remove('active'));
+  const scoreBtn = document.querySelector('.lbSortFieldBtn[data-field="score"]');
+  if(scoreBtn) scoreBtn.classList.add('active');
+  document.getElementById('lbDirDesc').classList.add('active');
+  document.getElementById('lbDirAsc').classList.remove('active');
   renderLeaderboard();
   document.getElementById('startScreen').style.display='none';
   document.getElementById('leaderboardScreen').style.display='flex';
 }
 
 function hideLeaderboard(){
+  _lbSortField = 'score';
+  _lbSortDir = 'desc';
   document.getElementById('leaderboardScreen').style.display='none';
   document.getElementById('startScreen').style.display='flex';
 }
 
+let _clearConfirmTimer = null;
 function clearLeaderboard(){
-  try{
-    ['classic','fortress','roam'].forEach(m => localStorage.removeItem(_lbKey(m)));
-  }catch(e){}
+  if(!_currentUser) return;
+  const btn = document.getElementById('lbClearBtn');
+  if(!btn.classList.contains('confirming')){
+    btn.classList.add('confirming');
+    btn.textContent = 'CONFIRM CLEAR?';
+    clearTimeout(_clearConfirmTimer);
+    _clearConfirmTimer = setTimeout(()=>{
+      btn.classList.remove('confirming');
+      btn.textContent = 'CLEAR MY SCORES';
+    }, 3000);
+    return;
+  }
+  clearTimeout(_clearConfirmTimer);
+  btn.classList.remove('confirming');
+  btn.textContent = 'CLEAR MY SCORES';
+  const entries = _getLbEntries().filter(e => e.key !== _currentUser.key);
+  _saveLbEntries(entries);
   renderLeaderboard();
 }
 // ── END LEADERBOARD ────────────────────────────────────────────────
@@ -4098,11 +4895,62 @@ function hideMainSettings(){
   document.getElementById('mainSettingsScreen').style.display='none';
   document.getElementById('startScreen').style.display='flex';
 }
+
+function toggleDevSettings(){
+  const cb = document.getElementById('devSettingsToggle');
+  const turningOn = !cb.checked; // if currently off, user is trying to turn it on
+  if(turningOn){
+    // Show warning overlay before enabling
+    document.getElementById('devWarnOverlay').style.display='flex';
+    return; // don't toggle yet — wait for confirm
+  }
+  // Turning OFF: no warning needed, do it immediately
+  cb.checked = false;
+  _applyDevSettingsOff();
+}
+
+function confirmDevMode(){
+  document.getElementById('devWarnOverlay').style.display='none';
+  const cb = document.getElementById('devSettingsToggle');
+  cb.checked = true;
+  try{ localStorage.setItem('survivorDevSettings', '1'); }catch(e){}
+  // Turning dev settings ON: only show rows if currently in custom mode
+  if(SETTINGS.preset === 'custom')         document.getElementById('classicAllWeaponsRow').style.display = '';
+  if(FORTRESS_SETTINGS.preset === 'custom') document.getElementById('fortressAllWeaponsRow').style.display = '';
+}
+
+function cancelDevMode(){
+  document.getElementById('devWarnOverlay').style.display='none';
+  // Leave the toggle off — do nothing
+}
+
+function _applyDevSettingsOff(){
+  try{ localStorage.setItem('survivorDevSettings', '0'); }catch(e){}
+  SETTINGS.allWeaponsUnlocked = false;
+  FORTRESS_SETTINGS.allWeaponsUnlocked = false;
+  document.getElementById('setAllWeapons').checked = false;
+  document.getElementById('fSetAllWeapons').checked = false;
+  document.getElementById('classicAllWeaponsRow').style.display = 'none';
+  document.getElementById('fortressAllWeaponsRow').style.display = 'none';
+  try{ localStorage.setItem('survivorClassicSettings',  JSON.stringify(SETTINGS)); }catch(e){}
+  try{ localStorage.setItem('survivorFortressSettings', JSON.stringify(FORTRESS_SETTINGS)); }catch(e){}
+  syncClassicPreset();
+  syncFortressPreset();
+}
+
+// Developer settings always default to OFF on load
+(function(){
+  try{ localStorage.removeItem('survivorDevSettings'); }catch(e){}
+  document.getElementById('devSettingsToggle').checked = false;
+  document.getElementById('classicAllWeaponsRow').style.display = 'none';
+  document.getElementById('fortressAllWeaponsRow').style.display = 'none';
+})();
 // Restore saved scale on load
 (function(){
   try{
     const fs = localStorage.getItem('survivorFullscreen');
-    if(fs === '1'){
+    // Default to fullscreen ON if no saved preference (fs === null)
+    if(fs === '1' || fs === null){
       _fullscreenMode = true;
       document.getElementById('fullscreenToggle').checked = true;
       document.getElementById('windowSizeRow').style.opacity = '0.3';
