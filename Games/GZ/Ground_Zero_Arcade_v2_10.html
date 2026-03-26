@@ -117,9 +117,15 @@
   .saveSettingsBtn:hover{border-color:#44ff88;color:#44ff88;}
   .saveSettingsBtn.saved{border-color:#44ff88;color:#44ff88;}
   .saveSettingsBtn.disabled{opacity:0.35;pointer-events:none;cursor:default;border-color:#334;color:#446;}
-  .customSlotSelect{background:#0d0d1a;border:1px solid #aa44ff66;color:#aa44ff;font-family:'Orbitron',monospace;font-size:8px;letter-spacing:1px;padding:5px 8px;cursor:pointer;border-radius:2px;outline:none;transition:border-color 0.15s,box-shadow 0.15s;display:none;margin-left:2px;-webkit-appearance:none;appearance:none;color-scheme:dark;}
-  .customSlotSelect option{background:#0d0d1a;color:#aa44ff;}
-  .customSlotSelect:hover,.customSlotSelect:focus{border-color:#aa44ff;box-shadow:0 0 8px #aa44ff44;}
+  .customBtnGroup{display:flex;align-items:stretch;gap:0;}
+  .customBtnGroup .presetBtn{border-radius:2px 0 0 2px !important;}
+  .slotStepper{display:none;flex-direction:row;align-items:center;border:1px solid #aa44ff66;border-left:none;border-radius:0 2px 2px 0;background:#0d0d1a;transition:border-color 0.15s;}
+  .slotStepper:hover{border-color:#aa44ff;}
+  .slotStepLabel{color:#aa44ff;font-family:'Orbitron',monospace;font-size:8px;letter-spacing:1px;padding:0 6px;min-width:18px;text-align:center;}
+  .slotArrows{display:flex;flex-direction:column;border-left:1px solid #aa44ff33;height:100%;}
+  .slotArrow{background:transparent;border:none;color:#aa44ff88;font-size:7px;padding:1px 5px;cursor:pointer;transition:all 0.15s;line-height:1;flex:1;display:flex;align-items:center;justify-content:center;}
+  .slotArrow:hover{background:#aa44ff22;color:#cc88ff;}
+  .specialDiffSection{width:520px;margin-bottom:18px;}
   .settingsScrollBody{overflow-y:auto;flex:1;width:100%;display:flex;flex-direction:column;align-items:center;padding:0 0 12px 0;scrollbar-width:thin;scrollbar-color:#334 transparent;}
   .settingsScrollBody::-webkit-scrollbar{width:6px;}
   .settingsScrollBody::-webkit-scrollbar-track{background:transparent;}
@@ -137,6 +143,7 @@
   .presetBtn{background:transparent;border:1px solid #334;color:#556;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1px;padding:6px 12px;cursor:pointer;transition:all 0.15s;border-radius:2px;}
   .presetBtn:hover{border-color:#00ccff;color:#00ccff;}
   .presetBtn.active{color:#000;font-weight:700;}
+  .presetBtn.beginner.active{background:#aaffcc;border-color:#aaffcc;color:#000;}
   .presetBtn.easy.active{background:#44ff88;border-color:#44ff88;color:#000;}
   .presetBtn.medium.active{background:#ffcc00;border-color:#ffcc00;color:#000;}
   .presetBtn.hard.active{background:#ff6600;border-color:#ff6600;color:#000;}
@@ -261,7 +268,23 @@
   .lbDiffBadge.hardcore{background:#ff004422;color:#ff4466;border:1px solid #ff004444;}
   .lbDiffBadge.custom{background:#aa44ff22;color:#aa44ff;border:1px solid #aa44ff44;}
 
-  /* MID-GAME DIFFICULTY CHANGED OVERLAY */
+  .lbDiffBadge.beginner{background:#aaffcc22;color:#aaffcc;border:1px solid #aaffcc44;}
+  /* DIFF HIDE DROPDOWN */
+  #lbDiffFilterWrap{position:relative;display:flex;justify-content:center;padding:0 0 10px 0;}
+  #lbDiffFilterBtn{background:transparent;border:1px solid #334;color:#446;font-family:'Orbitron',monospace;font-size:8px;letter-spacing:2px;padding:6px 14px;cursor:pointer;transition:all 0.2s;border-radius:2px;display:flex;align-items:center;gap:6px;}
+  #lbDiffFilterBtn:hover{border-color:#556;color:#668;}
+  #lbDiffFilterBtn.open{border-color:#aa44ff88;color:#aa44ff;}
+  #lbDiffFilterBtn .dfArrow{font-size:8px;transition:transform 0.15s;}
+  #lbDiffFilterBtn.open .dfArrow{transform:rotate(180deg);}
+  #lbDiffDropdown{position:absolute;top:100%;left:50%;transform:translateX(-50%);background:#0d0d1a;border:1px solid #334;border-radius:3px;padding:8px 0;min-width:180px;z-index:50;display:none;box-shadow:0 8px 24px rgba(0,0,0,0.6);}
+  #lbDiffDropdown.open{display:block;}
+  .dfItem{display:flex;align-items:center;gap:10px;padding:7px 14px;cursor:pointer;transition:background 0.1s;user-select:none;}
+  .dfItem:hover{background:#151528;}
+  .dfCheck{width:12px;height:12px;border:1px solid #334;border-radius:2px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;font-size:8px;}
+  .dfItem.hidden-diff .dfCheck{background:transparent;border-color:#334;color:transparent;}
+  .dfItem:not(.hidden-diff) .dfCheck{background:#aa44ff33;border-color:#aa44ff;color:#aa44ff;}
+  .dfLabel{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:1px;}
+  .dfBadgeWrap{margin-left:auto;}
   #diffChangeOverlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:all;z-index:40;backdrop-filter:blur(4px);}
   #diffChangeTitle{font-family:'Orbitron',monospace;color:#ffcc00;font-size:18px;font-weight:900;letter-spacing:4px;margin-bottom:8px;text-shadow:0 0 16px #ffcc00;}
   #diffChangeSub{color:#556;font-size:11px;letter-spacing:2px;margin-bottom:10px;text-align:center;line-height:1.7;}
@@ -275,24 +298,38 @@
   #lbCurrentUser span{color:#00ccff88;}
 
   /* ── LOGIN SCREEN ── */
-  #loginScreen{position:absolute;top:0;left:0;width:100%;height:100%;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:all;z-index:50;}
-  #loginTitle{font-family:'Orbitron',monospace;color:#00ccff;font-size:46px;font-weight:900;letter-spacing:6px;text-shadow:0 0 30px #00ccff,0 0 60px rgba(0,200,255,0.3);margin-bottom:6px;}
-  #loginSub{color:#334;font-size:11px;letter-spacing:4px;margin-bottom:36px;}
-  #loginBox{background:#07070f;border:1px solid #223;border-radius:6px;padding:28px 32px;width:320px;display:flex;flex-direction:column;gap:0;}
-  #loginMsg{font-size:10px;letter-spacing:1px;text-align:center;min-height:16px;margin-bottom:12px;transition:all 0.2s;}
+  #loginScreen{position:absolute;top:0;left:0;width:100%;height:100%;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:all;z-index:50;overflow:hidden;}
+  #loginScreen::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 28px,rgba(0,200,255,0.025) 28px,rgba(0,200,255,0.025) 29px),repeating-linear-gradient(90deg,transparent,transparent 28px,rgba(0,200,255,0.018) 28px,rgba(0,200,255,0.018) 29px);pointer-events:none;}
+  #loginScreen::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 70% at 50% 50%,rgba(0,100,160,0.12) 0%,transparent 70%);pointer-events:none;}
+  #loginBrand{position:relative;z-index:1;text-align:center;margin-bottom:6px;}
+  #loginCrosshair{font-size:22px;color:#00ccff44;letter-spacing:0;display:block;margin-bottom:10px;line-height:1;}
+  #loginTitle{font-family:'Orbitron',monospace;color:#00ccff;font-size:42px;font-weight:900;letter-spacing:8px;text-shadow:0 0 24px #00ccff,0 0 60px rgba(0,200,255,0.25);margin-bottom:0;line-height:1;}
+  #loginArcade{font-family:'Orbitron',monospace;font-size:13px;font-weight:900;color:#00ccff;opacity:0.5;letter-spacing:12px;margin-top:4px;display:block;}
+  #loginSub{position:relative;z-index:1;color:#446;font-size:9px;letter-spacing:5px;margin-bottom:28px;text-transform:uppercase;}
+  #loginBox{position:relative;z-index:1;background:linear-gradient(160deg,#08080f 0%,#060610 100%);border:1px solid #1a2a3a;border-radius:4px;padding:6px 28px 22px;width:310px;display:flex;flex-direction:column;gap:0;box-shadow:0 0 40px rgba(0,150,255,0.06),inset 0 1px 0 rgba(0,200,255,0.06);}
+  #loginBox::before{content:'';position:absolute;top:-1px;left:20px;right:20px;height:1px;background:linear-gradient(90deg,transparent,#00ccff44,transparent);}
+  #loginBoxCornerTL,#loginBoxCornerTR,#loginBoxCornerBL,#loginBoxCornerBR{position:absolute;width:10px;height:10px;border-color:#00ccff55;border-style:solid;}
+  #loginBoxCornerTL{top:-1px;left:-1px;border-width:2px 0 0 2px;}
+  #loginBoxCornerTR{top:-1px;right:-1px;border-width:2px 2px 0 0;}
+  #loginBoxCornerBL{bottom:-1px;left:-1px;border-width:0 0 2px 2px;}
+  #loginBoxCornerBR{bottom:-1px;right:-1px;border-width:0 2px 2px 0;}
+  #loginMsg{font-size:10px;letter-spacing:1px;text-align:center;min-height:16px;margin-bottom:10px;transition:all 0.2s;font-family:'Orbitron',monospace;}
   #loginMsg.err{color:#ff4466;}
   #loginMsg.ok{color:#44ffaa;}
-  .loginLabel{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:3px;color:#334;margin-bottom:5px;margin-top:14px;}
+  .loginLabel{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:3px;color:#336688;margin-bottom:5px;margin-top:16px;display:flex;align-items:center;gap:6px;}
+  .loginLabel::before{content:'';display:inline-block;width:3px;height:3px;background:#00ccff66;border-radius:50%;}
   .loginLabel:first-of-type{margin-top:0;}
-  .loginInput{background:#0d0d1a;border:1px solid #223;color:#aaccff;font-family:'Share Tech Mono',monospace;font-size:14px;padding:10px 12px;border-radius:3px;outline:none;width:100%;transition:border 0.2s;letter-spacing:1px;}
-  .loginInput:focus{border-color:#00ccff55;}
-  .loginInput::placeholder{color:#223;}
-  #loginPinWrap{display:flex;gap:8px;justify-content:space-between;}
-  .pinDigit{background:#0d0d1a;border:1px solid #223;color:#00ccff;font-family:'Orbitron',monospace;font-size:22px;font-weight:700;text-align:center;width:56px;height:56px;border-radius:4px;outline:none;transition:border 0.2s;caret-color:transparent;}
-  .pinDigit:focus{border-color:#00ccff88;background:#0a1520;}
-  #loginBtn{background:transparent;border:1px solid #00ccff;color:#00ccff;font-family:'Orbitron',monospace;font-size:12px;letter-spacing:3px;padding:12px;cursor:pointer;transition:all 0.2s;margin-top:22px;border-radius:3px;}
-  #loginBtn:hover{background:#00ccff;color:#000;box-shadow:0 0 20px rgba(0,200,255,0.4);}
-  #loginHint{color:#223;font-size:9px;letter-spacing:1px;margin-top:10px;text-align:center;line-height:1.6;}
+  .loginInput{background:#050510;border:1px solid #1a2535;color:#aaccff;font-family:'Share Tech Mono',monospace;font-size:14px;padding:10px 13px;border-radius:2px;outline:none;width:100%;transition:border 0.2s,box-shadow 0.2s;letter-spacing:1.5px;box-sizing:border-box;}
+  .loginInput:focus{border-color:#00ccff44;box-shadow:0 0 12px rgba(0,200,255,0.08);}
+  .loginInput::placeholder{color:#1a2535;}
+  #loginPinWrap{display:flex;gap:8px;justify-content:space-between;margin-top:2px;}
+  .pinDigit{background:#050510;border:1px solid #1a2535;color:#00ccff;font-family:'Orbitron',monospace;font-size:24px;font-weight:700;text-align:center;width:54px;height:54px;border-radius:2px;outline:none;transition:border 0.2s,box-shadow 0.2s;caret-color:transparent;}
+  .pinDigit:focus{border-color:#00ccff66;background:#071520;box-shadow:0 0 14px rgba(0,200,255,0.1);}
+  #loginBtn{background:transparent;border:1px solid #00ccff55;color:#00ccff;font-family:'Orbitron',monospace;font-size:11px;letter-spacing:4px;padding:13px;cursor:pointer;transition:all 0.2s;margin-top:20px;border-radius:2px;position:relative;overflow:hidden;}
+  #loginBtn::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(0,200,255,0.06),transparent);transform:translateX(-100%);transition:transform 0.4s;}
+  #loginBtn:hover{border-color:#00ccff;box-shadow:0 0 20px rgba(0,200,255,0.2);}
+  #loginBtn:hover::before{transform:translateX(100%);}
+  #loginHint{color:#1e2e3e;font-size:9px;letter-spacing:1px;margin-top:12px;text-align:center;line-height:1.7;border-top:1px solid #0d1520;padding-top:10px;}
   #logoutBtn{position:absolute;top:10px;right:12px;background:transparent;border:1px solid #223;color:#334;font-family:'Orbitron',monospace;font-size:8px;letter-spacing:2px;padding:5px 10px;cursor:pointer;transition:all 0.2s;pointer-events:all;}
   #logoutBtn:hover{border-color:#ff4466;color:#ff4466;}
   #loginUserDisplay{position:absolute;top:32px;right:12px;font-family:'Orbitron',monospace;font-size:8px;color:#336;letter-spacing:2px;padding:5px 0;text-align:right;}
@@ -380,18 +417,29 @@
       <div class="sectionLabel">DIFFICULTY PRESET</div>
       <div class="settingRow" style="border:none;">
         <div class="presetGroup">
-          <button class="presetBtn overpowered cPresetBtn" data-preset="overpowered" onclick="applyPreset('overpowered','classic')">OVERPOWERED</button>
+          <button class="presetBtn beginner cPresetBtn"    data-preset="beginner"    onclick="applyPreset('beginner','classic')">BEGINNER</button>
           <button class="presetBtn easy cPresetBtn"        data-preset="easy"        onclick="applyPreset('easy','classic')">EASY</button>
           <button class="presetBtn medium cPresetBtn"      data-preset="medium"      onclick="applyPreset('medium','classic')">MEDIUM</button>
           <button class="presetBtn hard cPresetBtn"        data-preset="hard"        onclick="applyPreset('hard','classic')">HARD</button>
           <button class="presetBtn hardcore cPresetBtn"    data-preset="hardcore"    onclick="applyPreset('hardcore','classic')">HARDCORE</button>
-          <button class="presetBtn custom cPresetBtn"     data-preset="custom"     onclick="applyPreset('custom','classic')">CUSTOM</button>
-          <select id="cCustomSlot" class="customSlotSelect" onchange="loadCustomSlot('classic',this.value)">
-            <option value="" disabled selected>SLOT ▾</option>
-            <option value="1">SLOT 1</option>
-            <option value="2">SLOT 2</option>
-            <option value="3">SLOT 3</option>
-          </select>
+        </div>
+      </div>
+    </div>
+    <div class="settingsSection">
+      <div class="sectionLabel">SPECIAL DIFFICULTIES</div>
+      <div class="settingRow" style="border:none;">
+        <div class="presetGroup">
+          <button class="presetBtn overpowered cPresetBtn" data-preset="overpowered" onclick="applyPreset('overpowered','classic')">OVERPOWERED</button>
+          <div class="customBtnGroup">
+            <button class="presetBtn custom cPresetBtn" data-preset="custom" onclick="applyPreset('custom','classic')">CUSTOM</button>
+            <div id="cCustomSlotWrap" class="slotStepper">
+              <span id="cCustomSlotLabel" class="slotStepLabel">1</span>
+              <div class="slotArrows">
+                <button class="slotArrow" onclick="stepSlot('classic',1)">▲</button>
+                <button class="slotArrow" onclick="stepSlot('classic',-1)">▼</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -465,6 +513,13 @@
           <span class="sliderVal" id="lightDropVal">8</span>
         </div>
       </div>
+      <div style="padding:4px 0 6px 16px;border-left:2px solid #1a2a3a;margin-left:4px;display:flex;align-items:center;justify-content:space-between;">
+        <div><div class="settingName" style="color:#7bbcdd;font-size:10px;">START AMOUNT</div><div class="settingDesc">Light ammo at game start</div></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="range" class="settingSlider" id="setStartLight" min="0" max="500" step="10" value="100" oninput="onSlider('setStartLight','startLightVal',v=>v)">
+          <span class="sliderVal" id="startLightVal">100</span>
+        </div>
+      </div>
       <div class="settingRow">
         <div><div class="settingName" style="color:#ffcc44;">MEDIUM AMMO</div><div class="settingDesc">Relative drop frequency for medium ammo</div></div>
         <div style="display:flex;align-items:center;gap:8px;">
@@ -473,12 +528,26 @@
           <span class="sliderVal" id="mediumDropVal">5</span>
         </div>
       </div>
+      <div style="padding:4px 0 6px 16px;border-left:2px solid #2a2a1a;margin-left:4px;display:flex;align-items:center;justify-content:space-between;">
+        <div><div class="settingName" style="color:#ccaa33;font-size:10px;">START AMOUNT</div><div class="settingDesc">Medium ammo at game start</div></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="range" class="settingSlider" id="setStartMedium" min="0" max="300" step="5" value="0" oninput="onSlider('setStartMedium','startMediumVal',v=>v)">
+          <span class="sliderVal" id="startMediumVal">0</span>
+        </div>
+      </div>
       <div class="settingRow" style="border:none;">
         <div><div class="settingName" style="color:#ff5533;">HEAVY AMMO</div><div class="settingDesc">Relative drop frequency for heavy ammo</div></div>
         <div style="display:flex;align-items:center;gap:8px;">
           <button class="triBtn active" id="setHeavyEnable" style="font-size:8px;padding:4px 8px;" onclick="toggleAmmoEnabled('heavy')">ON</button>
           <input type="range" class="settingSlider" id="setHeavyDrop" min="0" max="10" step="1" value="4" oninput="onSlider('setHeavyDrop','heavyDropVal',v=>v)">
           <span class="sliderVal" id="heavyDropVal">4</span>
+        </div>
+      </div>
+      <div style="padding:4px 0 0 16px;border-left:2px solid #2a1a1a;margin-left:4px;display:flex;align-items:center;justify-content:space-between;">
+        <div><div class="settingName" style="color:#cc4422;font-size:10px;">START AMOUNT</div><div class="settingDesc">Heavy ammo at game start</div></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="range" class="settingSlider" id="setStartHeavy" min="0" max="100" step="1" value="0" oninput="onSlider('setStartHeavy','startHeavyVal',v=>v)">
+          <span class="sliderVal" id="startHeavyVal">0</span>
         </div>
       </div>
     </div>
@@ -502,18 +571,29 @@
       <div class="sectionLabel">DIFFICULTY PRESET</div>
       <div class="settingRow" style="border:none;">
         <div class="presetGroup">
-          <button class="presetBtn overpowered fPresetBtn" data-preset="overpowered" onclick="applyPreset('overpowered','fortress')">OVERPOWERED</button>
+          <button class="presetBtn beginner fPresetBtn"    data-preset="beginner"    onclick="applyPreset('beginner','fortress')">BEGINNER</button>
           <button class="presetBtn easy fPresetBtn"        data-preset="easy"        onclick="applyPreset('easy','fortress')">EASY</button>
           <button class="presetBtn medium fPresetBtn"      data-preset="medium"      onclick="applyPreset('medium','fortress')">MEDIUM</button>
           <button class="presetBtn hard fPresetBtn"        data-preset="hard"        onclick="applyPreset('hard','fortress')">HARD</button>
           <button class="presetBtn hardcore fPresetBtn"    data-preset="hardcore"    onclick="applyPreset('hardcore','fortress')">HARDCORE</button>
-          <button class="presetBtn custom fPresetBtn"     data-preset="custom"     onclick="applyPreset('custom','fortress')">CUSTOM</button>
-          <select id="fCustomSlot" class="customSlotSelect" onchange="loadCustomSlot('fortress',this.value)">
-            <option value="" disabled selected>SLOT ▾</option>
-            <option value="1">SLOT 1</option>
-            <option value="2">SLOT 2</option>
-            <option value="3">SLOT 3</option>
-          </select>
+        </div>
+      </div>
+    </div>
+    <div class="settingsSection">
+      <div class="sectionLabel">SPECIAL DIFFICULTIES</div>
+      <div class="settingRow" style="border:none;">
+        <div class="presetGroup">
+          <button class="presetBtn overpowered fPresetBtn" data-preset="overpowered" onclick="applyPreset('overpowered','fortress')">OVERPOWERED</button>
+          <div class="customBtnGroup">
+            <button class="presetBtn custom fPresetBtn" data-preset="custom" onclick="applyPreset('custom','fortress')">CUSTOM</button>
+            <div id="fCustomSlotWrap" class="slotStepper">
+              <span id="fCustomSlotLabel" class="slotStepLabel">1</span>
+              <div class="slotArrows">
+                <button class="slotArrow" onclick="stepSlot('fortress',1)">▲</button>
+                <button class="slotArrow" onclick="stepSlot('fortress',-1)">▼</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -609,12 +689,26 @@
           <span class="sliderVal" id="fMainDropVal">5</span>
         </div>
       </div>
+      <div style="padding:4px 0 6px 16px;border-left:2px solid #2a1a0a;margin-left:4px;display:flex;align-items:center;justify-content:space-between;">
+        <div><div class="settingName" style="color:#cc7700;font-size:10px;">START AMOUNT</div><div class="settingDesc">Main ammo at game start</div></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="range" class="settingSlider" id="fSetStartMain" min="0" max="500" step="10" value="200" oninput="fOnSlider('fSetStartMain','fStartMainVal',v=>v)">
+          <span class="sliderVal" id="fStartMainVal">200</span>
+        </div>
+      </div>
       <div class="settingRow" style="border:none;">
         <div><div class="settingName" style="color:#cc44ff;">SECONDARY AMMO</div><div class="settingDesc">Relative drop frequency for secondary weapon ammo</div></div>
         <div style="display:flex;align-items:center;gap:8px;">
           <button class="triBtn active" id="fSetSecEnable" style="font-size:8px;padding:4px 8px;" onclick="toggleAmmoEnabled('secondary')">ON</button>
           <input type="range" class="settingSlider" id="fSetSecDrop" min="0" max="10" step="1" value="4" oninput="fOnSlider('fSetSecDrop','fSecDropVal',v=>v)">
           <span class="sliderVal" id="fSecDropVal">4</span>
+        </div>
+      </div>
+      <div style="padding:4px 0 0 16px;border-left:2px solid #1a0a2a;margin-left:4px;display:flex;align-items:center;justify-content:space-between;">
+        <div><div class="settingName" style="color:#9933cc;font-size:10px;">START AMOUNT</div><div class="settingDesc">Secondary ammo at game start</div></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="range" class="settingSlider" id="fSetStartSec" min="0" max="500" step="10" value="200" oninput="fOnSlider('fSetStartSec','fStartSecVal',v=>v)">
+          <span class="sliderVal" id="fStartSecVal">200</span>
         </div>
       </div>
     </div>
@@ -661,9 +755,17 @@
   </div>
   <!-- LOGIN SCREEN -->
   <div id="loginScreen">
-    <div id="loginTitle">GROUND ZERO</div>
+    <div id="loginBrand">
+      <span id="loginCrosshair">✛</span>
+      <div id="loginTitle">GROUND ZERO</div>
+      <span id="loginArcade">ARCADE</span>
+    </div>
     <div id="loginSub">IDENTIFY YOURSELF, SOLDIER</div>
     <div id="loginBox">
+      <div id="loginBoxCornerTL"></div>
+      <div id="loginBoxCornerTR"></div>
+      <div id="loginBoxCornerBL"></div>
+      <div id="loginBoxCornerBR"></div>
       <div id="loginMsg"></div>
       <div class="loginLabel">GAMERTAG</div>
       <input class="loginInput" id="loginGtag" type="text" maxlength="16" placeholder="YOUR_TAG" autocomplete="off" spellcheck="false">
@@ -721,6 +823,18 @@
         <div id="lbSortDirGroup">
           <button class="lbDirBtn active" id="lbDirDesc" onclick="setLbDir('desc')">▼</button>
           <button class="lbDirBtn"        id="lbDirAsc"  onclick="setLbDir('asc')">▲</button>
+        </div>
+      </div>
+      <div id="lbDiffFilterWrap">
+        <button id="lbDiffFilterBtn" onclick="toggleDiffFilterDropdown()">HIDE DIFFICULTIES <span class="dfArrow">▾</span></button>
+        <div id="lbDiffDropdown">
+          <div class="dfItem" data-diff="beginner"   onclick="toggleDiffHide('beginner')">  <div class="dfCheck">✓</div><span class="dfLabel" style="color:#aaffcc;">BEGINNER</span>  </div>
+          <div class="dfItem" data-diff="easy"       onclick="toggleDiffHide('easy')">      <div class="dfCheck">✓</div><span class="dfLabel" style="color:#44ff88;">EASY</span>      </div>
+          <div class="dfItem" data-diff="medium"     onclick="toggleDiffHide('medium')">    <div class="dfCheck">✓</div><span class="dfLabel" style="color:#ffcc00;">MEDIUM</span>    </div>
+          <div class="dfItem" data-diff="hard"       onclick="toggleDiffHide('hard')">      <div class="dfCheck">✓</div><span class="dfLabel" style="color:#ff6600;">HARD</span>      </div>
+          <div class="dfItem" data-diff="hardcore"   onclick="toggleDiffHide('hardcore')">  <div class="dfCheck">✓</div><span class="dfLabel" style="color:#ff4466;">HARDCORE</span>  </div>
+          <div class="dfItem" data-diff="overpowered" onclick="toggleDiffHide('overpowered')"><div class="dfCheck">✓</div><span class="dfLabel" style="color:#00ffcc;">OVERPOWERED</span></div>
+          <div class="dfItem" data-diff="custom"     onclick="toggleDiffHide('custom')">    <div class="dfCheck">✓</div><span class="dfLabel" style="color:#aa44ff;">CUSTOM</span>    </div>
         </div>
       </div>
     </div>
@@ -1044,14 +1158,16 @@ const SETTINGS = {
   infiniteAmmo: false, reload: true, reloadSpeedMult: 1.0,
   spawnRateMult: 1.0, enemySpeedMult: 1.0, autoCollect: true, aimLaser: 'partial', preset: 'medium',
   lightDropWeight: 8, mediumDropWeight: 5, heavyDropWeight: 4,
-  lightEnabled: true, mediumEnabled: true, heavyEnabled: true, allWeaponsUnlocked: false
+  lightEnabled: true, mediumEnabled: true, heavyEnabled: true, allWeaponsUnlocked: false,
+  startLightAmmo: 100, startMediumAmmo: 0, startHeavyAmmo: 0
 };
 const FORTRESS_SETTINGS = {
   infiniteAmmo: false, reload: true, reloadSpeedMult: 1.0,
   spawnRateMult: 1.0, enemySpeedMult: 1.0, autoCollect: true, autoSecondary: true, aimLaser: 'partial', preset: 'medium',
   mainDropWeight: 5, secDropWeight: 4,
   mainEnabled: true, secEnabled: true, allWeaponsUnlocked: false,
-  overkillMult: 0.0, showEmergencyZone: true, emergencyMode: true
+  overkillMult: 0.0, showEmergencyZone: true, emergencyMode: true,
+  startMainAmmo: 200, startSecAmmo: 200
 };
 
 // Return whichever settings apply to the current game mode
@@ -1061,9 +1177,11 @@ const PRESETS = {
   //                                                           ── classic ammo ──────────────────  ── fortress ammo ──
   overpowered: {infiniteAmmo:true,  reload:false, reloadSpeedMult:2.0, spawnRateMult:3.0, enemySpeedMult:0.3, autoCollect:true,
                 lightDropWeight:0, mediumDropWeight:0, heavyDropWeight:0, mainDropWeight:0, secDropWeight:0},
-  easy:        {infiniteAmmo:true,  reload:false, reloadSpeedMult:1.0, spawnRateMult:0.8, enemySpeedMult:0.6, autoCollect:true,
+  beginner:    {infiniteAmmo:true,  reload:false, reloadSpeedMult:1.0, spawnRateMult:0.5, enemySpeedMult:0.4, autoCollect:true,
                 lightDropWeight:0, mediumDropWeight:0, heavyDropWeight:0, mainDropWeight:0, secDropWeight:0},
-  medium:      {infiniteAmmo:false, reload:true,  reloadSpeedMult:1.5, spawnRateMult:1.0, enemySpeedMult:1.0, autoCollect:true,
+  easy:        {infiniteAmmo:true,  reload:true, reloadSpeedMult:2.0, spawnRateMult:0.8, enemySpeedMult:0.6, autoCollect:true,
+                lightDropWeight:0, mediumDropWeight:0, heavyDropWeight:0, mainDropWeight:0, secDropWeight:0},
+  medium:      {infiniteAmmo:false, reload:true,  reloadSpeedMult:1.3, spawnRateMult:1.0, enemySpeedMult:1.0, autoCollect:true,
                 lightDropWeight:9,  mediumDropWeight:6, heavyDropWeight:5, mainDropWeight:5, secDropWeight:9},
   hard:        {infiniteAmmo:false, reload:true,  reloadSpeedMult:1.0, spawnRateMult:1.5, enemySpeedMult:1.0, autoCollect:true,
                 lightDropWeight:6,  mediumDropWeight:4, heavyDropWeight:3, mainDropWeight:3, secDropWeight:6},
@@ -1094,12 +1212,14 @@ function detectPreset(s){
 }
 
 function syncClassicPreset(){
-  SETTINGS.preset = detectPreset(SETTINGS);
+  // Only re-detect if not explicitly set to custom — prevents mid-game settings
+  // from snapping to a named preset when custom values happen to match one
+  if(SETTINGS.preset !== 'custom') SETTINGS.preset = detectPreset(SETTINGS);
   syncPresetBtns('classic', SETTINGS.preset);
   updateCustomControls('classic', SETTINGS.preset === 'custom');
 }
 function syncFortressPreset(){
-  FORTRESS_SETTINGS.preset = detectPreset(FORTRESS_SETTINGS);
+  if(FORTRESS_SETTINGS.preset !== 'custom') FORTRESS_SETTINGS.preset = detectPreset(FORTRESS_SETTINGS);
   syncPresetBtns('fortress', FORTRESS_SETTINGS.preset);
   updateCustomControls('fortress', FORTRESS_SETTINGS.preset === 'custom');
 }
@@ -1246,7 +1366,7 @@ function saveSettings(mode){
 
 // Load a specific custom slot and apply its settings
 function loadCustomSlot(mode, slot){
-  if(!slot) return; // placeholder selected, do nothing
+  if(!slot) return;
   try{ localStorage.setItem(_activeSlotKey(mode), slot); }catch(e){}
   const key = _customSlotKey(mode, slot);
   let saved = null;
@@ -1256,9 +1376,17 @@ function loadCustomSlot(mode, slot){
     else{ Object.assign(FORTRESS_SETTINGS, saved); FORTRESS_SETTINGS.preset='custom'; syncFortressUI(); }
   }
   updateCustomControls(mode, true);
-  // Keep the dropdown showing the just-loaded slot
-  const slotSel = document.getElementById(mode==='classic' ? 'cCustomSlot' : 'fCustomSlot');
-  if(slotSel) slotSel.value = slot;
+  // Update the stepper label to the loaded slot
+  const slotLabel = document.getElementById(mode==='classic' ? 'cCustomSlotLabel' : 'fCustomSlotLabel');
+  if(slotLabel) slotLabel.textContent = slot;
+}
+
+// Step through custom slots with up/down arrows
+const SLOT_COUNT = 3;
+function stepSlot(mode, dir){
+  const current = parseInt(_getActiveSlot(mode)) || 1;
+  const next = ((current - 1 + dir + SLOT_COUNT) % SLOT_COUNT) + 1;
+  loadCustomSlot(mode, String(next));
 }
 
 function loadSavedSettings(){
@@ -1290,14 +1418,18 @@ function loadSavedSettings(){
   }
 }
 
-// Show/hide save button and slot dropdown based on whether preset is custom
+// Show/hide save button and slot stepper based on whether preset is custom
 function updateCustomControls(mode, isCustom){
   const saveBtn = document.getElementById(mode==='classic' ? 'saveClassicBtn' : 'saveFortressBtn');
-  const slotSel = document.getElementById(mode==='classic' ? 'cCustomSlot' : 'fCustomSlot');
+  const slotWrap = document.getElementById(mode==='classic' ? 'cCustomSlotWrap' : 'fCustomSlotWrap');
+  const slotLabel = document.getElementById(mode==='classic' ? 'cCustomSlotLabel' : 'fCustomSlotLabel');
   if(saveBtn){ saveBtn.classList.toggle('disabled', !isCustom); }
-  if(slotSel){
-    slotSel.style.display = isCustom ? 'inline-block' : 'none';
-    if(!isCustom) slotSel.value = '';
+  if(slotWrap){
+    slotWrap.style.display = isCustom ? 'flex' : 'none';
+    if(isCustom && slotLabel){
+      const slot = _getActiveSlot(mode);
+      slotLabel.textContent = slot;
+    }
   }
   // Grey out (or restore) all preset-controlled elements
   document.querySelectorAll('[data-preset-ctrl="'+mode+'"]').forEach(el=>{
@@ -1331,6 +1463,12 @@ function syncClassicUI(){
   syncAmmoEnableBtn('setLightEnable','setLightDrop',   SETTINGS.lightEnabled  !== false);
   syncAmmoEnableBtn('setMediumEnable','setMediumDrop', SETTINGS.mediumEnabled !== false);
   syncAmmoEnableBtn('setHeavyEnable','setHeavyDrop',   SETTINGS.heavyEnabled  !== false);
+  document.getElementById('setStartLight').value  = SETTINGS.startLightAmmo  ?? 100;
+  document.getElementById('setStartMedium').value = SETTINGS.startMediumAmmo ?? 0;
+  document.getElementById('setStartHeavy').value  = SETTINGS.startHeavyAmmo  ?? 0;
+  document.getElementById('startLightVal').textContent  = SETTINGS.startLightAmmo  ?? 100;
+  document.getElementById('startMediumVal').textContent = SETTINGS.startMediumAmmo ?? 0;
+  document.getElementById('startHeavyVal').textContent  = SETTINGS.startHeavyAmmo  ?? 0;
   document.getElementById('setAllWeapons').checked = !!SETTINGS.allWeaponsUnlocked;
   syncClassicPreset();
   // allWeaponsRow visibility handled by updateCustomControls via syncClassicPreset;
@@ -1358,6 +1496,10 @@ function syncFortressUI(){
   document.getElementById('fSecDropVal').textContent=FORTRESS_SETTINGS.secDropWeight;
   syncAmmoEnableBtn('fSetMainEnable','fSetMainDrop', FORTRESS_SETTINGS.mainEnabled !== false);
   syncAmmoEnableBtn('fSetSecEnable','fSetSecDrop',   FORTRESS_SETTINGS.secEnabled  !== false);
+  document.getElementById('fSetStartMain').value = FORTRESS_SETTINGS.startMainAmmo ?? 200;
+  document.getElementById('fSetStartSec').value  = FORTRESS_SETTINGS.startSecAmmo  ?? 200;
+  document.getElementById('fStartMainVal').textContent = FORTRESS_SETTINGS.startMainAmmo ?? 200;
+  document.getElementById('fStartSecVal').textContent  = FORTRESS_SETTINGS.startSecAmmo  ?? 200;
   document.getElementById('fSetAllWeapons').checked = !!FORTRESS_SETTINGS.allWeaponsUnlocked;
   const ok = FORTRESS_SETTINGS.overkillMult || 0;
   document.getElementById('fSetOverkill').value = ok;
@@ -1386,6 +1528,9 @@ function readClassicUI(){
   SETTINGS.mediumEnabled = document.getElementById('setMediumEnable').textContent === 'ON';
   SETTINGS.heavyEnabled  = document.getElementById('setHeavyEnable').textContent  === 'ON';
   SETTINGS.allWeaponsUnlocked = document.getElementById('setAllWeapons').checked;
+  SETTINGS.startLightAmmo  = parseInt(document.getElementById('setStartLight').value);
+  SETTINGS.startMediumAmmo = parseInt(document.getElementById('setStartMedium').value);
+  SETTINGS.startHeavyAmmo  = parseInt(document.getElementById('setStartHeavy').value);
 }
 
 function readFortressUI(){
@@ -1405,6 +1550,8 @@ function readFortressUI(){
   FORTRESS_SETTINGS.overkillMult = parseFloat(document.getElementById('fSetOverkill').value);
   FORTRESS_SETTINGS.showEmergencyZone = document.getElementById('fSetShowEmrgZone').checked;
   FORTRESS_SETTINGS.emergencyMode = document.getElementById('fSetEmergencyMode').checked;
+  FORTRESS_SETTINGS.startMainAmmo = parseInt(document.getElementById('fSetStartMain').value);
+  FORTRESS_SETTINGS.startSecAmmo  = parseInt(document.getElementById('fSetStartSec').value);
 }
 
 function updateSettingsBtnVisibility(){
@@ -1608,7 +1755,8 @@ function initGame(mode) {
     rightMouseDown: false,
     inventory: [],
     equipped: isFort ? {main:null, secondary:null} : {light:null, medium:null, heavy:null},
-    ammo:     isFort ? {main:200, secondary:200}   : {light:100, medium:0, heavy:0},
+    ammo:     isFort ? {main: FORTRESS_SETTINGS.startMainAmmo ?? 200, secondary: FORTRESS_SETTINGS.startSecAmmo ?? 200}
+                     : {light: SETTINGS.startLightAmmo ?? 100, medium: SETTINGS.startMediumAmmo ?? 0, heavy: SETTINGS.startHeavyAmmo ?? 0},
     activeSlot: firstEnabled,
     mainAimAngle: 0,
     secAimAngle: Math.PI,
@@ -1657,9 +1805,9 @@ const WEAPONS = {
   //                                                                                                              mag  reload
   pistol:   {name:'AUTOPISTOL',    icon:'<img src="All_Images/Images/pistol icon.png" class="weaponIcon">', rarity:'common',    cls:'light',   color:'#aaccff', cd:0.22, dmg:12, spd:520, r:4,  pierce:0, spread:0,    effect:null,                              mag:12, reload:1.4, maxRange:650, accuracy:2.5, desc:'Fast semi-auto. 12 round mag.'},
   shotgun:  {name:'SHOTGUN',       icon:'<img src="All_Images/Images/shotgun icon.png" class="weaponIcon">', rarity:'common',    cls:'medium', color:'#ff8844', cd:0.9,  dmg:9, spd:380, r:3,  pierce:0, spread:22,   effect:null,  pellets:7,                  mag:6,  reload:2.2, maxRange:420, accuracy:3.0, desc:'7 pellets, wide spread. 6 shells.'},
-  sniper:   {name:'SNIPER RIFLE',  icon:'<img src="All_Images/Images/sniper icon 2.png" class="weaponIcon">', rarity:'rare',      cls:'medium', color:'#00ffcc', cd:1.1,  dmg:75, spd:900, r:4,  pierce:1, spread:0,    effect:null,                              mag:5,  reload:2.5, accuracy:0.4, desc:'Extreme damage, pierces. 5 rounds.'},
-  flamer:   {name:'FLAMETHROWER',  icon:'<img src="All_Images/Images/flamethrower icon 2.png" class="weaponIcon">', rarity:'legendary',      cls:'heavy',   color:'#ff5500', cd:0.07, dmg:0,  spd:240, r:6,  pierce:99,spread:0,    effect:null,                              mag:15, reload:2.0, maxRange:240, accuracy:4.0, desc:'40 bursts. Burns over time. Pierces all enemies.'},
-  railgun:  {name:'RAILGUN',       icon:'<img src="All_Images/Images/railgun icon.png" class="weaponIcon">', rarity:'epic',      cls:'heavy', color:'#cc44ff', cd:2.2,  dmg:180,spd:1100,r:4,  pierce:99,spread:0,    effect:null,  chargeVfx:true,              mag:3,  reload:3.0, accuracy:0.0, desc:'3 shots. Full-screen pierce.'},
+  sniper:   {name:'SNIPER RIFLE',  icon:'<img src="All_Images/Images/sniper icon 2.png" class="weaponIcon">', rarity:'rare',      cls:'medium', color:'#00ffcc', cd:1.1,  dmg:75, spd:900, r:4,  pierce:1, pierceDmgLoss:0, spread:0,    effect:null,                              mag:5,  reload:2.5, accuracy:0.4, desc:'Extreme damage, pierces. 5 rounds.'},
+  flamer:   {name:'FLAMETHROWER',  icon:'<img src="All_Images/Images/flamethrower icon 2.png" class="weaponIcon">', rarity:'legendary',      cls:'heavy',   color:'#ff5500', cd:0.07, dmg:0,  spd:240, r:6,  pierce:99, pierceDmgLoss:0, spread:0,    effect:null,                              mag:15, reload:2.0, maxRange:240, accuracy:4.0, desc:'40 bursts. Burns over time. Pierces all enemies.'},
+  railgun:  {name:'RAILGUN',       icon:'<img src="All_Images/Images/railgun icon.png" class="weaponIcon">', rarity:'epic',      cls:'heavy', color:'#cc44ff', cd:2.2,  dmg:180,spd:1100,r:4,  pierce:99, pierceDmgLoss:0, spread:0,    effect:null,  chargeVfx:true,              mag:3,  reload:3.0, accuracy:0.0, desc:'3 shots. Full-screen pierce.'},
   grenade:  {name:'GRENADE LAUNCHER',icon:'<img src="All_Images/Images/grenade launcher icon.png" class="weaponIcon">',rarity:'rare',     cls:'heavy',   color:'#ffcc00', cd:1.0,  dmg:55, spd:320, r:8,  pierce:0, spread:0,    effect:null,  explode:{r:90,dmg:30},        mag:4,  reload:2.5, maxRange:380, accuracy:3.5, desc:'4 grenades. Big explosion.'},
   minigun:  {name:'MINIGUN',       icon:'<img src="All_Images/Images/Minigun icon.webp" class="weaponIcon">', rarity:'legendary', cls:'light',   color:'#ff4444', cd:0.06, dmg:9,  spd:560, r:3,  pierce:0, spread:0,    effect:null,  spinUp:true,                 mag:100,reload:3.5, accuracy:3.0, desc:'100 rounds. Spin up required.'},
   burst:    {name:'BURST RIFLE',   icon:'<img src="All_Images/Images/bullpup icon.png" class="weaponIcon">', rarity:'rare',      cls:'medium', color:'#44aaff', cd:0.55, dmg:20, spd:600, r:4,  pierce:0, spread:0,    effect:null,  burstCount:3,burstDelay:0.08, mag:18, reload:1.6, accuracy:1.2, desc:'18 rounds, 3-burst. Precise.'},
@@ -1673,14 +1821,14 @@ const WEAPONS = {
 // ════════════════════════════════════════════════════════
 const FORTRESS_WEAPONS = {
   //                                                                                                                     mag  reload
-  revolver: {name:'AUTO CANNON',   icon:'<img src="All_Images/Images/autocannon icon.PNG" class="weaponIcon icon-lg">', rarity:'common',    cls:'main',  color:'#aaccff', cd:0.35, dmg:60,  spd:600, r:5,  pierce:5, spread:0,    effect:null,                               mag:6,  reload:1.8, accuracy:1.5, desc:'6-shot auto cannon. High stopping power.'},
+  revolver: {name:'AUTO CANNON',   icon:'<img src="All_Images/Images/autocannon icon.PNG" class="weaponIcon icon-lg">', rarity:'common',    cls:'main',  color:'#aaccff', cd:0.35, dmg:60,  spd:600, r:5,  pierce:5, pierceDmgLoss:0, spread:0,    effect:null,                               mag:6,  reload:1.8, accuracy:1.5, desc:'6-shot auto cannon. High stopping power.'},
   rocket_emplace: {name:'ROCKET EMPLACEMENT', icon:'<img src="All_Images/Images/New Rocket Emplacement.png" class="weaponIcon icon-xs">', rarity:'rare', cls:'main', color:'#ff4422', cd:1.0, dmg:40, spd:80, r:6, pierce:0, spread:0, effect:null, rocket:true, explode:{r:70,dmg:80}, burstCount:4, burstDelay:0.12, mag:4, reload:3.5, accuracy:1.0, desc:'4 rockets fly to cursor & explode. Splash damage.'},
   sec_pistol: {name:'AUTOPISTOL',       icon:'<img src="All_Images/Images/pistol icon.png" class="weaponIcon">', rarity:'common',    cls:'secondary', color:'#aaccff', cd:0.11, dmg:12,  spd:208, r:1.6, pierce:0, spread:0,    effect:null,                               mag:12, reload:1.4, maxRange:260, accuracy:2.5, aimDelay:0.36, desc:'Fast semi-auto. 12 round mag.'},
   sec_shotgun:{name:'SHOTGUN',          icon:'<img src="All_Images/Images/shotgun icon.png" class="weaponIcon">', rarity:'common',    cls:'secondary', color:'#ff8844', cd:0.45,  dmg:9,  spd:152, r:1.2, pierce:0, spread:22,   effect:null,  pellets:7,                   mag:6,  reload:2.2, maxRange:168, accuracy:3.0, aimDelay:0.6, desc:'7 pellets, wide spread. 6 shells.'},
-  sec_sniper: {name:'SNIPER RIFLE',     icon:'<img src="All_Images/Images/sniper icon 2.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#00ffcc', cd:0.55,  dmg:75,  spd:360, r:1.6, pierce:1, spread:0,    effect:null,                               mag:5,  reload:2.5, accuracy:0.4, aimDelay:1.35, desc:'Extreme damage, pierces. 5 rounds.'},
+  sec_sniper: {name:'SNIPER RIFLE',     icon:'<img src="All_Images/Images/sniper icon 2.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#00ffcc', cd:0.55,  dmg:75,  spd:360, r:1.6, pierce:1, pierceDmgLoss:0, spread:0,    effect:null,                               mag:5,  reload:2.5, accuracy:0.4, aimDelay:1.35, desc:'Extreme damage, pierces. 5 rounds.'},
   sec_grenade:{name:'GRENADE LAUNCHER', icon:'<img src="All_Images/Images/grenade launcher icon.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#ffcc00', cd:0.5,  dmg:55,  spd:128, r:3.2, pierce:0, spread:0,    effect:null,  explode:{r:90,dmg:30},       mag:4,  reload:2.5, maxRange:152, accuracy:3.5, aimDelay:0.9, desc:'4 grenades. Big explosion.'},
-  sec_flamer: {name:'FLAMETHROWER',     icon:'<img src="All_Images/Images/flamethrower icon 2.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#ff5500', cd:0.035, dmg:0,   spd:96,  r:2.4, pierce:99,spread:0,    effect:null,                               mag:40, reload:2.0, maxRange:96, accuracy:2.0, aimDelay:0.0, desc:'40 bursts. Burns over time. Pierces all enemies.'},
-  sec_railgun:{name:'RAILGUN',         icon:'<img src="All_Images/Images/railgun icon.png" class="weaponIcon">', rarity:'epic',      cls:'secondary', color:'#cc44ff', cd:1.1,  dmg:180, spd:440,r:1.6, pierce:99,spread:0,    effect:null,  chargeVfx:true,               mag:3,  reload:3.0, accuracy:0.0, aimDelay:1.65, desc:'3 shots. Full-screen pierce.'},
+  sec_flamer: {name:'FLAMETHROWER',     icon:'<img src="All_Images/Images/flamethrower icon 2.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#ff5500', cd:0.035, dmg:0,   spd:96,  r:2.4, pierce:99, pierceDmgLoss:0, spread:0,    effect:null,                               mag:40, reload:2.0, maxRange:96, accuracy:2.0, aimDelay:0.0, desc:'40 bursts. Burns over time. Pierces all enemies.'},
+  sec_railgun:{name:'RAILGUN',         icon:'<img src="All_Images/Images/railgun icon.png" class="weaponIcon">', rarity:'epic',      cls:'secondary', color:'#cc44ff', cd:1.1,  dmg:180, spd:440,r:1.6, pierce:99, pierceDmgLoss:0, spread:0,    effect:null,  chargeVfx:true,               mag:3,  reload:3.0, accuracy:0.0, aimDelay:1.65, desc:'3 shots. Full-screen pierce.'},
   sec_burst:  {name:'BURST RIFLE',     icon:'<img src="All_Images/Images/bullpup icon.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#44aaff', cd:0.275, dmg:20,  spd:240, r:1.6, pierce:0, spread:0,    effect:null,  burstCount:3,burstDelay:0.08, mag:18, reload:1.6, accuracy:1.2, aimDelay:0.54, desc:'18 rounds, 3-burst. Precise.'},
   sec_minigun:{name:'MINIGUN',         icon:'<img src="All_Images/Images/Minigun icon.webp" class="weaponIcon">', rarity:'legendary', cls:'secondary', color:'#ff4444', cd:0.03, dmg:9,   spd:224, r:1.2, pierce:0, spread:0,    effect:null,  spinUp:true,                  mag:100,reload:3.5, accuracy:3.0, aimDelay:0.24, desc:'100 rounds. Spin up required.'},
 };
@@ -1877,7 +2025,7 @@ function renderInventory(){
         <div class="invCardName" style="color:${rc}">${wDef.name}</div>
         <div class="invCardRarity ${w.rarity}">${w.rarity.toUpperCase()}</div>
         ${effBadge}
-        <div class="invCardStats">DMG: ${w.dmg} &nbsp; ${fRate}<br>PIERCE: ${w.pierce||0}${w.explode?' · EXPLODES':''}${(w.accuracy!=null)?' · ACC: ±'+w.accuracy+'°':''}</div>
+        <div class="invCardStats">DMG: ${w.dmg} &nbsp; ${fRate}<br>PIERCE: ${w.pierce||0}${w.pierce > 0 && w.pierceDmgLoss > 0 ? ' · -'+Math.round(w.pierceDmgLoss*100)+'%/hit' : ''}${w.explode?' · EXPLODES':''}${(w.accuracy!=null)?' · ACC: ±'+w.accuracy+'°':''}</div>
         <div class="invCardBtns">
           <button class="invBtn equipBtn${isEq?' active':''}" ${isEq?'disabled':''} onclick="equipFromInventory(${i})" style="${isEq?'border-color:'+ci.color+';color:'+ci.color:''}">
             ${isEq?'✓ EQUIPPED':'EQUIP ['+ci.key+']'}
@@ -2136,6 +2284,11 @@ function update(dt) {
           game.bullets.splice(i,1); hitAny=true; break;
         }
         b.pierce = (b.pierce||0) - 1;
+        // Apply per-weapon pierce damage loss for subsequent pierces
+        if(b.pierce >= 0){
+          const decay = b.pierceDmgLoss || 0;
+          if(decay > 0) b.dmg = Math.max(1, b.dmg * (1 - decay));
+        }
         if(b.pierce < 0){ game.bullets.splice(i,1); hitAny=true; }
         if(e.hp<=0) killEnemy(e,j);
         if(hitAny) break;
@@ -2290,6 +2443,7 @@ function fireBullet(p, w, ax, ay, angleOffset, ox, oy){
     vx:Math.cos(angle)*spd, vy:Math.sin(angle)*spd,
     r:w.r||4, baseR:w.r||4, dmg:w.dmg, baseDmg:w.dmg, color:w.color, life, maxLife:life,
     pierce:w.pierce||0,
+    pierceDmgLoss: w.pierceDmgLoss || 0,
     effect: w.effect ? {...w.effect} : null,
     explode: w.explode || null,
     weaponId: w.id,
@@ -3012,11 +3166,11 @@ function killEnemy(e, idx){
   // Drop ammo — each type rolls independently; weight 0-10 maps to 0-100% chance
   const isFort = game.mode==='fortress';
   const ammoTypes = isFort
-    ? [{type:'main',      weight:FORTRESS_SETTINGS.mainDropWeight||0, amt:8,  col:'#ff9900'},
-       {type:'secondary', weight:FORTRESS_SETTINGS.secDropWeight||0,  amt:20, col:'#cc44ff'}]
-    : [{type:'light',  weight:SETTINGS.lightDropWeight||0,  amt:20, col:'#aaddff'},
-       {type:'medium', weight:SETTINGS.mediumDropWeight||0, amt:12, col:'#ffcc44'},
-       {type:'heavy',  weight:SETTINGS.heavyDropWeight||0,  amt:8,  col:'#ff5533'}];
+    ? [{type:'main',      weight:FORTRESS_SETTINGS.mainDropWeight||0, amt:2,  col:'#ff9900'},
+       {type:'secondary', weight:FORTRESS_SETTINGS.secDropWeight||0,  amt:10, col:'#cc44ff'}]
+    : [{type:'light',  weight:SETTINGS.lightDropWeight||0,  amt:10, col:'#aaddff'},
+       {type:'medium', weight:SETTINGS.mediumDropWeight||0, amt:4,  col:'#ffcc44'},
+       {type:'heavy',  weight:SETTINGS.heavyDropWeight||0,  amt:2,  col:'#ff5533'}];
   // Scale ammo by enemy size: tiny(r≤9)=×0.5, small(r≤12)=×1, large(r≤20)=×1.5, huge(r>20)=×2
   const sizeMult = e.r <= 9 ? 0.5 : e.r <= 12 ? 1 : e.r <= 20 ? 1.5 : 2;
   let dropOffsetX = 10;
@@ -4458,6 +4612,14 @@ canvas.addEventListener('mouseup',   e=>{ if(e.button===0) game.mouseDown=false;
 canvas.addEventListener('mouseleave',e=>{ game.mouseDown=false; game.rightMouseDown=false; });
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('contextmenu',e=>e.preventDefault());
+// Close diff filter dropdown when clicking outside
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('lbDiffFilterWrap');
+  if(wrap && !wrap.contains(e.target)){
+    document.getElementById('lbDiffDropdown').classList.remove('open');
+    document.getElementById('lbDiffFilterBtn').classList.remove('open');
+  }
+});
 
 loadSavedSettings();
 
@@ -4651,6 +4813,35 @@ let _lbSortField = 'score';
 let _lbSortDir = 'desc';
 let _lbPage = 1;
 const LB_PAGE_SIZE = 100;
+let _lbHiddenDiffs = new Set(['custom', 'overpowered']);
+
+function _syncDiffFilterUI(){
+  document.querySelectorAll('.dfItem').forEach(item => {
+    const diff = item.dataset.diff;
+    const isHidden = _lbHiddenDiffs.has(diff);
+    item.classList.toggle('hidden-diff', isHidden);
+  });
+  // Update button label to show count hidden
+  const btn = document.getElementById('lbDiffFilterBtn');
+  if(btn){
+    const n = _lbHiddenDiffs.size;
+    btn.childNodes[0].textContent = n > 0 ? 'HIDE DIFFICULTIES ('+n+') ' : 'HIDE DIFFICULTIES ';
+  }
+}
+
+function toggleDiffHide(diff){
+  if(_lbHiddenDiffs.has(diff)) _lbHiddenDiffs.delete(diff);
+  else _lbHiddenDiffs.add(diff);
+  _syncDiffFilterUI();
+  renderLeaderboard();
+}
+
+function toggleDiffFilterDropdown(){
+  const btn = document.getElementById('lbDiffFilterBtn');
+  const dd  = document.getElementById('lbDiffDropdown');
+  const open = dd.classList.toggle('open');
+  btn.classList.toggle('open', open);
+}
 
 function setLbSortField(field, btn){
   _lbSortField = field;
@@ -4709,10 +4900,14 @@ function fmtTime(t){
 function renderLeaderboard(){
   document.getElementById('lbUserTag').textContent = _currentUser ? _currentUser.display : '—';
   const allEntries = _getLbEntries();
-  const filtered = _lbFilter === 'all' ? allEntries : allEntries.filter(e => e.mode === _lbFilter);
+  let filtered = _lbFilter === 'all' ? allEntries : allEntries.filter(e => e.mode === _lbFilter);
+  // Filter out hidden difficulties
+  if(_lbHiddenDiffs.size > 0){
+    filtered = filtered.filter(e => !_lbHiddenDiffs.has(e.difficulty || 'custom'));
+  }
 
   const f = _lbSortField, d = _lbSortDir;
-  const DIFF_ORDER = {custom:0, overpowered:1, easy:2, medium:3, hard:4, hardcore:5};
+  const DIFF_ORDER = {beginner:0, overpowered:1, easy:2, medium:3, hard:4, hardcore:5, custom:6};
   const sorted = [...filtered].sort((a, b) => {
     let av, bv;
     if(f === 'difficulty'){
@@ -4814,6 +5009,7 @@ function showLeaderboard(){
   if(scoreBtn) scoreBtn.classList.add('active');
   document.getElementById('lbDirDesc').classList.add('active');
   document.getElementById('lbDirAsc').classList.remove('active');
+  _syncDiffFilterUI();
   renderLeaderboard();
   document.getElementById('startScreen').style.display='none';
   document.getElementById('leaderboardScreen').style.display='flex';
@@ -4822,6 +5018,9 @@ function showLeaderboard(){
 function hideLeaderboard(){
   _lbSortField = 'score';
   _lbSortDir = 'desc';
+  // Close diff dropdown if open
+  document.getElementById('lbDiffDropdown').classList.remove('open');
+  document.getElementById('lbDiffFilterBtn').classList.remove('open');
   document.getElementById('leaderboardScreen').style.display='none';
   document.getElementById('startScreen').style.display='flex';
 }

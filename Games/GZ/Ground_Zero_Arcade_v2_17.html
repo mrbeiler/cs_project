@@ -38,7 +38,6 @@
   .choiceIcon img{width:48px;height:48px;}
   .weaponIcon{mix-blend-mode:screen;vertical-align:middle;width:24px;height:24px;}
   .weaponIcon.icon-lg{transform:scale(1.25);margin:0 3px;}
-  .weaponIcon.icon-sm{transform:scale(0.9);}
   .weaponIcon.icon-xs{transform:scale(0.72);}
   .choiceName{color:#00ccff;font-family:'Orbitron',monospace;font-size:11px;font-weight:700;letter-spacing:1px;margin-bottom:6px;}
   .choiceDesc{color:#668;font-size:10px;line-height:1.5;}
@@ -51,8 +50,6 @@
   .bigBtn{background:transparent;border:1px solid #00ccff;color:#00ccff;font-family:'Orbitron',monospace;font-size:14px;letter-spacing:3px;padding:14px 40px;cursor:pointer;transition:all 0.2s;}
   .bigBtn:hover{background:#00ccff;color:#000;box-shadow:0 0 30px rgba(0,200,255,0.5);}
   #weapons{position:absolute;bottom:12px;left:12px;display:flex;gap:8px;pointer-events:none;}
-  .weaponSlot{width:36px;height:36px;border:1px solid #334;background:#0a0a14;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:16px;position:relative;}
-  .weaponSlot .wLvl{position:absolute;bottom:1px;right:3px;font-size:8px;color:#ffcc00;font-family:'Orbitron',monospace;}
   #killCount{position:absolute;bottom:3px;right:12px;text-align:right;}
   .killNum{color:#ff4466;font-family:'Orbitron',monospace;font-size:24px;font-weight:900;}
   .killLbl{color:#446;font-size:9px;letter-spacing:2px;}
@@ -89,10 +86,6 @@
   #invCloseBtn{background:transparent;border:1px solid #334;color:#446;font-family:'Orbitron',monospace;font-size:10px;letter-spacing:3px;padding:8px 28px;cursor:pointer;transition:all 0.2s;}
   #invCloseBtn:hover{border-color:#ff4466;color:#ff4466;}
   #invHint{color:#223;font-size:9px;letter-spacing:2px;margin-top:6px;}
-  #tabHint{position:absolute;bottom:14px;left:12px;color:#335;font-size:9px;letter-spacing:1px;pointer-events:none;}
-
-
-
 
   /* RELOAD ANIMATION */
   #reloadAnim{position:absolute;bottom:8px;left:8px;width:130px;height:130px;display:none;align-items:center;justify-content:center;pointer-events:none;}
@@ -143,12 +136,14 @@
   .presetBtn{background:transparent;border:1px solid #334;color:#556;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1px;padding:6px 12px;cursor:pointer;transition:all 0.15s;border-radius:2px;}
   .presetBtn:hover{border-color:#00ccff;color:#00ccff;}
   .presetBtn.active{color:#000;font-weight:700;}
+  .presetBtn.beginner.active{background:#aaffcc;border-color:#aaffcc;color:#000;}
   .presetBtn.easy.active{background:#44ff88;border-color:#44ff88;color:#000;}
   .presetBtn.medium.active{background:#ffcc00;border-color:#ffcc00;color:#000;}
   .presetBtn.hard.active{background:#ff6600;border-color:#ff6600;color:#000;}
   .presetBtn.hardcore.active{background:#ff0044;border-color:#ff0044;color:#fff;}
   .presetBtn.custom.active{background:#aa44ff;border-color:#aa44ff;color:#fff;}
   .presetBtn.overpowered.active{background:#00ffcc;border-color:#00ffcc;color:#000;text-shadow:none;}
+  .presetBtn.seasonal.active{background:linear-gradient(135deg,#ff2244,#228822);border-color:#ff4466;color:#fff;text-shadow:0 0 8px #ff446688;}
   .triBtn{background:transparent;border:1px solid #334;color:#556;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1px;padding:5px 10px;cursor:pointer;transition:all 0.15s;}
   .triBtn:hover{border-color:#00ccff;color:#00ccff;}
   .triBtn.active{background:#00ccff;border-color:#00ccff;color:#000;font-weight:700;}
@@ -267,7 +262,23 @@
   .lbDiffBadge.hardcore{background:#ff004422;color:#ff4466;border:1px solid #ff004444;}
   .lbDiffBadge.custom{background:#aa44ff22;color:#aa44ff;border:1px solid #aa44ff44;}
 
-  /* MID-GAME DIFFICULTY CHANGED OVERLAY */
+  .lbDiffBadge.beginner{background:#aaffcc22;color:#aaffcc;border:1px solid #aaffcc44;}
+  /* DIFF HIDE DROPDOWN */
+  #lbDiffFilterWrap{position:relative;display:flex;justify-content:center;padding:0 0 10px 0;}
+  #lbDiffFilterBtn{background:transparent;border:1px solid #334;color:#446;font-family:'Orbitron',monospace;font-size:8px;letter-spacing:2px;padding:6px 14px;cursor:pointer;transition:all 0.2s;border-radius:2px;display:flex;align-items:center;gap:6px;}
+  #lbDiffFilterBtn:hover{border-color:#556;color:#668;}
+  #lbDiffFilterBtn.open{border-color:#aa44ff88;color:#aa44ff;}
+  #lbDiffFilterBtn .dfArrow{font-size:8px;transition:transform 0.15s;}
+  #lbDiffFilterBtn.open .dfArrow{transform:rotate(180deg);}
+  #lbDiffDropdown{position:absolute;top:100%;left:50%;transform:translateX(-50%);background:#0d0d1a;border:1px solid #334;border-radius:3px;padding:8px 0;min-width:180px;z-index:50;display:none;box-shadow:0 8px 24px rgba(0,0,0,0.6);}
+  #lbDiffDropdown.open{display:block;}
+  .dfItem{display:flex;align-items:center;gap:10px;padding:7px 14px;cursor:pointer;transition:background 0.1s;user-select:none;}
+  .dfItem:hover{background:#151528;}
+  .dfCheck{width:12px;height:12px;border:1px solid #334;border-radius:2px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.15s;font-size:8px;}
+  .dfItem.hidden-diff .dfCheck{background:transparent;border-color:#334;color:transparent;}
+  .dfItem:not(.hidden-diff) .dfCheck{background:#aa44ff33;border-color:#aa44ff;color:#aa44ff;}
+  .dfLabel{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:1px;}
+  .dfBadgeWrap{margin-left:auto;}
   #diffChangeOverlay{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:all;z-index:40;backdrop-filter:blur(4px);}
   #diffChangeTitle{font-family:'Orbitron',monospace;color:#ffcc00;font-size:18px;font-weight:900;letter-spacing:4px;margin-bottom:8px;text-shadow:0 0 16px #ffcc00;}
   #diffChangeSub{color:#556;font-size:11px;letter-spacing:2px;margin-bottom:10px;text-align:center;line-height:1.7;}
@@ -281,24 +292,38 @@
   #lbCurrentUser span{color:#00ccff88;}
 
   /* ── LOGIN SCREEN ── */
-  #loginScreen{position:absolute;top:0;left:0;width:100%;height:100%;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:all;z-index:50;}
-  #loginTitle{font-family:'Orbitron',monospace;color:#00ccff;font-size:46px;font-weight:900;letter-spacing:6px;text-shadow:0 0 30px #00ccff,0 0 60px rgba(0,200,255,0.3);margin-bottom:6px;}
-  #loginSub{color:#334;font-size:11px;letter-spacing:4px;margin-bottom:36px;}
-  #loginBox{background:#07070f;border:1px solid #223;border-radius:6px;padding:28px 32px;width:320px;display:flex;flex-direction:column;gap:0;}
-  #loginMsg{font-size:10px;letter-spacing:1px;text-align:center;min-height:16px;margin-bottom:12px;transition:all 0.2s;}
+  #loginScreen{position:absolute;top:0;left:0;width:100%;height:100%;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:all;z-index:50;overflow:hidden;}
+  #loginScreen::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 28px,rgba(0,200,255,0.025) 28px,rgba(0,200,255,0.025) 29px),repeating-linear-gradient(90deg,transparent,transparent 28px,rgba(0,200,255,0.018) 28px,rgba(0,200,255,0.018) 29px);pointer-events:none;}
+  #loginScreen::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 70% at 50% 50%,rgba(0,100,160,0.12) 0%,transparent 70%);pointer-events:none;}
+  #loginBrand{position:relative;z-index:1;text-align:center;margin-bottom:6px;}
+  #loginCrosshair{font-size:22px;color:#00ccff44;letter-spacing:0;display:block;margin-bottom:10px;line-height:1;}
+  #loginTitle{font-family:'Orbitron',monospace;color:#00ccff;font-size:42px;font-weight:900;letter-spacing:8px;text-shadow:0 0 24px #00ccff,0 0 60px rgba(0,200,255,0.25);margin-bottom:0;line-height:1;}
+  #loginArcade{font-family:'Orbitron',monospace;font-size:13px;font-weight:900;color:#00ccff;opacity:0.5;letter-spacing:12px;margin-top:4px;display:block;}
+  #loginSub{position:relative;z-index:1;color:#446;font-size:9px;letter-spacing:5px;margin-bottom:28px;text-transform:uppercase;}
+  #loginBox{position:relative;z-index:1;background:linear-gradient(160deg,#08080f 0%,#060610 100%);border:1px solid #1a2a3a;border-radius:4px;padding:6px 28px 22px;width:310px;display:flex;flex-direction:column;gap:0;box-shadow:0 0 40px rgba(0,150,255,0.06),inset 0 1px 0 rgba(0,200,255,0.06);}
+  #loginBox::before{content:'';position:absolute;top:-1px;left:20px;right:20px;height:1px;background:linear-gradient(90deg,transparent,#00ccff44,transparent);}
+  #loginBoxCornerTL,#loginBoxCornerTR,#loginBoxCornerBL,#loginBoxCornerBR{position:absolute;width:10px;height:10px;border-color:#00ccff55;border-style:solid;}
+  #loginBoxCornerTL{top:-1px;left:-1px;border-width:2px 0 0 2px;}
+  #loginBoxCornerTR{top:-1px;right:-1px;border-width:2px 2px 0 0;}
+  #loginBoxCornerBL{bottom:-1px;left:-1px;border-width:0 0 2px 2px;}
+  #loginBoxCornerBR{bottom:-1px;right:-1px;border-width:0 2px 2px 0;}
+  #loginMsg{font-size:10px;letter-spacing:1px;text-align:center;min-height:16px;margin-bottom:10px;transition:all 0.2s;font-family:'Orbitron',monospace;}
   #loginMsg.err{color:#ff4466;}
   #loginMsg.ok{color:#44ffaa;}
-  .loginLabel{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:3px;color:#334;margin-bottom:5px;margin-top:14px;}
+  .loginLabel{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:3px;color:#336688;margin-bottom:5px;margin-top:16px;display:flex;align-items:center;gap:6px;}
+  .loginLabel::before{content:'';display:inline-block;width:3px;height:3px;background:#00ccff66;border-radius:50%;}
   .loginLabel:first-of-type{margin-top:0;}
-  .loginInput{background:#0d0d1a;border:1px solid #223;color:#aaccff;font-family:'Share Tech Mono',monospace;font-size:14px;padding:10px 12px;border-radius:3px;outline:none;width:100%;transition:border 0.2s;letter-spacing:1px;}
-  .loginInput:focus{border-color:#00ccff55;}
-  .loginInput::placeholder{color:#223;}
-  #loginPinWrap{display:flex;gap:8px;justify-content:space-between;}
-  .pinDigit{background:#0d0d1a;border:1px solid #223;color:#00ccff;font-family:'Orbitron',monospace;font-size:22px;font-weight:700;text-align:center;width:56px;height:56px;border-radius:4px;outline:none;transition:border 0.2s;caret-color:transparent;}
-  .pinDigit:focus{border-color:#00ccff88;background:#0a1520;}
-  #loginBtn{background:transparent;border:1px solid #00ccff;color:#00ccff;font-family:'Orbitron',monospace;font-size:12px;letter-spacing:3px;padding:12px;cursor:pointer;transition:all 0.2s;margin-top:22px;border-radius:3px;}
-  #loginBtn:hover{background:#00ccff;color:#000;box-shadow:0 0 20px rgba(0,200,255,0.4);}
-  #loginHint{color:#223;font-size:9px;letter-spacing:1px;margin-top:10px;text-align:center;line-height:1.6;}
+  .loginInput{background:#050510;border:1px solid #1a2535;color:#aaccff;font-family:'Share Tech Mono',monospace;font-size:14px;padding:10px 13px;border-radius:2px;outline:none;width:100%;transition:border 0.2s,box-shadow 0.2s;letter-spacing:1.5px;box-sizing:border-box;}
+  .loginInput:focus{border-color:#00ccff44;box-shadow:0 0 12px rgba(0,200,255,0.08);}
+  .loginInput::placeholder{color:#1a2535;}
+  #loginPinWrap{display:flex;gap:8px;justify-content:space-between;margin-top:2px;}
+  .pinDigit{background:#050510;border:1px solid #1a2535;color:#00ccff;font-family:'Orbitron',monospace;font-size:24px;font-weight:700;text-align:center;width:54px;height:54px;border-radius:2px;outline:none;transition:border 0.2s,box-shadow 0.2s;caret-color:transparent;}
+  .pinDigit:focus{border-color:#00ccff66;background:#071520;box-shadow:0 0 14px rgba(0,200,255,0.1);}
+  #loginBtn{background:transparent;border:1px solid #00ccff55;color:#00ccff;font-family:'Orbitron',monospace;font-size:11px;letter-spacing:4px;padding:13px;cursor:pointer;transition:all 0.2s;margin-top:20px;border-radius:2px;position:relative;overflow:hidden;}
+  #loginBtn::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(0,200,255,0.06),transparent);transform:translateX(-100%);transition:transform 0.4s;}
+  #loginBtn:hover{border-color:#00ccff;box-shadow:0 0 20px rgba(0,200,255,0.2);}
+  #loginBtn:hover::before{transform:translateX(100%);}
+  #loginHint{color:#1e2e3e;font-size:9px;letter-spacing:1px;margin-top:12px;text-align:center;line-height:1.7;border-top:1px solid #0d1520;padding-top:10px;}
   #logoutBtn{position:absolute;top:10px;right:12px;background:transparent;border:1px solid #223;color:#334;font-family:'Orbitron',monospace;font-size:8px;letter-spacing:2px;padding:5px 10px;cursor:pointer;transition:all 0.2s;pointer-events:all;}
   #logoutBtn:hover{border-color:#ff4466;color:#ff4466;}
   #loginUserDisplay{position:absolute;top:32px;right:12px;font-family:'Orbitron',monospace;font-size:8px;color:#336;letter-spacing:2px;padding:5px 0;text-align:right;}
@@ -386,10 +411,20 @@
       <div class="sectionLabel">DIFFICULTY PRESET</div>
       <div class="settingRow" style="border:none;">
         <div class="presetGroup">
+          <button class="presetBtn beginner cPresetBtn"    data-preset="beginner"    onclick="applyPreset('beginner','classic')">BEGINNER</button>
           <button class="presetBtn easy cPresetBtn"        data-preset="easy"        onclick="applyPreset('easy','classic')">EASY</button>
           <button class="presetBtn medium cPresetBtn"      data-preset="medium"      onclick="applyPreset('medium','classic')">MEDIUM</button>
           <button class="presetBtn hard cPresetBtn"        data-preset="hard"        onclick="applyPreset('hard','classic')">HARD</button>
           <button class="presetBtn hardcore cPresetBtn"    data-preset="hardcore"    onclick="applyPreset('hardcore','classic')">HARDCORE</button>
+        </div>
+      </div>
+    </div>
+    <div class="settingsSection">
+      <div class="sectionLabel">SPECIAL DIFFICULTIES</div>
+      <div class="settingRow" style="border:none;">
+        <div class="presetGroup">
+          <button class="presetBtn overpowered cPresetBtn" data-preset="overpowered" onclick="applyPreset('overpowered','classic')">OVERPOWERED</button>
+          <button class="presetBtn seasonal cPresetBtn" data-preset="seasonal" onclick="applyPreset('seasonal','classic')">🎄 SEASONAL</button>
           <div class="customBtnGroup">
             <button class="presetBtn custom cPresetBtn" data-preset="custom" onclick="applyPreset('custom','classic')">CUSTOM</button>
             <div id="cCustomSlotWrap" class="slotStepper">
@@ -400,14 +435,6 @@
               </div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-    <div class="settingsSection">
-      <div class="sectionLabel">SPECIAL DIFFICULTIES</div>
-      <div class="settingRow" style="border:none;">
-        <div class="presetGroup">
-          <button class="presetBtn overpowered cPresetBtn" data-preset="overpowered" onclick="applyPreset('overpowered','classic')">OVERPOWERED</button>
         </div>
       </div>
     </div>
@@ -428,7 +455,7 @@
           <input type="checkbox" id="setInfiniteAmmo" onchange="SETTINGS.infiniteAmmo=this.checked"><span class="toggleSlider"></span>
         </div>
       </div>
-      <div class="settingRow" id="classicAllWeaponsRow" style="display:none;">
+      <div class="settingRow" id="classicAllWeaponsRow" data-preset-ctrl="classic">
         <div><div class="settingName" style="color:#ffaa00;">ALL WEAPONS UNLOCKED</div><div class="settingDesc">Start with every weapon in your arsenal</div></div>
         <div class="toggleWrap" onclick="document.getElementById('setAllWeapons').click()">
           <input type="checkbox" id="setAllWeapons" onchange="SETTINGS.allWeaponsUnlocked=this.checked"><span class="toggleSlider"></span>
@@ -436,7 +463,7 @@
       </div>
       <div class="settingRow" data-preset-ctrl="classic">
         <div><div class="settingName">RELOAD</div><div class="settingDesc">Disable to skip reload entirely</div></div>
-        <div class="toggleWrap" onclick="var cb=document.getElementById('setReload');cb.checked=!cb.checked;toggleReloadSpeed(cb.checked);SETTINGS.reload=cb.checked">
+        <div class="toggleWrap" onclick="var cb=document.getElementById('setReload');cb.checked=!cb.checked;toggleReloadSpeed(cb.checked,'classic');SETTINGS.reload=cb.checked">
           <input type="checkbox" id="setReload" checked><span class="toggleSlider"></span>
         </div>
       </div>
@@ -481,6 +508,13 @@
           <span class="sliderVal" id="lightDropVal">8</span>
         </div>
       </div>
+      <div style="padding:4px 0 6px 16px;border-left:2px solid #1a2a3a;margin-left:4px;display:flex;align-items:center;justify-content:space-between;">
+        <div><div class="settingName" style="color:#7bbcdd;font-size:10px;">START AMOUNT</div><div class="settingDesc">Light ammo at game start</div></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="range" class="settingSlider" id="setStartLight" min="0" max="500" step="10" value="100" oninput="onSlider('setStartLight','startLightVal',v=>v)">
+          <span class="sliderVal" id="startLightVal">100</span>
+        </div>
+      </div>
       <div class="settingRow">
         <div><div class="settingName" style="color:#ffcc44;">MEDIUM AMMO</div><div class="settingDesc">Relative drop frequency for medium ammo</div></div>
         <div style="display:flex;align-items:center;gap:8px;">
@@ -489,12 +523,26 @@
           <span class="sliderVal" id="mediumDropVal">5</span>
         </div>
       </div>
+      <div style="padding:4px 0 6px 16px;border-left:2px solid #2a2a1a;margin-left:4px;display:flex;align-items:center;justify-content:space-between;">
+        <div><div class="settingName" style="color:#ccaa33;font-size:10px;">START AMOUNT</div><div class="settingDesc">Medium ammo at game start</div></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="range" class="settingSlider" id="setStartMedium" min="0" max="300" step="5" value="0" oninput="onSlider('setStartMedium','startMediumVal',v=>v)">
+          <span class="sliderVal" id="startMediumVal">0</span>
+        </div>
+      </div>
       <div class="settingRow" style="border:none;">
         <div><div class="settingName" style="color:#ff5533;">HEAVY AMMO</div><div class="settingDesc">Relative drop frequency for heavy ammo</div></div>
         <div style="display:flex;align-items:center;gap:8px;">
           <button class="triBtn active" id="setHeavyEnable" style="font-size:8px;padding:4px 8px;" onclick="toggleAmmoEnabled('heavy')">ON</button>
           <input type="range" class="settingSlider" id="setHeavyDrop" min="0" max="10" step="1" value="4" oninput="onSlider('setHeavyDrop','heavyDropVal',v=>v)">
           <span class="sliderVal" id="heavyDropVal">4</span>
+        </div>
+      </div>
+      <div style="padding:4px 0 0 16px;border-left:2px solid #2a1a1a;margin-left:4px;display:flex;align-items:center;justify-content:space-between;">
+        <div><div class="settingName" style="color:#cc4422;font-size:10px;">START AMOUNT</div><div class="settingDesc">Heavy ammo at game start</div></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="range" class="settingSlider" id="setStartHeavy" min="0" max="100" step="1" value="0" oninput="onSlider('setStartHeavy','startHeavyVal',v=>v)">
+          <span class="sliderVal" id="startHeavyVal">0</span>
         </div>
       </div>
     </div>
@@ -518,10 +566,20 @@
       <div class="sectionLabel">DIFFICULTY PRESET</div>
       <div class="settingRow" style="border:none;">
         <div class="presetGroup">
+          <button class="presetBtn beginner fPresetBtn"    data-preset="beginner"    onclick="applyPreset('beginner','fortress')">BEGINNER</button>
           <button class="presetBtn easy fPresetBtn"        data-preset="easy"        onclick="applyPreset('easy','fortress')">EASY</button>
           <button class="presetBtn medium fPresetBtn"      data-preset="medium"      onclick="applyPreset('medium','fortress')">MEDIUM</button>
           <button class="presetBtn hard fPresetBtn"        data-preset="hard"        onclick="applyPreset('hard','fortress')">HARD</button>
           <button class="presetBtn hardcore fPresetBtn"    data-preset="hardcore"    onclick="applyPreset('hardcore','fortress')">HARDCORE</button>
+        </div>
+      </div>
+    </div>
+    <div class="settingsSection">
+      <div class="sectionLabel">SPECIAL DIFFICULTIES</div>
+      <div class="settingRow" style="border:none;">
+        <div class="presetGroup">
+          <button class="presetBtn overpowered fPresetBtn" data-preset="overpowered" onclick="applyPreset('overpowered','fortress')">OVERPOWERED</button>
+          <button class="presetBtn seasonal fPresetBtn" data-preset="seasonal" onclick="applyPreset('seasonal','fortress')">🎄 SEASONAL</button>
           <div class="customBtnGroup">
             <button class="presetBtn custom fPresetBtn" data-preset="custom" onclick="applyPreset('custom','fortress')">CUSTOM</button>
             <div id="fCustomSlotWrap" class="slotStepper">
@@ -532,14 +590,6 @@
               </div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-    <div class="settingsSection">
-      <div class="sectionLabel">SPECIAL DIFFICULTIES</div>
-      <div class="settingRow" style="border:none;">
-        <div class="presetGroup">
-          <button class="presetBtn overpowered fPresetBtn" data-preset="overpowered" onclick="applyPreset('overpowered','fortress')">OVERPOWERED</button>
         </div>
       </div>
     </div>
@@ -588,7 +638,7 @@
           <input type="checkbox" id="fSetInfiniteAmmo" onchange="FORTRESS_SETTINGS.infiniteAmmo=this.checked"><span class="toggleSlider"></span>
         </div>
       </div>
-      <div class="settingRow" id="fortressAllWeaponsRow" style="display:none;">
+      <div class="settingRow" id="fortressAllWeaponsRow" data-preset-ctrl="fortress">
         <div><div class="settingName" style="color:#ffaa00;">ALL WEAPONS UNLOCKED</div><div class="settingDesc">Start with every weapon in your arsenal</div></div>
         <div class="toggleWrap" onclick="document.getElementById('fSetAllWeapons').click()">
           <input type="checkbox" id="fSetAllWeapons" onchange="FORTRESS_SETTINGS.allWeaponsUnlocked=this.checked"><span class="toggleSlider"></span>
@@ -596,7 +646,7 @@
       </div>
       <div class="settingRow" data-preset-ctrl="fortress" style="border:none;">
         <div><div class="settingName">RELOAD</div><div class="settingDesc">Disable to skip reload entirely</div></div>
-        <div class="toggleWrap" onclick="var cb=document.getElementById('fSetReload');cb.checked=!cb.checked;fToggleReloadSpeed(cb.checked);FORTRESS_SETTINGS.reload=cb.checked">
+        <div class="toggleWrap" onclick="var cb=document.getElementById('fSetReload');cb.checked=!cb.checked;toggleReloadSpeed(cb.checked,'fortress');FORTRESS_SETTINGS.reload=cb.checked">
           <input type="checkbox" id="fSetReload" checked><span class="toggleSlider"></span>
         </div>
       </div>
@@ -635,12 +685,26 @@
           <span class="sliderVal" id="fMainDropVal">5</span>
         </div>
       </div>
+      <div style="padding:4px 0 6px 16px;border-left:2px solid #2a1a0a;margin-left:4px;display:flex;align-items:center;justify-content:space-between;">
+        <div><div class="settingName" style="color:#cc7700;font-size:10px;">START AMOUNT</div><div class="settingDesc">Main ammo at game start</div></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="range" class="settingSlider" id="fSetStartMain" min="0" max="500" step="10" value="200" oninput="fOnSlider('fSetStartMain','fStartMainVal',v=>v)">
+          <span class="sliderVal" id="fStartMainVal">200</span>
+        </div>
+      </div>
       <div class="settingRow" style="border:none;">
         <div><div class="settingName" style="color:#cc44ff;">SECONDARY AMMO</div><div class="settingDesc">Relative drop frequency for secondary weapon ammo</div></div>
         <div style="display:flex;align-items:center;gap:8px;">
           <button class="triBtn active" id="fSetSecEnable" style="font-size:8px;padding:4px 8px;" onclick="toggleAmmoEnabled('secondary')">ON</button>
           <input type="range" class="settingSlider" id="fSetSecDrop" min="0" max="10" step="1" value="4" oninput="fOnSlider('fSetSecDrop','fSecDropVal',v=>v)">
           <span class="sliderVal" id="fSecDropVal">4</span>
+        </div>
+      </div>
+      <div style="padding:4px 0 0 16px;border-left:2px solid #1a0a2a;margin-left:4px;display:flex;align-items:center;justify-content:space-between;">
+        <div><div class="settingName" style="color:#9933cc;font-size:10px;">START AMOUNT</div><div class="settingDesc">Secondary ammo at game start</div></div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="range" class="settingSlider" id="fSetStartSec" min="0" max="500" step="10" value="200" oninput="fOnSlider('fSetStartSec','fStartSecVal',v=>v)">
+          <span class="sliderVal" id="fStartSecVal">200</span>
         </div>
       </div>
     </div>
@@ -687,9 +751,17 @@
   </div>
   <!-- LOGIN SCREEN -->
   <div id="loginScreen">
-    <div id="loginTitle">GROUND ZERO</div>
+    <div id="loginBrand">
+      <span id="loginCrosshair">✛</span>
+      <div id="loginTitle">GROUND ZERO</div>
+      <span id="loginArcade">ARCADE</span>
+    </div>
     <div id="loginSub">IDENTIFY YOURSELF, SOLDIER</div>
     <div id="loginBox">
+      <div id="loginBoxCornerTL"></div>
+      <div id="loginBoxCornerTR"></div>
+      <div id="loginBoxCornerBL"></div>
+      <div id="loginBoxCornerBR"></div>
       <div id="loginMsg"></div>
       <div class="loginLabel">GAMERTAG</div>
       <input class="loginInput" id="loginGtag" type="text" maxlength="16" placeholder="YOUR_TAG" autocomplete="off" spellcheck="false">
@@ -747,6 +819,18 @@
         <div id="lbSortDirGroup">
           <button class="lbDirBtn active" id="lbDirDesc" onclick="setLbDir('desc')">▼</button>
           <button class="lbDirBtn"        id="lbDirAsc"  onclick="setLbDir('asc')">▲</button>
+        </div>
+      </div>
+      <div id="lbDiffFilterWrap">
+        <button id="lbDiffFilterBtn" onclick="toggleDiffFilterDropdown()">HIDE DIFFICULTIES <span class="dfArrow">▾</span></button>
+        <div id="lbDiffDropdown">
+          <div class="dfItem" data-diff="beginner"   onclick="toggleDiffHide('beginner')">  <div class="dfCheck">✓</div><span class="dfLabel" style="color:#aaffcc;">BEGINNER</span>  </div>
+          <div class="dfItem" data-diff="easy"       onclick="toggleDiffHide('easy')">      <div class="dfCheck">✓</div><span class="dfLabel" style="color:#44ff88;">EASY</span>      </div>
+          <div class="dfItem" data-diff="medium"     onclick="toggleDiffHide('medium')">    <div class="dfCheck">✓</div><span class="dfLabel" style="color:#ffcc00;">MEDIUM</span>    </div>
+          <div class="dfItem" data-diff="hard"       onclick="toggleDiffHide('hard')">      <div class="dfCheck">✓</div><span class="dfLabel" style="color:#ff6600;">HARD</span>      </div>
+          <div class="dfItem" data-diff="hardcore"   onclick="toggleDiffHide('hardcore')">  <div class="dfCheck">✓</div><span class="dfLabel" style="color:#ff4466;">HARDCORE</span>  </div>
+          <div class="dfItem" data-diff="overpowered" onclick="toggleDiffHide('overpowered')"><div class="dfCheck">✓</div><span class="dfLabel" style="color:#00ffcc;">OVERPOWERED</span></div>
+          <div class="dfItem" data-diff="custom"     onclick="toggleDiffHide('custom')">    <div class="dfCheck">✓</div><span class="dfLabel" style="color:#aa44ff;">CUSTOM</span>    </div>
         </div>
       </div>
     </div>
@@ -828,12 +912,16 @@
 <!-- ============================================================ -->
 <!-- SECTION 1: GLOBALS (canvas, game obj, audio ctx)             -->
 <!-- ============================================================ -->
-<script id="section-globals">
+<script>
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 let W = 800, H = 600;
+const FORTRESS_WALL_R = 32; // radius of fortress base circle — used in update, draw, and calcBulletHitDmg
 
 let game = {};
+
+// Cache for crosshair cursor canvas — keyed by dot color, regenerated only on color change
+const _crosshairCache = new Map();
 
 
 // ══════════════════════════════════════════════════════════════════
@@ -851,7 +939,7 @@ function ensureAudio(){
 <!-- ============================================================ -->
 <!-- SECTION 2: SFX (all synthesized sound effects)               -->
 <!-- ============================================================ -->
-<script id="section-sfx">
+<script>
 const SFX_VOL = 0.25; // master volume
 
 function sfxShoot(){
@@ -1061,7 +1149,7 @@ function sfxReloadDone(){
 <!-- ============================================================ -->
 <!-- SECTION 3: SETTINGS (SETTINGS obj, presets, UI sync, save)   -->
 <!-- ============================================================ -->
-<script id="section-settings">
+<script>
 // Global options (main menu)
 const GLOBAL = {};
 
@@ -1070,14 +1158,16 @@ const SETTINGS = {
   infiniteAmmo: false, reload: true, reloadSpeedMult: 1.0,
   spawnRateMult: 1.0, enemySpeedMult: 1.0, autoCollect: true, aimLaser: 'partial', preset: 'medium',
   lightDropWeight: 8, mediumDropWeight: 5, heavyDropWeight: 4,
-  lightEnabled: true, mediumEnabled: true, heavyEnabled: true, allWeaponsUnlocked: false
+  lightEnabled: true, mediumEnabled: true, heavyEnabled: true, allWeaponsUnlocked: false,
+  startLightAmmo: 100, startMediumAmmo: 0, startHeavyAmmo: 0
 };
 const FORTRESS_SETTINGS = {
   infiniteAmmo: false, reload: true, reloadSpeedMult: 1.0,
   spawnRateMult: 1.0, enemySpeedMult: 1.0, autoCollect: true, autoSecondary: true, aimLaser: 'partial', preset: 'medium',
   mainDropWeight: 5, secDropWeight: 4,
   mainEnabled: true, secEnabled: true, allWeaponsUnlocked: false,
-  overkillMult: 0.0, showEmergencyZone: true, emergencyMode: true
+  overkillMult: 0.0, showEmergencyZone: true, emergencyMode: true,
+  startMainAmmo: 200, startSecAmmo: 200
 };
 
 // Return whichever settings apply to the current game mode
@@ -1085,16 +1175,20 @@ function activeSettings(){ return (game.mode==='fortress') ? FORTRESS_SETTINGS :
 
 const PRESETS = {
   //                                                           ── classic ammo ──────────────────  ── fortress ammo ──
-  overpowered: {infiniteAmmo:true,  reload:false, reloadSpeedMult:2.0, spawnRateMult:3.0, enemySpeedMult:0.3, autoCollect:true,
+  overpowered: {infiniteAmmo:true,  reload:false, reloadSpeedMult:2.0, spawnRateMult:3.0, enemySpeedMult:0.3, autoCollect:true,  allWeaponsUnlocked:true,
                 lightDropWeight:0, mediumDropWeight:0, heavyDropWeight:0, mainDropWeight:0, secDropWeight:0},
-  easy:        {infiniteAmmo:true,  reload:false, reloadSpeedMult:1.0, spawnRateMult:0.8, enemySpeedMult:0.6, autoCollect:true,
+  beginner:    {infiniteAmmo:true,  reload:false, reloadSpeedMult:1.0, spawnRateMult:0.5, enemySpeedMult:0.4, autoCollect:true,  allWeaponsUnlocked:false,
                 lightDropWeight:0, mediumDropWeight:0, heavyDropWeight:0, mainDropWeight:0, secDropWeight:0},
-  medium:      {infiniteAmmo:false, reload:true,  reloadSpeedMult:1.5, spawnRateMult:1.0, enemySpeedMult:1.0, autoCollect:true,
+  easy:        {infiniteAmmo:true,  reload:false, reloadSpeedMult:1.0, spawnRateMult:0.8, enemySpeedMult:0.6, autoCollect:true,  allWeaponsUnlocked:false,
+                lightDropWeight:0, mediumDropWeight:0, heavyDropWeight:0, mainDropWeight:0, secDropWeight:0},
+  medium:      {infiniteAmmo:false, reload:true,  reloadSpeedMult:1.5, spawnRateMult:1.0, enemySpeedMult:1.0, autoCollect:true,  allWeaponsUnlocked:false,
                 lightDropWeight:9,  mediumDropWeight:6, heavyDropWeight:5, mainDropWeight:5, secDropWeight:9},
-  hard:        {infiniteAmmo:false, reload:true,  reloadSpeedMult:1.0, spawnRateMult:1.5, enemySpeedMult:1.0, autoCollect:true,
+  hard:        {infiniteAmmo:false, reload:true,  reloadSpeedMult:1.0, spawnRateMult:1.5, enemySpeedMult:1.0, autoCollect:true,  allWeaponsUnlocked:false,
                 lightDropWeight:6,  mediumDropWeight:4, heavyDropWeight:3, mainDropWeight:3, secDropWeight:6},
-  hardcore:    {infiniteAmmo:false, reload:true,  reloadSpeedMult:0.8, spawnRateMult:2.4, enemySpeedMult:2.0, autoCollect:false,
+  hardcore:    {infiniteAmmo:false, reload:true,  reloadSpeedMult:0.8, spawnRateMult:2.4, enemySpeedMult:2.0, autoCollect:false, allWeaponsUnlocked:false,
                 lightDropWeight:5,  mediumDropWeight:2, heavyDropWeight:1, mainDropWeight:1, secDropWeight:5},
+  seasonal:    {infiniteAmmo:true,  reload:false, reloadSpeedMult:1.5, spawnRateMult:2.5, enemySpeedMult:0.75, autoCollect:true, allWeaponsUnlocked:true,
+                lightDropWeight:0, mediumDropWeight:0, heavyDropWeight:0, mainDropWeight:0, secDropWeight:0},
 };
 
 // Returns the name of the matching preset if all preset-relevant fields match,
@@ -1109,7 +1203,8 @@ function detectPreset(s){
        r(s.reloadSpeedMult)  === r(p.reloadSpeedMult)  &&
        r(s.spawnRateMult)    === r(p.spawnRateMult)    &&
        r(s.enemySpeedMult)   === r(p.enemySpeedMult)   &&
-       (isFort || s.autoCollect === p.autoCollect);
+       (isFort || s.autoCollect === p.autoCollect)      &&
+       (!!s.allWeaponsUnlocked) === (!!p.allWeaponsUnlocked);
     if(!baseMatch) continue;
     const ammoMatch = isFort
       ? (s.mainDropWeight === p.mainDropWeight && s.secDropWeight  === p.secDropWeight)
@@ -1120,12 +1215,14 @@ function detectPreset(s){
 }
 
 function syncClassicPreset(){
-  SETTINGS.preset = detectPreset(SETTINGS);
+  // Only re-detect if not explicitly set to custom — prevents mid-game settings
+  // from snapping to a named preset when custom values happen to match one
+  if(SETTINGS.preset !== 'custom') SETTINGS.preset = detectPreset(SETTINGS);
   syncPresetBtns('classic', SETTINGS.preset);
   updateCustomControls('classic', SETTINGS.preset === 'custom');
 }
 function syncFortressPreset(){
-  FORTRESS_SETTINGS.preset = detectPreset(FORTRESS_SETTINGS);
+  if(FORTRESS_SETTINGS.preset !== 'custom') FORTRESS_SETTINGS.preset = detectPreset(FORTRESS_SETTINGS);
   syncPresetBtns('fortress', FORTRESS_SETTINGS.preset);
   updateCustomControls('fortress', FORTRESS_SETTINGS.preset === 'custom');
 }
@@ -1147,6 +1244,7 @@ function applyPreset(name, mode){
     s.spawnRateMult   = p.spawnRateMult;
     s.enemySpeedMult  = p.enemySpeedMult;
     s.autoCollect     = p.autoCollect;
+    s.allWeaponsUnlocked = p.allWeaponsUnlocked ?? false;
     s.preset          = name;
     if(mode==='fortress'){
       s.mainDropWeight = p.mainDropWeight;
@@ -1242,8 +1340,7 @@ function syncAmmoEnableBtn(btnId, sliderId, enabled){
   if(slider) slider.disabled = !enabled;
 }
 
-function toggleReloadSpeed(on){ document.getElementById('reloadSpeedRow').style.display=on?'':'none'; }
-function fToggleReloadSpeed(on){ document.getElementById('fReloadSpeedRow').style.display=on?'':'none'; }
+function toggleReloadSpeed(on, mode){ document.getElementById(mode==='fortress'?'fReloadSpeedRow':'reloadSpeedRow').style.display=on?'':'none'; }
 
 function _customSlotKey(mode, slot){ const u = _currentUser ? _currentUser.key : 'guest'; return 'survivorCustom_'+u+'_'+mode+'_'+slot; }
 function _activeSlotKey(mode){ const u = _currentUser ? _currentUser.key : 'guest'; return 'survivorCustomSlot_'+u+'_'+mode; }
@@ -1316,12 +1413,8 @@ function loadSavedSettings(){
       if(legacy){ Object.assign(FORTRESS_SETTINGS, JSON.parse(legacy)); }
     }
   } catch(e){}
-  // Strip allWeaponsUnlocked if dev mode is off
+  // Strip allWeaponsUnlocked if dev mode is off (dev mode now only controls custom override, not preset values)
   const devOn = localStorage.getItem('survivorDevSettings') === '1';
-  if(!devOn){
-    SETTINGS.allWeaponsUnlocked = false;
-    FORTRESS_SETTINGS.allWeaponsUnlocked = false;
-  }
 }
 
 // Show/hide save button and slot stepper based on whether preset is custom
@@ -1343,8 +1436,8 @@ function updateCustomControls(mode, isCustom){
   });
   // When switching to custom, re-apply reload speed sub-row visibility based on reload toggle
   if(isCustom){
-    if(mode==='classic') toggleReloadSpeed(document.getElementById('setReload').checked);
-    else fToggleReloadSpeed(document.getElementById('fSetReload').checked);
+    const reloadId = mode==='classic' ? 'setReload' : 'fSetReload';
+    toggleReloadSpeed(document.getElementById(reloadId).checked, mode);
   }
 }
 
@@ -1353,7 +1446,7 @@ function syncClassicUI(){
   syncAimLaserBtns('classic', SETTINGS.aimLaser);
   document.getElementById('setInfiniteAmmo').checked=SETTINGS.infiniteAmmo;
   document.getElementById('setReload').checked=SETTINGS.reload;
-  toggleReloadSpeed(SETTINGS.reload);
+  toggleReloadSpeed(SETTINGS.reload, 'classic');
   document.getElementById('setSpawnRate').value=SETTINGS.spawnRateMult;
   document.getElementById('setEnemySpeed').value=SETTINGS.enemySpeedMult;
   document.getElementById('spawnRateVal').textContent=SETTINGS.spawnRateMult.toFixed(1)+'x';
@@ -1369,19 +1462,20 @@ function syncClassicUI(){
   syncAmmoEnableBtn('setLightEnable','setLightDrop',   SETTINGS.lightEnabled  !== false);
   syncAmmoEnableBtn('setMediumEnable','setMediumDrop', SETTINGS.mediumEnabled !== false);
   syncAmmoEnableBtn('setHeavyEnable','setHeavyDrop',   SETTINGS.heavyEnabled  !== false);
+  document.getElementById('setStartLight').value  = SETTINGS.startLightAmmo  ?? 100;
+  document.getElementById('setStartMedium').value = SETTINGS.startMediumAmmo ?? 0;
+  document.getElementById('setStartHeavy').value  = SETTINGS.startHeavyAmmo  ?? 0;
+  document.getElementById('startLightVal').textContent  = SETTINGS.startLightAmmo  ?? 100;
+  document.getElementById('startMediumVal').textContent = SETTINGS.startMediumAmmo ?? 0;
+  document.getElementById('startHeavyVal').textContent  = SETTINGS.startHeavyAmmo  ?? 0;
   document.getElementById('setAllWeapons').checked = !!SETTINGS.allWeaponsUnlocked;
   syncClassicPreset();
-  // allWeaponsRow visibility handled by updateCustomControls via syncClassicPreset;
-  // only show if dev mode is also on
-  const devOn = document.getElementById('devSettingsToggle').checked;
-  const isCustom = SETTINGS.preset === 'custom';
-  document.getElementById('classicAllWeaponsRow').style.display = (devOn && isCustom) ? '' : 'none';
 }
 
 function syncFortressUI(){
   document.getElementById('fSetInfiniteAmmo').checked=FORTRESS_SETTINGS.infiniteAmmo;
   document.getElementById('fSetReload').checked=FORTRESS_SETTINGS.reload;
-  fToggleReloadSpeed(FORTRESS_SETTINGS.reload);
+  toggleReloadSpeed(FORTRESS_SETTINGS.reload, 'fortress');
   document.getElementById('fSetSpawnRate').value=FORTRESS_SETTINGS.spawnRateMult;
   document.getElementById('fSetEnemySpeed').value=FORTRESS_SETTINGS.enemySpeedMult;
   document.getElementById('fSpawnRateVal').textContent=FORTRESS_SETTINGS.spawnRateMult.toFixed(1)+'x';
@@ -1396,6 +1490,10 @@ function syncFortressUI(){
   document.getElementById('fSecDropVal').textContent=FORTRESS_SETTINGS.secDropWeight;
   syncAmmoEnableBtn('fSetMainEnable','fSetMainDrop', FORTRESS_SETTINGS.mainEnabled !== false);
   syncAmmoEnableBtn('fSetSecEnable','fSetSecDrop',   FORTRESS_SETTINGS.secEnabled  !== false);
+  document.getElementById('fSetStartMain').value = FORTRESS_SETTINGS.startMainAmmo ?? 200;
+  document.getElementById('fSetStartSec').value  = FORTRESS_SETTINGS.startSecAmmo  ?? 200;
+  document.getElementById('fStartMainVal').textContent = FORTRESS_SETTINGS.startMainAmmo ?? 200;
+  document.getElementById('fStartSecVal').textContent  = FORTRESS_SETTINGS.startSecAmmo  ?? 200;
   document.getElementById('fSetAllWeapons').checked = !!FORTRESS_SETTINGS.allWeaponsUnlocked;
   const ok = FORTRESS_SETTINGS.overkillMult || 0;
   document.getElementById('fSetOverkill').value = ok;
@@ -1403,10 +1501,6 @@ function syncFortressUI(){
   document.getElementById('fSetShowEmrgZone').checked = FORTRESS_SETTINGS.showEmergencyZone !== false;
   document.getElementById('fSetEmergencyMode').checked = FORTRESS_SETTINGS.emergencyMode !== false;
   syncFortressPreset();
-  // allWeaponsRow visibility: only show if dev mode is also on
-  const devOn = document.getElementById('devSettingsToggle').checked;
-  const isCustom = FORTRESS_SETTINGS.preset === 'custom';
-  document.getElementById('fortressAllWeaponsRow').style.display = (devOn && isCustom) ? '' : 'none';
 }
 
 function readClassicUI(){
@@ -1424,6 +1518,9 @@ function readClassicUI(){
   SETTINGS.mediumEnabled = document.getElementById('setMediumEnable').textContent === 'ON';
   SETTINGS.heavyEnabled  = document.getElementById('setHeavyEnable').textContent  === 'ON';
   SETTINGS.allWeaponsUnlocked = document.getElementById('setAllWeapons').checked;
+  SETTINGS.startLightAmmo  = parseInt(document.getElementById('setStartLight').value);
+  SETTINGS.startMediumAmmo = parseInt(document.getElementById('setStartMedium').value);
+  SETTINGS.startHeavyAmmo  = parseInt(document.getElementById('setStartHeavy').value);
 }
 
 function readFortressUI(){
@@ -1443,6 +1540,8 @@ function readFortressUI(){
   FORTRESS_SETTINGS.overkillMult = parseFloat(document.getElementById('fSetOverkill').value);
   FORTRESS_SETTINGS.showEmergencyZone = document.getElementById('fSetShowEmrgZone').checked;
   FORTRESS_SETTINGS.emergencyMode = document.getElementById('fSetEmergencyMode').checked;
+  FORTRESS_SETTINGS.startMainAmmo = parseInt(document.getElementById('fSetStartMain').value);
+  FORTRESS_SETTINGS.startSecAmmo  = parseInt(document.getElementById('fSetStartSec').value);
 }
 
 function updateSettingsBtnVisibility(){
@@ -1454,7 +1553,6 @@ function updateSettingsBtnVisibility(){
 
 let _activeSettingsScreen=null;
 let _settingsSnapshot=null;
-
 
 function updateSettingsButtons(){
   const midGame = game.running;
@@ -1620,7 +1718,7 @@ function diffChangeRevert(){
 <!-- SECTION 4: WEAPONS (initGame, WEAPONS, FORTRESS_WEAPONS,     -->
 <!--            UPGRADES, FORTRESS_UPGRADES dicts)                -->
 <!-- ============================================================ -->
-<script id="section-weapons">
+<script>
 function initGame(mode) {
   const gmode = mode || 'classic';
   const isFort = gmode === 'fortress';
@@ -1646,9 +1744,11 @@ function initGame(mode) {
     rightMouseDown: false,
     inventory: [],
     equipped: isFort ? {main:null, secondary:null} : {light:null, medium:null, heavy:null},
-    ammo:     isFort ? {main:200, secondary:200}   : {light:100, medium:0, heavy:0},
+    ammo:     isFort ? {main: FORTRESS_SETTINGS.startMainAmmo ?? 200, secondary: FORTRESS_SETTINGS.startSecAmmo ?? 200}
+                     : {light: SETTINGS.startLightAmmo ?? 100, medium: SETTINGS.startMediumAmmo ?? 0, heavy: SETTINGS.startHeavyAmmo ?? 0},
     activeSlot: firstEnabled,
     mainAimAngle: 0,
+    classicAimAngle: undefined,
     secAimAngle: Math.PI,
     secOnTarget: false,
     mainRecoil: 0,
@@ -1683,27 +1783,19 @@ function initGame(mode) {
   dmgNums.length = 0;
 }
 
-//================================================================================================================
-//================================================================================================================
-//================================================================================================================
-//=====================================         WEAPONS & UPGRADES        ========================================
-//================================================================================================================
-
-// Weapon definitions
+// ── WEAPONS & UPGRADES ──
 // effect types: dot (burn/poison), slow, pierce, spread, explode, crit
 const WEAPONS = {
   //                                                                                                              mag  reload
   pistol:   {name:'AUTOPISTOL',    icon:'<img src="All_Images/Images/pistol icon.png" class="weaponIcon">', rarity:'common',    cls:'light',   color:'#aaccff', cd:0.22, dmg:12, spd:520, r:4,  pierce:0, spread:0,    effect:null,                              mag:12, reload:1.4, maxRange:650, accuracy:2.5, desc:'Fast semi-auto. 12 round mag.'},
   shotgun:  {name:'SHOTGUN',       icon:'<img src="All_Images/Images/shotgun icon.png" class="weaponIcon">', rarity:'common',    cls:'medium', color:'#ff8844', cd:0.9,  dmg:9, spd:380, r:3,  pierce:0, spread:22,   effect:null,  pellets:7,                  mag:6,  reload:2.2, maxRange:420, accuracy:3.0, desc:'7 pellets, wide spread. 6 shells.'},
-  sniper:   {name:'SNIPER RIFLE',  icon:'<img src="All_Images/Images/sniper icon 2.png" class="weaponIcon">', rarity:'rare',      cls:'medium', color:'#00ffcc', cd:1.1,  dmg:75, spd:900, r:4,  pierce:1, spread:0,    effect:null,                              mag:5,  reload:2.5, accuracy:0.4, desc:'Extreme damage, pierces. 5 rounds.'},
-  flamer:   {name:'FLAMETHROWER',  icon:'<img src="All_Images/Images/flamethrower icon 2.png" class="weaponIcon">', rarity:'legendary',      cls:'heavy',   color:'#ff5500', cd:0.07, dmg:0,  spd:240, r:6,  pierce:99,spread:0,    effect:null,                              mag:15, reload:2.0, maxRange:240, accuracy:4.0, desc:'40 bursts. Burns over time. Pierces all enemies.'},
-  railgun:  {name:'RAILGUN',       icon:'<img src="All_Images/Images/railgun icon.png" class="weaponIcon">', rarity:'epic',      cls:'heavy', color:'#cc44ff', cd:2.2,  dmg:180,spd:1100,r:4,  pierce:99,spread:0,    effect:null,  chargeVfx:true,              mag:3,  reload:3.0, accuracy:0.0, desc:'3 shots. Full-screen pierce.'},
+  sniper:   {name:'SNIPER RIFLE',  icon:'<img src="All_Images/Images/sniper icon 2.png" class="weaponIcon">', rarity:'rare',      cls:'medium', color:'#00ffcc', cd:1.1,  dmg:75, spd:900, r:4,  pierce:1, pierceDmgLoss:0.40, spread:0,    effect:null,                              mag:5,  reload:2.5, accuracy:0.4, desc:'Extreme damage, pierces. 5 rounds.'},
+  flamer:   {name:'FLAMETHROWER',  icon:'<img src="All_Images/Images/flamethrower icon 2.png" class="weaponIcon">', rarity:'legendary',      cls:'heavy',   color:'#ff5500', cd:0.07, dmg:0,  spd:240, r:6,  pierce:99, pierceDmgLoss:0.20, spread:0,    effect:null,                              mag:15, reload:2.0, maxRange:240, accuracy:4.0, desc:'Pierces all enemies. Burns hotter with sustained fire.'},
+  railgun:  {name:'RAILGUN',       icon:'<img src="All_Images/Images/railgun icon.png" class="weaponIcon">', rarity:'epic',      cls:'heavy', color:'#cc44ff', cd:2.2,  dmg:180,spd:1100,r:4,  pierce:99, pierceDmgLoss:0.06, spread:0,    effect:null,  chargeVfx:true,              mag:3,  reload:3.0, accuracy:0.0, desc:'3 shots. Full-screen pierce.'},
   grenade:  {name:'GRENADE LAUNCHER',icon:'<img src="All_Images/Images/grenade launcher icon.png" class="weaponIcon">',rarity:'rare',     cls:'heavy',   color:'#ffcc00', cd:1.0,  dmg:55, spd:320, r:8,  pierce:0, spread:0,    effect:null,  explode:{r:90,dmg:30},        mag:4,  reload:2.5, maxRange:380, accuracy:3.5, desc:'4 grenades. Big explosion.'},
   minigun:  {name:'MINIGUN',       icon:'<img src="All_Images/Images/Minigun icon.webp" class="weaponIcon">', rarity:'legendary', cls:'light',   color:'#ff4444', cd:0.06, dmg:9,  spd:560, r:3,  pierce:0, spread:0,    effect:null,  spinUp:true,                 mag:100,reload:3.5, accuracy:3.0, desc:'100 rounds. Spin up required.'},
   burst:    {name:'BURST RIFLE',   icon:'<img src="All_Images/Images/bullpup icon.png" class="weaponIcon">', rarity:'rare',      cls:'medium', color:'#44aaff', cd:0.55, dmg:20, spd:600, r:4,  pierce:0, spread:0,    effect:null,  burstCount:3,burstDelay:0.08, mag:18, reload:1.6, accuracy:1.2, desc:'18 rounds, 3-burst. Precise.'},
 };
-
-
 
 // ════════════════════════════════════════════════════════
 // FORTRESS MODE — full weapon definitions (high damage)
@@ -1711,14 +1803,14 @@ const WEAPONS = {
 // ════════════════════════════════════════════════════════
 const FORTRESS_WEAPONS = {
   //                                                                                                                     mag  reload
-  revolver: {name:'AUTO CANNON',   icon:'<img src="All_Images/Images/autocannon icon.PNG" class="weaponIcon icon-lg">', rarity:'common',    cls:'main',  color:'#aaccff', cd:0.35, dmg:60,  spd:600, r:5,  pierce:5, spread:0,    effect:null,                               mag:6,  reload:1.8, accuracy:1.5, desc:'6-shot auto cannon. High stopping power.'},
+  revolver: {name:'AUTO CANNON',   icon:'<img src="All_Images/Images/autocannon icon.PNG" class="weaponIcon icon-lg">', rarity:'common',    cls:'main',  color:'#aaccff', cd:0.35, dmg:60,  spd:600, r:5,  pierce:5, pierceDmgLoss:0.05, spread:0,    effect:null,                               mag:6,  reload:1.8, accuracy:1.5, desc:'6-shot auto cannon. High stopping power.'},
   rocket_emplace: {name:'ROCKET EMPLACEMENT', icon:'<img src="All_Images/Images/New Rocket Emplacement.png" class="weaponIcon icon-xs">', rarity:'rare', cls:'main', color:'#ff4422', cd:1.0, dmg:40, spd:80, r:6, pierce:0, spread:0, effect:null, rocket:true, explode:{r:70,dmg:80}, burstCount:4, burstDelay:0.12, mag:4, reload:3.5, accuracy:1.0, desc:'4 rockets fly to cursor & explode. Splash damage.'},
   sec_pistol: {name:'AUTOPISTOL',       icon:'<img src="All_Images/Images/pistol icon.png" class="weaponIcon">', rarity:'common',    cls:'secondary', color:'#aaccff', cd:0.11, dmg:12,  spd:208, r:1.6, pierce:0, spread:0,    effect:null,                               mag:12, reload:1.4, maxRange:260, accuracy:2.5, aimDelay:0.36, desc:'Fast semi-auto. 12 round mag.'},
   sec_shotgun:{name:'SHOTGUN',          icon:'<img src="All_Images/Images/shotgun icon.png" class="weaponIcon">', rarity:'common',    cls:'secondary', color:'#ff8844', cd:0.45,  dmg:9,  spd:152, r:1.2, pierce:0, spread:22,   effect:null,  pellets:7,                   mag:6,  reload:2.2, maxRange:168, accuracy:3.0, aimDelay:0.6, desc:'7 pellets, wide spread. 6 shells.'},
-  sec_sniper: {name:'SNIPER RIFLE',     icon:'<img src="All_Images/Images/sniper icon 2.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#00ffcc', cd:0.55,  dmg:75,  spd:360, r:1.6, pierce:1, spread:0,    effect:null,                               mag:5,  reload:2.5, accuracy:0.4, aimDelay:1.35, desc:'Extreme damage, pierces. 5 rounds.'},
+  sec_sniper: {name:'SNIPER RIFLE',     icon:'<img src="All_Images/Images/sniper icon 2.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#00ffcc', cd:0.55,  dmg:75,  spd:360, r:1.6, pierce:1, pierceDmgLoss:0.40, spread:0,    effect:null,                               mag:5,  reload:2.5, accuracy:0.4, aimDelay:1.35, desc:'Extreme damage, pierces. 5 rounds.'},
   sec_grenade:{name:'GRENADE LAUNCHER', icon:'<img src="All_Images/Images/grenade launcher icon.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#ffcc00', cd:0.5,  dmg:55,  spd:128, r:3.2, pierce:0, spread:0,    effect:null,  explode:{r:90,dmg:30},       mag:4,  reload:2.5, maxRange:152, accuracy:3.5, aimDelay:0.9, desc:'4 grenades. Big explosion.'},
-  sec_flamer: {name:'FLAMETHROWER',     icon:'<img src="All_Images/Images/flamethrower icon 2.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#ff5500', cd:0.035, dmg:0,   spd:96,  r:2.4, pierce:99,spread:0,    effect:null,                               mag:40, reload:2.0, maxRange:96, accuracy:2.0, aimDelay:0.0, desc:'40 bursts. Burns over time. Pierces all enemies.'},
-  sec_railgun:{name:'RAILGUN',         icon:'<img src="All_Images/Images/railgun icon.png" class="weaponIcon">', rarity:'epic',      cls:'secondary', color:'#cc44ff', cd:1.1,  dmg:180, spd:440,r:1.6, pierce:99,spread:0,    effect:null,  chargeVfx:true,               mag:3,  reload:3.0, accuracy:0.0, aimDelay:1.65, desc:'3 shots. Full-screen pierce.'},
+  sec_flamer: {name:'FLAMETHROWER',     icon:'<img src="All_Images/Images/flamethrower icon 2.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#ff5500', cd:0.035, dmg:0,   spd:96,  r:2.4, pierce:99, pierceDmgLoss:0.20, spread:0,    effect:null,                               mag:40, reload:2.0, maxRange:96, accuracy:2.0, aimDelay:0.0, desc:'Pierces all enemies. Burns hotter with sustained fire.'},
+  sec_railgun:{name:'RAILGUN',         icon:'<img src="All_Images/Images/railgun icon.png" class="weaponIcon">', rarity:'epic',      cls:'secondary', color:'#cc44ff', cd:1.1,  dmg:180, spd:440,r:1.6, pierce:99, pierceDmgLoss:0.06, spread:0,    effect:null,  chargeVfx:true,               mag:3,  reload:3.0, accuracy:0.0, aimDelay:1.65, desc:'3 shots. Full-screen pierce.'},
   sec_burst:  {name:'BURST RIFLE',     icon:'<img src="All_Images/Images/bullpup icon.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#44aaff', cd:0.275, dmg:20,  spd:240, r:1.6, pierce:0, spread:0,    effect:null,  burstCount:3,burstDelay:0.08, mag:18, reload:1.6, accuracy:1.2, aimDelay:0.54, desc:'18 rounds, 3-burst. Precise.'},
   sec_minigun:{name:'MINIGUN',         icon:'<img src="All_Images/Images/Minigun icon.webp" class="weaponIcon">', rarity:'legendary', cls:'secondary', color:'#ff4444', cd:0.03, dmg:9,   spd:224, r:1.2, pierce:0, spread:0,    effect:null,  spinUp:true,                  mag:100,reload:3.5, accuracy:3.0, aimDelay:0.24, desc:'100 rounds. Spin up required.'},
 };
@@ -1730,7 +1822,7 @@ const FORTRESS_UPGRADES = [
   {id:'sec_shotgun', type:'weapon', name:'SHOTGUN',           icon:'<img src="All_Images/Images/shotgun icon.png" class="weaponIcon">', rarity:'common',    desc:'7 pellets, wide spread. 6 shells.'},
   {id:'sec_sniper',  type:'weapon', name:'SNIPER RIFLE',      icon:'<img src="All_Images/Images/sniper icon 2.png" class="weaponIcon">', rarity:'rare',      desc:'Extreme damage, pierces. 5 rounds.'},
   {id:'sec_grenade', type:'weapon', name:'GRENADE LAUNCHER', icon:'<img src="All_Images/Images/grenade launcher icon.png" class="weaponIcon">', rarity:'rare',      desc:'4 grenades. Big explosion.'},
-  {id:'sec_flamer',  type:'weapon', name:'FLAMETHROWER',     icon:'<img src="All_Images/Images/flamethrower icon 2.png" class="weaponIcon">', rarity:'rare',      desc:'40 bursts. Burns over time. Pierces all enemies.'},
+  {id:'sec_flamer',  type:'weapon', name:'FLAMETHROWER',     icon:'<img src="All_Images/Images/flamethrower icon 2.png" class="weaponIcon">', rarity:'rare',      desc:'Pierces all enemies. Burns hotter with sustained fire.'},
   {id:'sec_railgun', type:'weapon', name:'RAILGUN',          icon:'<img src="All_Images/Images/railgun icon.png" class="weaponIcon">', rarity:'epic',      desc:'3 shots. Full-screen pierce.'},
   {id:'sec_burst',   type:'weapon', name:'BURST RIFLE',      icon:'<img src="All_Images/Images/bullpup icon.png" class="weaponIcon">', rarity:'rare',      desc:'18 rounds, 3-burst. Precise.'},
   {id:'sec_minigun', type:'weapon', name:'MINIGUN',          icon:'<img src="All_Images/Images/Minigun icon.webp" class="weaponIcon">', rarity:'legendary', desc:'100 rounds. Spin up required.'},
@@ -1745,7 +1837,7 @@ const UPGRADES = [
   {id:'pistol',  type:'weapon', name:'AUTOPISTOL',       icon:'<img src="All_Images/Images/pistol icon.png" class="weaponIcon">', rarity:'common',    desc:'Fast semi-auto. Reliable damage output.'},
   {id:'shotgun', type:'weapon', name:'SHOTGUN',           icon:'<img src="All_Images/Images/shotgun icon.png" class="weaponIcon">', rarity:'common',    desc:'5 pellets per shot. Devastating close range.'},
   {id:'sniper',  type:'weapon', name:'SNIPER RIFLE',      icon:'<img src="All_Images/Images/sniper icon 2.png" class="weaponIcon">', rarity:'rare',      desc:'Slow fire, extreme damage. Pierces enemies.'},
-  {id:'flamer',  type:'weapon', name:'FLAMETHROWER',      icon:'<img src="All_Images/Images/flamethrower icon 2.png" class="weaponIcon">', rarity:'rare',      desc:'Short range. Ignites enemies — burns over time.'},
+  {id:'flamer',  type:'weapon', name:'FLAMETHROWER',      icon:'<img src="All_Images/Images/flamethrower icon 2.png" class="weaponIcon">', rarity:'rare',      desc:'Short range. Pierces all. Damage ramps up with sustained fire.'},
   {id:'railgun', type:'weapon', name:'RAILGUN',           icon:'<img src="All_Images/Images/railgun icon.png" class="weaponIcon">', rarity:'epic',      desc:'Full screen pierce. One-shot potential.'},
   {id:'grenade', type:'weapon', name:'GRENADE LAUNCHER',  icon:'<img src="All_Images/Images/grenade launcher icon.png" class="weaponIcon">', rarity:'rare',      desc:'Grenades explode on impact. Area damage.'},
   {id:'minigun', type:'weapon', name:'MINIGUN',           icon:'<img src="All_Images/Images/Minigun icon.webp" class="weaponIcon">', rarity:'legendary', desc:'LEGENDARY. Insane fire rate. Pure devastation.'},
@@ -1761,7 +1853,7 @@ const UPGRADES = [
 <!-- ============================================================ -->
 <!-- SECTION 5: INVENTORY (add/equip/merge, slots, renderInv)     -->
 <!-- ============================================================ -->
-<script id="section-inventory">
+<script>
 function addToInventory(id) {
   const def = (game.mode === 'fortress' ? FORTRESS_WEAPONS[id] : null) || WEAPONS[id];
   const cap = (activeSettings && activeSettings().allWeaponsUnlocked) ? 16 : 8;
@@ -1779,6 +1871,88 @@ function addToInventory(id) {
   return true;
 }
 
+// Slot color map for the crosshair center dot
+const SLOT_COLORS = {
+  light:     '#aaddff',
+  medium:    '#ffcc44',
+  heavy:     '#ff5533',
+  main:      '#ff9900',
+  secondary: '#cc44ff',
+};
+
+function updateCrosshairCursor(){
+  // Determine dot color from active slot or equipped weapon color
+  let dotColor = '#aaddff';
+  if(game.activeSlot && SLOT_COLORS[game.activeSlot]){
+    dotColor = SLOT_COLORS[game.activeSlot];
+  }
+  // Override with the specific equipped weapon's color for more precision
+  if(game.equipped && game.activeSlot){
+    const w = game.equipped[game.activeSlot];
+    if(w && w.color) dotColor = w.color;
+  }
+
+  // Return early if we already have a cursor for this color
+  if(_crosshairCache.has(dotColor)){
+    canvas.style.cursor = _crosshairCache.get(dotColor);
+    return;
+  }
+
+  const SIZE = 33;
+  const C = 16; // center pixel
+  const cc = document.createElement('canvas');
+  cc.width = SIZE; cc.height = SIZE;
+  const cx = cc.getContext('2d');
+
+  const lineColor = 'rgba(200,210,220,0.88)';
+  const lineLen = 7;
+  const gap = 4;
+  const lineW = 1.5;
+
+  cx.clearRect(0, 0, SIZE, SIZE);
+  cx.strokeStyle = lineColor;
+  cx.lineWidth = lineW;
+  cx.lineCap = 'round';
+
+  // Shadow pass for readability
+  cx.strokeStyle = 'rgba(0,0,0,0.45)';
+  cx.lineWidth = lineW + 1.5;
+  cx.beginPath();
+  cx.moveTo(C, C - gap - lineLen); cx.lineTo(C, C - gap);   // top
+  cx.moveTo(C, C + gap);           cx.lineTo(C, C + gap + lineLen); // bottom
+  cx.moveTo(C - gap - lineLen, C); cx.lineTo(C - gap, C);   // left
+  cx.moveTo(C + gap, C);           cx.lineTo(C + gap + lineLen, C); // right
+  cx.stroke();
+
+  // Main grey lines
+  cx.strokeStyle = lineColor;
+  cx.lineWidth = lineW;
+  cx.beginPath();
+  cx.moveTo(C, C - gap - lineLen); cx.lineTo(C, C - gap);
+  cx.moveTo(C, C + gap);           cx.lineTo(C, C + gap + lineLen);
+  cx.moveTo(C - gap - lineLen, C); cx.lineTo(C - gap, C);
+  cx.moveTo(C + gap, C);           cx.lineTo(C + gap + lineLen, C);
+  cx.stroke();
+
+  // Center dot — dark shadow first
+  cx.beginPath();
+  cx.arc(C, C, 2.5, 0, Math.PI * 2);
+  cx.fillStyle = 'rgba(0,0,0,0.5)';
+  cx.fill();
+  // Colored dot
+  cx.beginPath();
+  cx.arc(C, C, 2, 0, Math.PI * 2);
+  cx.fillStyle = dotColor;
+  cx.shadowColor = dotColor;
+  cx.shadowBlur = 4;
+  cx.fill();
+  cx.shadowBlur = 0;
+
+  const url = `url(${cc.toDataURL()}) ${C} ${C}, crosshair`;
+  _crosshairCache.set(dotColor, url);
+  canvas.style.cursor = url;
+}
+
 function syncEquipped() {
   if(!game.equipped || !game.player) return;
   if(game.mode === 'fortress'){
@@ -1791,6 +1965,7 @@ function syncEquipped() {
   }
   game.bullets = [];
   game.rocketTrails = [];
+  updateCrosshairCursor();
 }
 
 function setActiveSlot(slot) {
@@ -1831,8 +2006,6 @@ function mergeWeapons(id) {
   syncEquipped();
   renderInventory();
 }
-
-function addWeapon(id){ addToInventory(id); }
 
 
 function openInventory(){
@@ -1915,7 +2088,7 @@ function renderInventory(){
         <div class="invCardName" style="color:${rc}">${wDef.name}</div>
         <div class="invCardRarity ${w.rarity}">${w.rarity.toUpperCase()}</div>
         ${effBadge}
-        <div class="invCardStats">DMG: ${w.dmg} &nbsp; ${fRate}<br>PIERCE: ${w.pierce||0}${w.explode?' · EXPLODES':''}${(w.accuracy!=null)?' · ACC: ±'+w.accuracy+'°':''}</div>
+        <div class="invCardStats">DMG: ${w.dmg} &nbsp; ${fRate}<br>PIERCE: ${w.pierce||0}${w.pierce > 0 && w.pierceDmgLoss > 0 ? ' · -'+Math.round(w.pierceDmgLoss*100)+'%/hit' : ''}${w.explode?' · EXPLODES':''}${(w.accuracy!=null)?' · ACC: ±'+w.accuracy+'°':''}</div>
         <div class="invCardBtns">
           <button class="invBtn equipBtn${isEq?' active':''}" ${isEq?'disabled':''} onclick="equipFromInventory(${i})" style="${isEq?'border-color:'+ci.color+';color:'+ci.color:''}">
             ${isEq?'✓ EQUIPPED':'EQUIP ['+ci.key+']'}
@@ -1948,7 +2121,7 @@ function renderInventory(){
 <!-- SECTION 6: GAME LOGIC (spawn, update, bullets, weapons,      -->
 <!--            explosions, levelup, damage nums)                 -->
 <!-- ============================================================ -->
-<script id="section-game">
+<script>
 // Enemy types
 function spawnEnemy() {
   const p = game.player;
@@ -2026,11 +2199,6 @@ function update(dt) {
   game.spawnTimer -= dt;
   const rate = (game.spawnRate - game.time*0.003) / activeSettings().spawnRateMult;
   if(game.spawnTimer<=0){spawnEnemy();game.spawnTimer=rate;}
-  // Boss spawns
-  // Boss spawns disabled
-
-
-  const FORTRESS_WALL_R = 32; // radius of the base circle wall
 
   // Update enemies
   for(let i=game.enemies.length-1;i>=0;i--){
@@ -2152,13 +2320,16 @@ function update(dt) {
         const now=performance.now(); if(!game._lastHitSfx||now-game._lastHitSfx>50){game._lastHitSfx=now;sfxEnemyHit();}
         // Apply status effect
         if(isFlamer){
-          // Heat = 1 when freshly fired, 0 when nearly expired
-          const heat = b.life / b.maxLife;
-          // Refresh heat if this bullet is hotter than current
+          // heatMult starts at 1.0 and is reduced 20% per pierce — enemies further in chain get less heat
+          const heatMult = b.heatMult !== undefined ? b.heatMult : 1.0;
+          const heat = (b.life / b.maxLife) * heatMult;
+          // Refresh freshness if this shot is hotter than current
           if(!e.flameheat || heat > e.flameheat) e.flameheat = heat;
+          // Increment heat stacks (0–15); full damage reached at 15 consecutive hits
+          e.flamestacks = Math.min(15, (e.flamestacks || 0) + 1);
           // Start or maintain the flame dot ticker (damage computed live from heat)
           if(!e.dot || !e.dot.isFlame){
-            e.dot = {isFlame:true, tick:0.15, timer:0.15, dur:99};
+            e.dot = {isFlame:true, tick:0.45, timer:0.45, dur:99};
           }
         } else if(b.effect){
           if(b.effect.type==='slow'||b.effect.type==='freeze'){
@@ -2174,6 +2345,15 @@ function update(dt) {
           game.bullets.splice(i,1); hitAny=true; break;
         }
         b.pierce = (b.pierce||0) - 1;
+        // Apply per-weapon pierce damage loss for subsequent pierces
+        if(b.pierce >= 0){
+          const decay = b.pierceDmgLoss || 0;
+          if(decay > 0) b.dmg = Math.max(1, b.dmg * (1 - decay));
+          // Flamer: reduce heat contribution by 20% per pierce so far enemies get less burn
+          if(b.weaponId==='flamer'||b.weaponId==='sec_flamer'){
+            b.heatMult = (b.heatMult !== undefined ? b.heatMult : 1.0) * (1 - decay);
+          }
+        }
         if(b.pierce < 0){ game.bullets.splice(i,1); hitAny=true; }
         if(e.hp<=0) killEnemy(e,j);
         if(hitAny) break;
@@ -2217,12 +2397,15 @@ function update(dt) {
       // Flame heat decays rapidly — needs continuous re-ignition to stay hot
       if(e.dot.isFlame){
         e.flameheat = Math.max(0, (e.flameheat||0) - 0.667*dt);
-        if(e.flameheat <= 0){ e.dot=null; e.flameheat=0; continue; }
+        // Stacks decay at 3/sec — stop firing for ~5s and stacks fully reset
+        e.flamestacks = Math.max(0, (e.flamestacks||0) - 3*dt);
+        if(e.flameheat <= 0){ e.dot=null; e.flameheat=0; e.flamestacks=0; continue; }
       }
       e.dot.timer-=dt; e.dot.dur-=dt;
       if(e.dot.timer<=0){
         const ddmg = e.dot.isFlame
-          ? Math.max(1, Math.floor(24 * (e.flameheat||0) * (p.dmgMult||1)))
+          // Damage ramps from ~0 up to 24/tick as flamestacks reaches 15
+          ? Math.max(1, Math.floor(24 * Math.min(1, (e.flamestacks||0) / 15) * (e.flameheat||0) * (p.dmgMult||1)))
           : Math.floor(e.dot.dmg*(p.dmgMult||1));
         e.hp-=ddmg; e.hit=0.1;
         spawnDamageNum(e.x,e.y-8,ddmg,'#ff8800');
@@ -2310,6 +2493,19 @@ function update(dt) {
     game.mainAimAngle = cur;
   }
 
+  // Classic/Roam: interpolate aim angle toward mouse at a finite rotation speed
+  if(game.mode !== 'fortress'){
+    const targetClassic = Math.atan2(wmy()-p.y, wmx()-p.x);
+    if(game.classicAimAngle === undefined) game.classicAimAngle = targetClassic;
+    let cur = game.classicAimAngle;
+    let diff = targetClassic - cur;
+    while(diff > Math.PI)  diff -= Math.PI*2;
+    while(diff < -Math.PI) diff += Math.PI*2;
+    const rotSpd = 22.0 * dt; // fast enough to feel responsive, slow enough to be visible
+    cur += Math.abs(diff) < rotSpd ? diff : Math.sign(diff)*rotSpd;
+    game.classicAimAngle = cur;
+  }
+
   updateHUD();
 }
 
@@ -2328,6 +2524,7 @@ function fireBullet(p, w, ax, ay, angleOffset, ox, oy){
     vx:Math.cos(angle)*spd, vy:Math.sin(angle)*spd,
     r:w.r||4, baseR:w.r||4, dmg:w.dmg, baseDmg:w.dmg, color:w.color, life, maxLife:life,
     pierce:w.pierce||0,
+    pierceDmgLoss: w.pierceDmgLoss || 0,
     effect: w.effect ? {...w.effect} : null,
     explode: w.explode || null,
     weaponId: w.id,
@@ -2386,7 +2583,7 @@ function calcBulletHitDmg(b, target, p){
   // Enemy velocity: straight toward fixed player position
   const edx = p.x-target.x, edy = p.y-target.y;
   const eDist = Math.sqrt(edx*edx+edy*edy)||1;
-  const wallStop = 32 + (target.r||10); // FORTRESS_WALL_R + enemy radius
+  const wallStop = FORTRESS_WALL_R + (target.r||10);
   let evx, evy;
   if(eDist <= wallStop+1){ evx=0; evy=0; } // at the wall → stationary
   else { evx=(edx/eDist)*eSpd; evy=(edy/eDist)*eSpd; }
@@ -2903,11 +3100,15 @@ function updateWeapons(dt){
              : (autoSecTarget && isSec) ? autoSecTarget.x
              : (isFortress && isMain && game.mainAimAngle !== undefined && !w.rocket)
                ? p.x + Math.cos(game.mainAimAngle) * 1000
+             : (!isFortress && game.classicAimAngle !== undefined)
+               ? p.x + Math.cos(game.classicAimAngle) * 1000
                : wmx();
     const ay = (autoSecPred && isSec) ? autoSecPred.y
              : (autoSecTarget && isSec) ? autoSecTarget.y
              : (isFortress && isMain && game.mainAimAngle !== undefined && !w.rocket)
                ? p.y + Math.sin(game.mainAimAngle) * 1000
+             : (!isFortress && game.classicAimAngle !== undefined)
+               ? p.y + Math.sin(game.classicAimAngle) * 1000
                : wmy();
     // For fortress secondary, fire from the barrel TIP (not the turret center)
     // and aim along secAimAngle (not toward the target position) so bullets
@@ -3050,11 +3251,11 @@ function killEnemy(e, idx){
   // Drop ammo — each type rolls independently; weight 0-10 maps to 0-100% chance
   const isFort = game.mode==='fortress';
   const ammoTypes = isFort
-    ? [{type:'main',      weight:FORTRESS_SETTINGS.mainDropWeight||0, amt:8,  col:'#ff9900'},
-       {type:'secondary', weight:FORTRESS_SETTINGS.secDropWeight||0,  amt:20, col:'#cc44ff'}]
-    : [{type:'light',  weight:SETTINGS.lightDropWeight||0,  amt:20, col:'#aaddff'},
-       {type:'medium', weight:SETTINGS.mediumDropWeight||0, amt:12, col:'#ffcc44'},
-       {type:'heavy',  weight:SETTINGS.heavyDropWeight||0,  amt:8,  col:'#ff5533'}];
+    ? [{type:'main',      weight:FORTRESS_SETTINGS.mainDropWeight||0, amt:2,  col:'#ff9900'},
+       {type:'secondary', weight:FORTRESS_SETTINGS.secDropWeight||0,  amt:10, col:'#cc44ff'}]
+    : [{type:'light',  weight:SETTINGS.lightDropWeight||0,  amt:10, col:'#aaddff'},
+       {type:'medium', weight:SETTINGS.mediumDropWeight||0, amt:4,  col:'#ffcc44'},
+       {type:'heavy',  weight:SETTINGS.heavyDropWeight||0,  amt:2,  col:'#ff5533'}];
   // Scale ammo by enemy size: tiny(r≤9)=×0.5, small(r≤12)=×1, large(r≤20)=×1.5, huge(r>20)=×2
   const sizeMult = e.r <= 9 ? 0.5 : e.r <= 12 ? 1 : e.r <= 20 ? 1.5 : 2;
   let dropOffsetX = 10;
@@ -3225,7 +3426,7 @@ function applyUpgrade(u){
 <!-- ============================================================ -->
 <!-- SECTION 7: DRAW (updateHUD + draw canvas rendering)          -->
 <!-- ============================================================ -->
-<script id="section-draw">
+<script>
 function updateHUD(){
   const p=game.player;
   document.getElementById('healthInner').style.width=(p.hp/p.maxHp*100)+'%';
@@ -3418,7 +3619,6 @@ function draw(){
 
   // Fortress base circle — drawn BEFORE enemies so enemies appear in front of it
   if(game.mode==='fortress'){
-    const FORTRESS_WALL_R = 32;
     const cx = p.x, cy = p.y;
     ctx.save();
     ctx.shadowBlur = 0;
@@ -3842,7 +4042,7 @@ function draw(){
   const w0draw = p.weapons[0];
   const a2 = (game.mode==='fortress' && game.mainAimAngle !== undefined)
     ? game.mainAimAngle
-    : Math.atan2(wmy()-p.y, wmx()-p.x);
+    : (game.classicAimAngle !== undefined ? game.classicAimAngle : Math.atan2(wmy()-p.y, wmx()-p.x));
   const barrelColor = w0draw ? w0draw.color : '#00ffff';
   const barrelLen = game.mode==='fortress' ? p.r+20 : p.r+10;
   const barrelW   = game.mode==='fortress' ? 4.5 : 3;
@@ -4092,7 +4292,11 @@ function draw(){
   // Aim laser
   const laserMode = activeSettings().aimLaser;
   if(laserMode && laserMode !== 'off'){
-    const laserEnd = laserMode==='partial' ? barrelLen + 320 : 1200;
+    const cursorDist = Math.hypot(wmx()-p.x, wmy()-p.y);
+    const partialMax = barrelLen + 320;
+    const laserEnd = laserMode==='partial'
+      ? Math.min(cursorDist, partialMax)
+      : cursorDist;
     const startX = p.x+Math.cos(a2)*barrelLen;
     const startY = p.y+Math.sin(a2)*barrelLen;
     const endX   = p.x+Math.cos(a2)*laserEnd;
@@ -4102,8 +4306,8 @@ function draw(){
     ctx.lineWidth=1; ctx.shadowColor=barrelColor; ctx.shadowBlur=6;
     if(laserMode==='partial'){
       const grad = ctx.createLinearGradient(startX, startY, endX, endY);
-      grad.addColorStop(0, barrelColor+'33'); // ~20% opacity
-      grad.addColorStop(1, barrelColor+'00'); // fully transparent
+      grad.addColorStop(0, barrelColor+'33');
+      grad.addColorStop(1, barrelColor+'00');
       ctx.strokeStyle = grad;
       ctx.globalAlpha = 1;
     } else {
@@ -4357,7 +4561,7 @@ function draw(){
 <!-- ============================================================ -->
 <!-- SECTION 8: MAIN (loop, screens, events, mouse, keyboard)     -->
 <!-- ============================================================ -->
-<script id="section-main">
+<script>
 let lastTime=0;
 let lastDt=0.016;
 let timeScale=1;
@@ -4478,10 +4682,13 @@ document.addEventListener('keydown',e=>{
   if(e.key==='1'){ if(game.mode!=='fortress') setActiveSlot('light');   e.preventDefault(); return; }
   if(e.key==='2'){ if(game.mode!=='fortress') setActiveSlot('medium');  e.preventDefault(); return; }
   if(e.key==='3'){ if(game.mode!=='fortress') setActiveSlot('heavy');   e.preventDefault(); return; }
-  if(e.key==='q'||e.key==='Q'){ if(game.running&&!game.paused) timeScale = timeScale===1 ? 0.15 : 1; e.preventDefault(); return; }
+  if(e.key==='q'||e.key==='Q'){ if(game.running&&!game.paused) timeScale = 0.15; e.preventDefault(); return; }
   game.keys[e.key]=true; e.preventDefault();
 });
-document.addEventListener('keyup',e=>{game.keys[e.key]=false;});
+document.addEventListener('keyup',e=>{
+  game.keys[e.key]=false;
+  if(e.key==='q'||e.key==='Q') timeScale = 1;
+});
 
 const mouse = {x:400, y:300};
 function wmx(){ return mouse.x + (game.camera ? game.camera.x : 0); }
@@ -4496,6 +4703,14 @@ canvas.addEventListener('mouseup',   e=>{ if(e.button===0) game.mouseDown=false;
 canvas.addEventListener('mouseleave',e=>{ game.mouseDown=false; game.rightMouseDown=false; });
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('contextmenu',e=>e.preventDefault());
+// Close diff filter dropdown when clicking outside
+document.addEventListener('click', e => {
+  const wrap = document.getElementById('lbDiffFilterWrap');
+  if(wrap && !wrap.contains(e.target)){
+    document.getElementById('lbDiffDropdown').classList.remove('open');
+    document.getElementById('lbDiffFilterBtn').classList.remove('open');
+  }
+});
 
 loadSavedSettings();
 
@@ -4689,6 +4904,35 @@ let _lbSortField = 'score';
 let _lbSortDir = 'desc';
 let _lbPage = 1;
 const LB_PAGE_SIZE = 100;
+let _lbHiddenDiffs = new Set(['custom', 'overpowered']);
+
+function _syncDiffFilterUI(){
+  document.querySelectorAll('.dfItem').forEach(item => {
+    const diff = item.dataset.diff;
+    const isHidden = _lbHiddenDiffs.has(diff);
+    item.classList.toggle('hidden-diff', isHidden);
+  });
+  // Update button label to show count hidden
+  const btn = document.getElementById('lbDiffFilterBtn');
+  if(btn){
+    const n = _lbHiddenDiffs.size;
+    btn.childNodes[0].textContent = n > 0 ? 'HIDE DIFFICULTIES ('+n+') ' : 'HIDE DIFFICULTIES ';
+  }
+}
+
+function toggleDiffHide(diff){
+  if(_lbHiddenDiffs.has(diff)) _lbHiddenDiffs.delete(diff);
+  else _lbHiddenDiffs.add(diff);
+  _syncDiffFilterUI();
+  renderLeaderboard();
+}
+
+function toggleDiffFilterDropdown(){
+  const btn = document.getElementById('lbDiffFilterBtn');
+  const dd  = document.getElementById('lbDiffDropdown');
+  const open = dd.classList.toggle('open');
+  btn.classList.toggle('open', open);
+}
 
 function setLbSortField(field, btn){
   _lbSortField = field;
@@ -4747,10 +4991,14 @@ function fmtTime(t){
 function renderLeaderboard(){
   document.getElementById('lbUserTag').textContent = _currentUser ? _currentUser.display : '—';
   const allEntries = _getLbEntries();
-  const filtered = _lbFilter === 'all' ? allEntries : allEntries.filter(e => e.mode === _lbFilter);
+  let filtered = _lbFilter === 'all' ? allEntries : allEntries.filter(e => e.mode === _lbFilter);
+  // Filter out hidden difficulties
+  if(_lbHiddenDiffs.size > 0){
+    filtered = filtered.filter(e => !_lbHiddenDiffs.has(e.difficulty || 'custom'));
+  }
 
   const f = _lbSortField, d = _lbSortDir;
-  const DIFF_ORDER = {custom:0, overpowered:1, easy:2, medium:3, hard:4, hardcore:5};
+  const DIFF_ORDER = {beginner:0, overpowered:1, easy:2, medium:3, hard:4, hardcore:5, custom:6};
   const sorted = [...filtered].sort((a, b) => {
     let av, bv;
     if(f === 'difficulty'){
@@ -4852,6 +5100,7 @@ function showLeaderboard(){
   if(scoreBtn) scoreBtn.classList.add('active');
   document.getElementById('lbDirDesc').classList.add('active');
   document.getElementById('lbDirAsc').classList.remove('active');
+  _syncDiffFilterUI();
   renderLeaderboard();
   document.getElementById('startScreen').style.display='none';
   document.getElementById('leaderboardScreen').style.display='flex';
@@ -4860,6 +5109,9 @@ function showLeaderboard(){
 function hideLeaderboard(){
   _lbSortField = 'score';
   _lbSortDir = 'desc';
+  // Close diff dropdown if open
+  document.getElementById('lbDiffDropdown').classList.remove('open');
+  document.getElementById('lbDiffFilterBtn').classList.remove('open');
   document.getElementById('leaderboardScreen').style.display='none';
   document.getElementById('startScreen').style.display='flex';
 }
@@ -4914,9 +5166,6 @@ function confirmDevMode(){
   const cb = document.getElementById('devSettingsToggle');
   cb.checked = true;
   try{ localStorage.setItem('survivorDevSettings', '1'); }catch(e){}
-  // Turning dev settings ON: only show rows if currently in custom mode
-  if(SETTINGS.preset === 'custom')         document.getElementById('classicAllWeaponsRow').style.display = '';
-  if(FORTRESS_SETTINGS.preset === 'custom') document.getElementById('fortressAllWeaponsRow').style.display = '';
 }
 
 function cancelDevMode(){
@@ -4926,12 +5175,6 @@ function cancelDevMode(){
 
 function _applyDevSettingsOff(){
   try{ localStorage.setItem('survivorDevSettings', '0'); }catch(e){}
-  SETTINGS.allWeaponsUnlocked = false;
-  FORTRESS_SETTINGS.allWeaponsUnlocked = false;
-  document.getElementById('setAllWeapons').checked = false;
-  document.getElementById('fSetAllWeapons').checked = false;
-  document.getElementById('classicAllWeaponsRow').style.display = 'none';
-  document.getElementById('fortressAllWeaponsRow').style.display = 'none';
   try{ localStorage.setItem('survivorClassicSettings',  JSON.stringify(SETTINGS)); }catch(e){}
   try{ localStorage.setItem('survivorFortressSettings', JSON.stringify(FORTRESS_SETTINGS)); }catch(e){}
   syncClassicPreset();
@@ -4942,8 +5185,6 @@ function _applyDevSettingsOff(){
 (function(){
   try{ localStorage.removeItem('survivorDevSettings'); }catch(e){}
   document.getElementById('devSettingsToggle').checked = false;
-  document.getElementById('classicAllWeaponsRow').style.display = 'none';
-  document.getElementById('fortressAllWeaponsRow').style.display = 'none';
 })();
 // Restore saved scale on load
 (function(){
@@ -4968,6 +5209,14 @@ function _applyDevSettingsOff(){
 })();
 
 requestAnimationFrame(loop);
+
+// Set default crosshair (light slot color) before any game starts
+(function(){
+  const savedGame = window.game;
+  window.game = { activeSlot: 'light', equipped: null };
+  updateCrosshairCursor();
+  window.game = savedGame;
+})();
 </script>
 </body>
 </html>
