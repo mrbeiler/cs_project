@@ -12,7 +12,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 100vh;
+    min-height: 100vh;
     overflow: hidden;
     font-family: 'Courier New', monospace;
   }
@@ -49,17 +49,460 @@
   }
   .modeBtn:hover { background: #0ff2; box-shadow: 0 0 10px #0ff; }
   .modeBtn.active { background: #0ff3; box-shadow: 0 0 15px #0ff; border-color: #fff; color: #fff; }
+
+  /* ── SCOREBOARD OVERLAY ── */
+  #scoreboardOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.88);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  #scoreboardOverlay.show { display: flex; }
+  #scoreboardBox {
+    width: 420px;
+    max-height: 85vh;
+    background: #050d20;
+    border: 2px solid #0ff;
+    box-shadow: 0 0 40px #0ff8, 0 0 80px #0ff3;
+    border-radius: 4px;
+    padding: 28px 24px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  #sbTitle {
+    text-align: center;
+    color: #0ff;
+    font-size: 22px;
+    font-weight: bold;
+    letter-spacing: 4px;
+    text-shadow: 0 0 20px #0ff;
+    margin-bottom: 6px;
+  }
+  #sbSubtitle {
+    text-align: center;
+    color: #0ff6;
+    font-size: 10px;
+    letter-spacing: 2px;
+    margin-bottom: 18px;
+  }
+  #sbList {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 320px;
+  }
+  #sbList::-webkit-scrollbar { width: 4px; }
+  #sbList::-webkit-scrollbar-thumb { background: #0ff4; border-radius: 2px; }
+  .sb-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    border-bottom: 1px solid #0ff1;
+    transition: background 0.15s;
+  }
+  .sb-row:hover { background: #0ff0a; }
+  .sb-row.new-entry { background: #ff08; animation: flashNew 0.6s ease 2; }
+  @keyframes flashNew { 0%,100%{background:#ff08} 50%{background:#ff03} }
+  .sb-rank {
+    width: 28px;
+    text-align: center;
+    font-size: 13px;
+    font-weight: bold;
+    flex-shrink: 0;
+  }
+  .rank-1 { color: #ffd700; text-shadow: 0 0 10px #ffd700; }
+  .rank-2 { color: #c0c0c0; text-shadow: 0 0 8px #c0c0c0; }
+  .rank-3 { color: #cd7f32; text-shadow: 0 0 8px #cd7f32; }
+  .sb-rank.other { color: #0ff8; }
+  .sb-name {
+    flex: 1;
+    font-size: 13px;
+    color: #eee;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .sb-tags {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  .sb-tag {
+    font-size: 9px;
+    padding: 1px 5px;
+    border: 1px solid #0ff5;
+    border-radius: 3px;
+    color: #0ffa;
+    letter-spacing: 1px;
+  }
+  .sb-tag.hard   { border-color: #f005; color: #f008; }
+  .sb-tag.speed  { border-color: #ff05; color: #ff08; }
+  .sb-tag.reverse{ border-color: #f0f5; color: #f0f8; }
+  .sb-tag.night  { border-color: #55f5; color: #88f8; }
+  .sb-score {
+    min-width: 48px;
+    text-align: right;
+    font-size: 16px;
+    font-weight: bold;
+    color: #0ff;
+    text-shadow: 0 0 10px #0ff;
+    flex-shrink: 0;
+  }
+  .sb-date {
+    min-width: 70px;
+    text-align: right;
+    font-size: 9px;
+    color: #0ff5;
+    flex-shrink: 0;
+  }
+  #sbEmpty {
+    text-align: center;
+    color: #0ff4;
+    font-size: 13px;
+    padding: 40px 0;
+    letter-spacing: 2px;
+  }
+  #sbActions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    justify-content: center;
+  }
+  .sb-btn {
+    background: #000;
+    border: 1px solid #0ff;
+    color: #0ff;
+    padding: 7px 18px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.2s;
+    text-shadow: 0 0 6px #0ff;
+  }
+  .sb-btn:hover { background: #0ff2; box-shadow: 0 0 12px #0ff; }
+  .sb-btn.danger { border-color: #f44; color: #f44; text-shadow: 0 0 6px #f44; }
+  .sb-btn.danger:hover { background: #f442; box-shadow: 0 0 12px #f44; }
+
+  #sbOpenBtn {
+    background: #000;
+    border: 1px solid #0ff4;
+    color: #0ff8;
+    padding: 5px 14px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-shadow: 0 0 6px #0ff4;
+    margin-top: 4px;
+  }
+  #sbOpenBtn:hover { border-color: #0ff; color: #0ff; text-shadow: 0 0 10px #0ff; }
+
+  /* ── USERNAME ENTRY SCREEN ── */
+  #usernameScreen {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+  }
+  #usernameScreen.hidden { display: none; }
+
+  /* scanline overlay */
+  #usernameScreen::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.04) 2px, rgba(0,0,0,0.04) 4px);
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  #usernameWrap {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    width: min(900px, 96vw);
+    max-height: 90vh;
+    border: 2px solid #0ff;
+    box-shadow: 0 0 50px #0ff8, 0 0 100px #0ff3;
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* LEFT — name entry */
+  #usernameCard {
+    background: #050d20;
+    padding: 40px 32px 32px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    min-width: 300px;
+    flex: 0 0 300px;
+    border-right: 1px solid #0ff3;
+  }
+  #usernameCard .us-logo {
+    font-size: 22px;
+    font-weight: bold;
+    color: #0ff;
+    letter-spacing: 3px;
+    text-shadow: 0 0 20px #0ff, 0 0 40px #0ff6;
+    text-align: center;
+    line-height: 1.3;
+  }
+  #usernameCard .us-sub {
+    font-size: 10px;
+    color: #ff0;
+    letter-spacing: 3px;
+    text-shadow: 0 0 8px #ff0;
+  }
+  #usernameCard .us-divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #0ff5, transparent);
+  }
+  #usernameCard .us-label {
+    font-size: 10px;
+    color: #0ff9;
+    letter-spacing: 2px;
+    text-align: center;
+  }
+  #usernameInput {
+    background: #000;
+    border: 2px solid #0ff;
+    color: #0ff;
+    font-family: 'Courier New', monospace;
+    font-size: 20px;
+    padding: 9px 14px;
+    width: 100%;
+    text-align: center;
+    letter-spacing: 4px;
+    outline: none;
+    text-transform: uppercase;
+    text-shadow: 0 0 10px #0ff;
+    box-shadow: 0 0 14px #0ff4, inset 0 0 10px #0ff1;
+    border-radius: 2px;
+    transition: box-shadow 0.2s, border-color 0.2s;
+  }
+  #usernameInput:focus {
+    box-shadow: 0 0 22px #0ff8, inset 0 0 12px #0ff2;
+    border-color: #fff;
+  }
+  #usernameInput::placeholder { color: #0ff3; }
+  #usernameCard .us-hint {
+    font-size: 9px;
+    color: #0ff5;
+    letter-spacing: 1px;
+    text-align: center;
+    line-height: 1.7;
+  }
+  #usernameSubmit {
+    background: #0ff1;
+    border: 2px solid #0ff;
+    color: #0ff;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 10px 24px;
+    cursor: pointer;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-shadow: 0 0 8px #0ff;
+    box-shadow: 0 0 12px #0ff4;
+    transition: all 0.2s;
+    width: 100%;
+  }
+  #usernameSubmit:hover { background: #0ff3; box-shadow: 0 0 22px #0ff8; color: #fff; }
+  #usernameSubmit:active { transform: scale(0.98); }
+  #usCurrent {
+    font-size: 10px;
+    color: #0ff6;
+    letter-spacing: 1px;
+    text-align: center;
+    min-height: 16px;
+  }
+
+  /* RIGHT — live leaderboard panel */
+  #usLiveBoard {
+    background: #030b18;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 24px 20px 20px;
+    min-width: 0;
+    overflow: hidden;
+  }
+  #usLiveBoardTitle {
+    text-align: center;
+    color: #0ff;
+    font-size: 14px;
+    font-weight: bold;
+    letter-spacing: 4px;
+    text-shadow: 0 0 14px #0ff;
+    margin-bottom: 4px;
+  }
+  #usLiveBoardSub {
+    text-align: center;
+    color: #0ff5;
+    font-size: 9px;
+    letter-spacing: 2px;
+    margin-bottom: 14px;
+  }
+  #usLiveList {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 420px;
+  }
+  #usLiveList::-webkit-scrollbar { width: 3px; }
+  #usLiveList::-webkit-scrollbar-thumb { background: #0ff3; border-radius: 2px; }
+  .us-sb-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px;
+    border-bottom: 1px solid #0ff1;
+  }
+  .us-sb-row.highlight {
+    background: rgba(0,255,255,0.08);
+    border-bottom-color: #0ff4;
+  }
+  .us-sb-rank {
+    width: 24px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: bold;
+    flex-shrink: 0;
+    color: #0ff7;
+  }
+  .us-sb-rank.r1 { color: #ffd700; text-shadow: 0 0 8px #ffd700; }
+  .us-sb-rank.r2 { color: #c0c0c0; }
+  .us-sb-rank.r3 { color: #cd7f32; }
+  .us-sb-name {
+    flex: 1;
+    font-size: 12px;
+    color: #ddd;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    letter-spacing: 1px;
+  }
+  .us-sb-name.you { color: #0ff; text-shadow: 0 0 6px #0ff5; }
+  .us-sb-tags { display: flex; gap: 3px; flex-shrink: 0; }
+  .us-sb-tag {
+    font-size: 8px;
+    padding: 1px 4px;
+    border: 1px solid #0ff4;
+    color: #0ff7;
+    letter-spacing: 1px;
+  }
+  .us-sb-score {
+    min-width: 36px;
+    text-align: right;
+    font-size: 15px;
+    font-weight: bold;
+    color: #0ff;
+    text-shadow: 0 0 8px #0ff;
+    flex-shrink: 0;
+  }
+  #usLiveEmpty {
+    text-align: center;
+    color: #0ff3;
+    font-size: 11px;
+    padding: 40px 0;
+    letter-spacing: 2px;
+    line-height: 2;
+  }
+
+  /* "change pilot" button shown in modeBar */
+  #changePilotBtn {
+    background: #000;
+    border: 1px solid #0ff4;
+    color: #0ff6;
+    padding: 5px 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-shadow: 0 0 5px #0ff3;
+    transition: all 0.2s;
+  }
+  #changePilotBtn:hover { border-color: #0ff; color: #0ff; text-shadow: 0 0 8px #0ff; }
+  #pilotTag {
+    font-size: 11px;
+    color: #0ffa;
+    letter-spacing: 2px;
+    padding: 5px 8px;
+    border: 1px solid #0ff3;
+    text-shadow: 0 0 6px #0ff5;
+    font-family: 'Courier New', monospace;
+    text-transform: uppercase;
+  }
 </style>
 </head>
 <body>
+<!-- Username / Leaderboard Entry Screen -->
+<div id="usernameScreen">
+  <div id="usernameWrap">
+    <!-- LEFT: name entry -->
+    <div id="usernameCard">
+      <div class="us-logo">FLAPPY<br>FRENZY</div>
+      <div class="us-sub">◈ NEON SKY ◈</div>
+      <div class="us-divider"></div>
+      <div class="us-label">YOUR PILOT NAME</div>
+      <input id="usernameInput" maxlength="12" placeholder="TYPE HERE" autocomplete="off" spellcheck="false">
+      <div id="usCurrent"></div>
+      <div class="us-hint">
+        UP TO 12 CHARS<br>
+        SCORES AUTO-SAVE UNDER THIS NAME
+      </div>
+      <button id="usernameSubmit" onclick="confirmUsername()">▶ FLY!</button>
+    </div>
+    <!-- RIGHT: live leaderboard -->
+    <div id="usLiveBoard">
+      <div id="usLiveBoardTitle">🏆 LEADERBOARD</div>
+      <div id="usLiveBoardSub">TOP PILOTS</div>
+      <div id="usLiveList"></div>
+    </div>
+  </div>
+</div>
+
 <div id="gameContainer">
   <canvas id="c" width="480" height="640"></canvas>
 </div>
 <div id="modeBar">
-  <button class="modeBtn" id="btnHard" onclick="toggleMode('hard')">⚡ HARD</button>
-  <button class="modeBtn" id="btnSpeed" onclick="toggleMode('speed')">🚀 SPEED</button>
+  <span id="pilotTag">✈ —</span>
+  <button class="modeBtn" id="btnHard"    onclick="toggleMode('hard')">⚡ HARD</button>
+  <button class="modeBtn" id="btnSpeed"   onclick="toggleMode('speed')">🚀 SPEED</button>
   <button class="modeBtn" id="btnReverse" onclick="toggleMode('reverse')">🔀 REVERSE</button>
-  <button class="modeBtn" id="btnNight" onclick="toggleMode('night')">🌙 NIGHT</button>
+  <button class="modeBtn" id="btnNight"   onclick="toggleMode('night')">🌙 NIGHT</button>
+  <button id="sbOpenBtn"                  onclick="openScoreboard()">🏆 SCORES</button>
+  <button id="changePilotBtn"             onclick="changePilot()">✏ PILOT</button>
+</div>
+
+<!-- Scoreboard Overlay -->
+<div id="scoreboardOverlay">
+  <div id="scoreboardBox">
+    <div id="sbTitle">🏆 HALL OF FAME</div>
+    <div id="sbSubtitle">TOP PILOTS — NEON SKY</div>
+    <div id="sbList"></div>
+    <div id="sbActions">
+      <button class="sb-btn" onclick="closeScoreboard()">▶ PLAY</button>
+      <button class="sb-btn danger" onclick="clearScoreboard()">🗑 CLEAR</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -67,8 +510,200 @@ const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 const W = canvas.width, H = canvas.height;
 
-// ─── HIGH SCORE (in-memory) ───
-let highScore = 0;
+// ─── PILOT NAME ───
+const PILOT_KEY = 'flappyFrenzy_pilot';
+
+function getSavedPilot() {
+  try { return localStorage.getItem(PILOT_KEY) || ''; }
+  catch(e) { return ''; }
+}
+
+function savePilot(name) {
+  try { localStorage.setItem(PILOT_KEY, name); }
+  catch(e) {}
+}
+
+let currentPilot = getSavedPilot();
+
+// Always show the username screen on load / when changePilot is called
+function bootGame() {
+  showUsernameScreen();
+}
+
+function showUsernameScreen() {
+  const screen = document.getElementById('usernameScreen');
+  screen.classList.remove('hidden');
+  const inp = document.getElementById('usernameInput');
+  inp.value = '';               // always start blank so player types fresh
+  updateCurrentHint('');
+  renderLiveBoard('');
+  setTimeout(() => inp.focus(), 80);
+}
+
+function hideUsernameScreen() {
+  document.getElementById('usernameScreen').classList.add('hidden');
+}
+
+// Show who played last session under the input
+function updateCurrentHint(typedVal) {
+  const el = document.getElementById('usCurrent');
+  if (!el) return;
+  if (typedVal.length === 0 && currentPilot) {
+    el.textContent = 'LAST PILOT: ' + currentPilot;
+  } else {
+    el.textContent = '';
+  }
+}
+
+// Render the live leaderboard inside the username screen,
+// highlighting rows that match the typed name
+function renderLiveBoard(typed) {
+  const scores = loadScores();           // safe to call before SB_KEY is used below
+  const list = document.getElementById('usLiveList');
+  if (!list) return;
+  if (scores.length === 0) {
+    list.innerHTML = '<div id="usLiveEmpty">NO SCORES YET<br><br>BE THE FIRST<br>PILOT ON THE<br>BOARD</div>';
+    return;
+  }
+  const upper = typed.trim().toUpperCase();
+  list.innerHTML = scores.map((e, i) => {
+    const rankClass = i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : '';
+    const rankIcon  = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+    const isYou = upper.length > 0 && e.name.startsWith(upper);
+    const modeTags = (e.modes || []).map(m =>
+      `<span class="us-sb-tag">${m.toUpperCase().slice(0,1)}</span>`
+    ).join('');
+    return `<div class="us-sb-row${isYou ? ' highlight' : ''}">
+      <div class="us-sb-rank ${rankClass}">${rankIcon}</div>
+      <div class="us-sb-name${isYou ? ' you' : ''}">${escHtml(e.name)}</div>
+      <div class="us-sb-tags">${modeTags}</div>
+      <div class="us-sb-score">${e.score}</div>
+    </div>`;
+  }).join('');
+}
+
+function confirmUsername() {
+  const raw = document.getElementById('usernameInput').value.trim();
+  // If they left it blank, keep the previous pilot name (or fall back to ANON)
+  const name = (raw.toUpperCase().slice(0, 12)) || currentPilot || 'ANON';
+  currentPilot = name;
+  savePilot(name);
+  hideUsernameScreen();
+  updatePilotTag();
+}
+
+function changePilot() {
+  if (state === 'playing') state = 'title';
+  showUsernameScreen();
+}
+
+function updatePilotTag() {
+  const tag = document.getElementById('pilotTag');
+  if (tag) tag.textContent = '✈ ' + (currentPilot || '—');
+}
+
+// Live-update leaderboard as user types
+document.getElementById('usernameInput').addEventListener('input', function() {
+  updateCurrentHint(this.value);
+  renderLiveBoard(this.value);
+});
+document.getElementById('usernameInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') confirmUsername();
+});
+
+// Run boot — always shows screen
+bootGame();
+
+// ─── SCOREBOARD STORAGE ───
+const SB_KEY = 'flappyFrenzy_scores';
+let latestEntryIdx = -1;
+
+function loadScores() {
+  try { return JSON.parse(localStorage.getItem(SB_KEY)) || []; }
+  catch(e) { return []; }
+}
+
+function saveScores(arr) {
+  try { localStorage.setItem(SB_KEY, JSON.stringify(arr)); }
+  catch(e) {}
+}
+
+function addScore(name, sc, activeModes) {
+  const scores = loadScores();
+  const entry = {
+    name: (name || 'ANON').toUpperCase().slice(0, 12),
+    score: sc,
+    modes: activeModes,
+    date: new Date().toLocaleDateString('en-US', { month:'numeric', day:'numeric' })
+  };
+  scores.push(entry);
+  scores.sort((a, b) => b.score - a.score);
+  if (scores.length > 20) scores.length = 20;
+  latestEntryIdx = scores.indexOf(entry);
+  saveScores(scores);
+  return latestEntryIdx;
+}
+
+function getHighScore() {
+  const scores = loadScores();
+  return scores.length > 0 ? scores[0].score : 0;
+}
+
+// ─── SCOREBOARD UI ───
+function renderScoreboard() {
+  const scores = loadScores();
+  const list = document.getElementById('sbList');
+  if (scores.length === 0) {
+    list.innerHTML = '<div id="sbEmpty">NO SCORES YET<br>BE THE FIRST PILOT</div>';
+    return;
+  }
+  list.innerHTML = scores.map((e, i) => {
+    const rankClass = i === 0 ? 'rank-1' : i === 1 ? 'rank-2' : i === 2 ? 'rank-3' : 'other';
+    const rankIcon  = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : (i + 1);
+    const isNew = (i === latestEntryIdx);
+    const modeTags = (e.modes || []).map(m =>
+      `<span class="sb-tag ${m}">${m.toUpperCase()}</span>`
+    ).join('');
+    return `<div class="sb-row${isNew ? ' new-entry' : ''}">
+      <div class="sb-rank ${rankClass}">${rankIcon}</div>
+      <div class="sb-name">${escHtml(e.name)}</div>
+      <div class="sb-tags">${modeTags}</div>
+      <div class="sb-score">${e.score}</div>
+      <div class="sb-date">${e.date || ''}</div>
+    </div>`;
+  }).join('');
+  // scroll to new entry
+  if (latestEntryIdx >= 0) {
+    setTimeout(() => {
+      const rows = list.querySelectorAll('.sb-row');
+      if (rows[latestEntryIdx]) rows[latestEntryIdx].scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
+  }
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function openScoreboard() {
+  latestEntryIdx = -1;
+  renderScoreboard();
+  document.getElementById('scoreboardOverlay').classList.add('show');
+}
+
+function closeScoreboard() {
+  document.getElementById('scoreboardOverlay').classList.remove('show');
+}
+
+function clearScoreboard() {
+  if (!confirm('Clear all scores? This cannot be undone.')) return;
+  localStorage.removeItem(SB_KEY);
+  latestEntryIdx = -1;
+  renderScoreboard();
+}
+
+// ─── HIGH SCORE ───
+let highScore = getHighScore();
 
 // ─── MODES ───
 const modes = { hard: false, speed: false, reverse: false, night: false };
@@ -79,7 +714,7 @@ function toggleMode(m) {
 }
 
 // ─── STATE ───
-let state = 'title'; // title | playing | dead
+let state = 'title';
 let score = 0, frame = 0;
 let shakeX = 0, shakeY = 0, shakeDur = 0;
 
@@ -123,7 +758,7 @@ function beep(freq, type, dur, vol = 0.3, decay = 0.3) {
   g.gain.exponentialRampToValueAtTime(0.001, AC.currentTime + decay);
   o.start(); o.stop(AC.currentTime + dur);
 }
-function sfxFlap() { beep(320, 'square', 0.08, 0.15, 0.08); }
+function sfxFlap()  { beep(320, 'square', 0.08, 0.15, 0.08); }
 function sfxPoint() {
   beep(660, 'sine', 0.07, 0.2, 0.07);
   setTimeout(() => beep(880, 'sine', 0.1, 0.2, 0.1), 70);
@@ -133,15 +768,15 @@ function sfxDie() {
   setTimeout(() => beep(100, 'sawtooth', 0.4, 0.4, 0.4), 100);
 }
 
-// ─── REVERSE GRAVITY TIMER ───
+// ─── REVERSE GRAVITY ───
 let reverseFlip = 0, reverseFlipping = false, reverseTimer = 0;
 
 function getDifficultyParams() {
   const t = Math.floor(score / 5);
-  pipeGap = modes.hard ? Math.max(100, 160 - t * 4) : Math.max(120, 190 - t * 4);
+  pipeGap   = modes.hard  ? Math.max(100, 160 - t * 4) : Math.max(120, 190 - t * 4);
   pipeSpeed = (modes.speed ? 4.5 : 3.0) + Math.min(t * 0.18, 2.5);
-  gravity = (modes.reverse && reverseFlipping ? -GRAVITY_BASE : GRAVITY_BASE);
-  flapPower = (modes.reverse && reverseFlipping ? -FLAP_BASE : FLAP_BASE);
+  gravity   = (modes.reverse && reverseFlipping ? -GRAVITY_BASE : GRAVITY_BASE);
+  flapPower = (modes.reverse && reverseFlipping ? -FLAP_BASE    : FLAP_BASE);
 }
 
 function spawnPipe() {
@@ -162,7 +797,7 @@ function restart() {
 function doFlap() {
   if (AC && AC.state === 'suspended') AC.resume();
   if (state === 'title') { restart(); return; }
-  if (state === 'dead') { restart(); return; }
+  if (state === 'dead')  { restart(); return; }
   bird.vy = flapPower;
   bird.flap = 8;
   sfxFlap();
@@ -203,7 +838,6 @@ function update() {
   frame++;
   getDifficultyParams();
 
-  // Reverse mode: flip gravity every ~4s
   if (modes.reverse) {
     reverseTimer++;
     if (reverseTimer > 240) {
@@ -214,25 +848,20 @@ function update() {
     if (reverseFlip > 0) reverseFlip--;
   }
 
-  // Bird physics
   bird.vy += gravity;
   bird.vy = Math.max(-12, Math.min(12, bird.vy));
   bird.y += bird.vy;
   if (bird.flap > 0) bird.flap--;
 
-  // Trail
   bird.trail.unshift({ x: bird.x, y: bird.y });
   if (bird.trail.length > 10) bird.trail.pop();
 
-  // Floor / ceiling
   if (bird.y + bird.r >= H - 30 || bird.y - bird.r <= 0) die();
 
-  // Pipe spawn
   pipeTimer++;
   const spawnInterval = Math.max(55, 85 - Math.floor(score / 5) * 2);
   if (pipeTimer >= spawnInterval) { pipeTimer = 0; spawnPipe(); }
 
-  // Pipes
   for (let i = pipes.length - 1; i >= 0; i--) {
     pipes[i].x -= pipeSpeed;
     if (!pipes[i].scored && pipes[i].x + PIPE_W < bird.x) {
@@ -240,7 +869,6 @@ function update() {
       score++;
       sfxPoint();
     }
-    // Collision
     const p = pipes[i];
     if (bird.x + bird.r - 4 > p.x && bird.x - bird.r + 4 < p.x + PIPE_W) {
       if (bird.y - bird.r < p.gapY || bird.y + bird.r > p.gapY + pipeGap) die();
@@ -248,7 +876,6 @@ function update() {
     if (p.x + PIPE_W < -10) pipes.splice(i, 1);
   }
 
-  // Particles
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
     p.x += p.vx; p.y += p.vy;
@@ -257,10 +884,8 @@ function update() {
     if (p.life <= 0) particles.splice(i, 1);
   }
 
-  // Clouds
   clouds.forEach(c => { c.x -= c.s * (modes.night ? 0.3 : 0.5); if (c.x < -120) c.x = W + 60; });
 
-  // Shake decay
   if (shakeDur > 0) {
     shakeDur--;
     shakeX = (Math.random() - 0.5) * 8;
@@ -271,10 +896,18 @@ function update() {
 function die() {
   if (state !== 'playing') return;
   state = 'dead';
-  if (score > highScore) highScore = score;
+  const prevHigh = getHighScore();
+  const isNewHigh = score > prevHigh;
+  if (isNewHigh) highScore = score;
+  else highScore = Math.max(highScore, prevHigh);
   sfxDie();
   spawnCrashParticles();
   shakeDur = 20;
+  // Auto-save score immediately under the pilot name — no prompt needed
+  if (score > 0) {
+    const activeModes = Object.keys(modes).filter(m => modes[m]);
+    addScore(currentPilot || 'ANON', score, activeModes);
+  }
 }
 
 // ─── DRAW HELPERS ───
@@ -282,18 +915,16 @@ function neon(color, blur = 12) { ctx.shadowColor = color; ctx.shadowBlur = blur
 function clearNeon() { ctx.shadowBlur = 0; }
 
 function drawBackground() {
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
   if (modes.night) {
-    const grad = ctx.createLinearGradient(0, 0, 0, H);
     grad.addColorStop(0, '#020818');
     grad.addColorStop(1, '#050d20');
-    ctx.fillStyle = grad;
   } else {
-    const grad = ctx.createLinearGradient(0, 0, 0, H);
     grad.addColorStop(0, '#0a0a2e');
     grad.addColorStop(0.6, '#0d1b4b');
     grad.addColorStop(1, '#1a0a3a');
-    ctx.fillStyle = grad;
   }
+  ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
 }
 
@@ -312,13 +943,8 @@ function drawCloud(cx, cy, scale) {
   ctx.save();
   ctx.translate(cx, cy);
   ctx.scale(scale, scale);
-  if (modes.night) {
-    ctx.fillStyle = 'rgba(100,150,255,0.08)';
-  } else {
-    ctx.fillStyle = 'rgba(180,200,255,0.12)';
-  }
-  const parts = [[0,0,30],[22,-10,22],[44,0,28],[66,-8,20],[88,0,24]];
-  parts.forEach(([x, y, r]) => {
+  ctx.fillStyle = modes.night ? 'rgba(100,150,255,0.08)' : 'rgba(180,200,255,0.12)';
+  [[0,0,30],[22,-10,22],[44,0,28],[66,-8,20],[88,0,24]].forEach(([x, y, r]) => {
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
   });
   ctx.restore();
@@ -333,7 +959,6 @@ function drawPipe(p) {
 
   function drawSection(x, y, w, h) {
     if (h <= 0) return;
-    // Body gradient
     const grad = ctx.createLinearGradient(x, 0, x + w, 0);
     grad.addColorStop(0, '#003322');
     grad.addColorStop(0.3, pipeColor);
@@ -342,7 +967,6 @@ function drawPipe(p) {
     neon(pipeColor, 18);
     ctx.fillStyle = grad;
     ctx.fillRect(x, y, w, h);
-    // Inner highlight
     ctx.fillStyle = 'rgba(255,255,255,0.07)';
     ctx.fillRect(x + 6, y, 8, h);
     clearNeon();
@@ -363,12 +987,10 @@ function drawPipe(p) {
     clearNeon();
   }
 
-  // Top pipe
   if (topH > 0) {
     drawSection(p.x, 0, PIPE_W, topH - capH);
     drawCap(p.x, topH - capH, PIPE_W, capH, false);
   }
-  // Bottom pipe
   if (botH > 0) {
     drawCap(p.x, botY, PIPE_W, capH, false);
     drawSection(p.x, botY + capH, PIPE_W, botH - capH);
@@ -376,7 +998,6 @@ function drawPipe(p) {
 }
 
 function drawBird() {
-  // Trail
   bird.trail.forEach((t, i) => {
     const alpha = (1 - i / bird.trail.length) * 0.3;
     ctx.save();
@@ -395,14 +1016,12 @@ function drawBird() {
   ctx.translate(bird.x, bird.y);
   ctx.rotate(tilt * Math.PI / 180);
 
-  // Body
   neon('#ffdd00', 20);
   ctx.fillStyle = '#ffcc00';
   ctx.beginPath();
   ctx.ellipse(0, 0, bird.r + 2, bird.r, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Wing
   const wingY = bird.flap > 0 ? -6 : 4;
   ctx.fillStyle = '#ff9900';
   neon('#ff6600', 10);
@@ -410,7 +1029,6 @@ function drawBird() {
   ctx.ellipse(-4, wingY, 10, 5, -0.3, 0, Math.PI * 2);
   ctx.fill();
 
-  // Eye
   ctx.fillStyle = '#fff';
   ctx.beginPath(); ctx.arc(6, -3, 5, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#000';
@@ -418,7 +1036,6 @@ function drawBird() {
   ctx.fillStyle = '#fff';
   ctx.beginPath(); ctx.arc(8, -4, 1, 0, Math.PI * 2); ctx.fill();
 
-  // Beak
   ctx.fillStyle = '#ff6600';
   ctx.beginPath();
   ctx.moveTo(bird.r, -1); ctx.lineTo(bird.r + 8, 2); ctx.lineTo(bird.r, 5);
@@ -457,7 +1074,6 @@ function drawGround() {
 }
 
 function drawHUD() {
-  // Score
   ctx.save();
   neon('#0ff', 20);
   ctx.fillStyle = '#fff';
@@ -469,19 +1085,17 @@ function drawHUD() {
   ctx.fillText(`HI: ${highScore}`, W / 2, 80);
   clearNeon();
 
-  // Mode indicators
   let modeText = [];
-  if (modes.hard) modeText.push('⚡HARD');
-  if (modes.speed) modeText.push('🚀SPEED');
+  if (modes.hard)    modeText.push('⚡HARD');
+  if (modes.speed)   modeText.push('🚀SPEED');
   if (modes.reverse) modeText.push('🔀REVERSE');
-  if (modes.night) modeText.push('🌙NIGHT');
+  if (modes.night)   modeText.push('🌙NIGHT');
   if (modeText.length) {
     ctx.font = '11px "Courier New"';
     ctx.fillStyle = '#ff0';
     ctx.fillText(modeText.join('  '), W / 2, 98);
   }
 
-  // Reverse warning
   if (modes.reverse && reverseFlip > 0) {
     const alpha = reverseFlip / 20;
     ctx.globalAlpha = alpha;
@@ -499,12 +1113,9 @@ function drawTitle() {
   drawStars();
   clouds.forEach(c => drawCloud(c.x, c.y, c.s));
   drawGround();
-
   ctx.save();
-  // Scanlines
   drawScanlines();
 
-  // Title
   neon('#0ff', 30);
   ctx.fillStyle = '#0ff';
   ctx.font = 'bold 32px "Courier New"';
@@ -521,7 +1132,6 @@ function drawTitle() {
   ctx.fillText('ONE TAP.  ONE CHANCE.', W / 2, H / 2 - 30);
   ctx.fillText("DON'T HIT THE PIPE.", W / 2, H / 2 - 10);
 
-  // Pulsing start
   const pulse = 0.6 + 0.4 * Math.sin(frame * 0.05);
   ctx.globalAlpha = pulse;
   neon('#0ff', 20);
@@ -543,7 +1153,6 @@ function drawTitle() {
 
 function drawDead() {
   ctx.save();
-  // Dim overlay
   ctx.fillStyle = 'rgba(0,0,0,0.55)';
   ctx.fillRect(0, 0, W, H);
 
@@ -557,16 +1166,6 @@ function drawDead() {
   neon('#fff', 10);
   ctx.fillStyle = '#fff';
   ctx.fillText(`SCORE: ${score}`, W / 2, H / 2 - 30);
-
-  if (score >= highScore && score > 0) {
-    const p2 = 0.5 + 0.5 * Math.sin(frame * 0.1);
-    ctx.globalAlpha = 0.7 + 0.3 * p2;
-    neon('#ff0', 25);
-    ctx.fillStyle = '#ff0';
-    ctx.font = 'bold 16px "Courier New"';
-    ctx.fillText('✨ NEW HIGH SCORE! ✨', W / 2, H / 2 + 5);
-    ctx.globalAlpha = 1;
-  }
 
   ctx.font = '14px "Courier New"';
   neon('#0ff', 15);
@@ -588,9 +1187,7 @@ function drawScanlines() {
   ctx.save();
   ctx.globalAlpha = 0.04;
   ctx.fillStyle = '#000';
-  for (let y = 0; y < H; y += 4) {
-    ctx.fillRect(0, y, W, 2);
-  }
+  for (let y = 0; y < H; y += 4) ctx.fillRect(0, y, W, 2);
   ctx.restore();
 }
 
@@ -601,7 +1198,6 @@ function loop() {
 
   if (state === 'title') {
     drawTitle();
-    // Animate bird on title
     bird.y = H / 2 + Math.sin(frame * 0.05) * 20;
     ctx.save();
     ctx.translate(shakeX, shakeY);
@@ -614,7 +1210,6 @@ function loop() {
 
   ctx.save();
   ctx.translate(shakeX, shakeY);
-
   drawBackground();
   drawStars();
   clouds.forEach(c => drawCloud(c.x, c.y, c.s));
@@ -624,7 +1219,6 @@ function loop() {
   drawGround();
   drawHUD();
   drawScanlines();
-
   ctx.restore();
 
   if (state === 'dead') drawDead();
@@ -632,10 +1226,22 @@ function loop() {
 
 // ─── INPUT ───
 document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { closeScoreboard(); return; }
+  if (!document.getElementById('usernameScreen').classList.contains('hidden')) return;
+  if (document.getElementById('scoreboardOverlay').classList.contains('show')) return;
   if (e.code === 'Space') { e.preventDefault(); doFlap(); }
 });
-canvas.addEventListener('click', doFlap);
-canvas.addEventListener('touchstart', e => { e.preventDefault(); doFlap(); }, { passive: false });
+canvas.addEventListener('click', () => {
+  if (!document.getElementById('usernameScreen').classList.contains('hidden')) return;
+  if (document.getElementById('scoreboardOverlay').classList.contains('show')) return;
+  doFlap();
+});
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  if (!document.getElementById('usernameScreen').classList.contains('hidden')) return;
+  if (document.getElementById('scoreboardOverlay').classList.contains('show')) return;
+  doFlap();
+}, { passive: false });
 
 loop();
 </script>
