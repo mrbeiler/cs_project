@@ -143,7 +143,7 @@
   .presetBtn.hardcore.active{background:#ff0044;border-color:#ff0044;color:#fff;}
   .presetBtn.custom.active{background:#aa44ff;border-color:#aa44ff;color:#fff;}
   .presetBtn.overpowered.active{background:#00ffcc;border-color:#00ffcc;color:#000;text-shadow:none;}
-  .presetBtn.seasonal.active{background:linear-gradient(135deg,#ff2244,#228822);border-color:#ff4466;color:#fff;text-shadow:0 0 8px #ff446688;}
+  .presetBtn.seasonal.active{background:linear-gradient(135deg,#88dd44,#ffee55);border-color:#aaee44;color:#1a2a00;text-shadow:none;font-weight:700;}
   .triBtn{background:transparent;border:1px solid #334;color:#556;font-family:'Orbitron',monospace;font-size:9px;letter-spacing:1px;padding:5px 10px;cursor:pointer;transition:all 0.15s;}
   .triBtn:hover{border-color:#00ccff;color:#00ccff;}
   .triBtn.active{background:#00ccff;border-color:#00ccff;color:#000;font-weight:700;}
@@ -158,8 +158,19 @@
   .settingSlider{-webkit-appearance:none;appearance:none;width:200px;height:4px;background:#1a1a2e;border-radius:2px;outline:none;cursor:pointer;}
   .settingSlider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#00ccff;cursor:pointer;box-shadow:0 0 6px #00ccff;}
   .sliderVal{color:#00ccff;font-family:'Orbitron',monospace;font-size:10px;width:40px;text-align:right;}
-  /* Preset-locked: greyed out, non-interactive */
+  /* Ammo start stepper (replaces slider for start amounts) */
+  .ammoStepper{display:flex;align-items:center;gap:0;border:1px solid #2a3a4a;border-radius:3px;overflow:hidden;}
+  .ammoStepBtn{background:#0d0d1a;border:none;color:#4488aa;font-family:'Orbitron',monospace;font-size:11px;font-weight:700;width:22px;height:22px;cursor:pointer;transition:all 0.15s;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0;}
+  .ammoStepBtn:hover{background:#1a2a3a;color:#00ccff;}
+  .ammoStepVal{font-family:'Orbitron',monospace;font-size:10px;color:#00ccff;min-width:36px;text-align:center;padding:0 4px;background:#080812;height:22px;display:flex;align-items:center;justify-content:center;border-left:1px solid #2a3a4a;border-right:1px solid #2a3a4a;}
+  input.ammoStepVal{border-radius:0;outline:none;width:48px;cursor:text;}
+  input.ammoStepVal:focus{background:#0d0d22;color:#44eeff;}
+  input.ammoStepVal::-webkit-outer-spin-button,
+  input.ammoStepVal::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
+  input.ammoStepVal[type=number]{-moz-appearance:textfield;}
+  /* Preset-locked: greyed out, non-interactive for element AND all children */
   .preset-locked{opacity:0.28;pointer-events:none;}
+  .preset-locked *{pointer-events:none;}
   /* Settings close */
   #settingsCloseBtn,#settingsCloseBtn2,#settingsCloseBtn3{background:transparent;border:1px solid #334;color:#446;font-family:'Orbitron',monospace;font-size:10px;letter-spacing:3px;padding:10px 0;cursor:pointer;margin-top:8px;transition:all 0.2s;width:160px;}
   #settingsCloseBtn:hover,#settingsCloseBtn2:hover,#settingsCloseBtn3:hover{border-color:#00ccff;color:#00ccff;}
@@ -256,6 +267,7 @@
   .lbModeBadge.roam{background:#336a7a22;color:#7abccc;border:1px solid #4499aa33;}
   .lbDiffBadge{font-family:'Orbitron',monospace;font-size:8px;letter-spacing:1px;padding:3px 7px;border-radius:2px;}
   .lbDiffBadge.overpowered{background:#00ffcc22;color:#00ffcc;border:1px solid #00ffcc44;}
+  .lbDiffBadge.seasonal{background:#aaee4422;color:#aaee44;border:1px solid #aaee4444;}
   .lbDiffBadge.easy{background:#44ff8822;color:#44ff88;border:1px solid #44ff8844;}
   .lbDiffBadge.medium{background:#ffcc0022;color:#ffcc00;border:1px solid #ffcc0044;}
   .lbDiffBadge.hard{background:#ff660022;color:#ff6600;border:1px solid #ff660044;}
@@ -424,7 +436,7 @@
       <div class="settingRow" style="border:none;">
         <div class="presetGroup">
           <button class="presetBtn overpowered cPresetBtn" data-preset="overpowered" onclick="applyPreset('overpowered','classic')">OVERPOWERED</button>
-          <button class="presetBtn seasonal cPresetBtn" data-preset="seasonal" onclick="applyPreset('seasonal','classic')">🎄 SEASONAL</button>
+          <button class="presetBtn seasonal cPresetBtn" data-preset="seasonal" onclick="applyPreset('seasonal','classic')">SEASONAL EVENT</button>
           <div class="customBtnGroup">
             <button class="presetBtn custom cPresetBtn" data-preset="custom" onclick="applyPreset('custom','classic')">CUSTOM</button>
             <div id="cCustomSlotWrap" class="slotStepper">
@@ -510,9 +522,13 @@
       </div>
       <div style="padding:4px 0 6px 16px;border-left:2px solid #1a2a3a;margin-left:4px;display:flex;align-items:center;justify-content:space-between;">
         <div><div class="settingName" style="color:#7bbcdd;font-size:10px;">START AMOUNT</div><div class="settingDesc">Light ammo at game start</div></div>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <input type="range" class="settingSlider" id="setStartLight" min="0" max="500" step="10" value="100" oninput="onSlider('setStartLight','startLightVal',v=>v)">
-          <span class="sliderVal" id="startLightVal">100</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="hidden" id="setStartLight" value="100">
+          <div class="ammoStepper">
+            <button class="ammoStepBtn" onclick="stepStartAmmo('setStartLight','startLightVal',-10,0,500)">−</button>
+            <input type="number" class="ammoStepVal" id="startLightVal" value="100" min="0" max="500" step="10" onchange="typeStartAmmo('setStartLight','startLightVal',0,500)" onblur="typeStartAmmo('setStartLight','startLightVal',0,500)">
+            <button class="ammoStepBtn" onclick="stepStartAmmo('setStartLight','startLightVal',10,0,500)">+</button>
+          </div>
         </div>
       </div>
       <div class="settingRow">
@@ -525,9 +541,13 @@
       </div>
       <div style="padding:4px 0 6px 16px;border-left:2px solid #2a2a1a;margin-left:4px;display:flex;align-items:center;justify-content:space-between;">
         <div><div class="settingName" style="color:#ccaa33;font-size:10px;">START AMOUNT</div><div class="settingDesc">Medium ammo at game start</div></div>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <input type="range" class="settingSlider" id="setStartMedium" min="0" max="300" step="5" value="0" oninput="onSlider('setStartMedium','startMediumVal',v=>v)">
-          <span class="sliderVal" id="startMediumVal">0</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="hidden" id="setStartMedium" value="0">
+          <div class="ammoStepper">
+            <button class="ammoStepBtn" onclick="stepStartAmmo('setStartMedium','startMediumVal',-5,0,300)">−</button>
+            <input type="number" class="ammoStepVal" id="startMediumVal" value="0" min="0" max="300" step="5" onchange="typeStartAmmo('setStartMedium','startMediumVal',0,300)" onblur="typeStartAmmo('setStartMedium','startMediumVal',0,300)">
+            <button class="ammoStepBtn" onclick="stepStartAmmo('setStartMedium','startMediumVal',5,0,300)">+</button>
+          </div>
         </div>
       </div>
       <div class="settingRow" style="border:none;">
@@ -540,9 +560,13 @@
       </div>
       <div style="padding:4px 0 0 16px;border-left:2px solid #2a1a1a;margin-left:4px;display:flex;align-items:center;justify-content:space-between;">
         <div><div class="settingName" style="color:#cc4422;font-size:10px;">START AMOUNT</div><div class="settingDesc">Heavy ammo at game start</div></div>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <input type="range" class="settingSlider" id="setStartHeavy" min="0" max="100" step="1" value="0" oninput="onSlider('setStartHeavy','startHeavyVal',v=>v)">
-          <span class="sliderVal" id="startHeavyVal">0</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="hidden" id="setStartHeavy" value="0">
+          <div class="ammoStepper">
+            <button class="ammoStepBtn" onclick="stepStartAmmo('setStartHeavy','startHeavyVal',-1,0,100)">−</button>
+            <input type="number" class="ammoStepVal" id="startHeavyVal" value="0" min="0" max="100" step="1" onchange="typeStartAmmo('setStartHeavy','startHeavyVal',0,100)" onblur="typeStartAmmo('setStartHeavy','startHeavyVal',0,100)">
+            <button class="ammoStepBtn" onclick="stepStartAmmo('setStartHeavy','startHeavyVal',1,0,100)">+</button>
+          </div>
         </div>
       </div>
     </div>
@@ -579,7 +603,7 @@
       <div class="settingRow" style="border:none;">
         <div class="presetGroup">
           <button class="presetBtn overpowered fPresetBtn" data-preset="overpowered" onclick="applyPreset('overpowered','fortress')">OVERPOWERED</button>
-          <button class="presetBtn seasonal fPresetBtn" data-preset="seasonal" onclick="applyPreset('seasonal','fortress')">🎄 SEASONAL</button>
+          <button class="presetBtn seasonal fPresetBtn" data-preset="seasonal" onclick="applyPreset('seasonal','fortress')">SEASONAL EVENT</button>
           <div class="customBtnGroup">
             <button class="presetBtn custom fPresetBtn" data-preset="custom" onclick="applyPreset('custom','fortress')">CUSTOM</button>
             <div id="fCustomSlotWrap" class="slotStepper">
@@ -687,9 +711,13 @@
       </div>
       <div style="padding:4px 0 6px 16px;border-left:2px solid #2a1a0a;margin-left:4px;display:flex;align-items:center;justify-content:space-between;">
         <div><div class="settingName" style="color:#cc7700;font-size:10px;">START AMOUNT</div><div class="settingDesc">Main ammo at game start</div></div>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <input type="range" class="settingSlider" id="fSetStartMain" min="0" max="500" step="10" value="200" oninput="fOnSlider('fSetStartMain','fStartMainVal',v=>v)">
-          <span class="sliderVal" id="fStartMainVal">200</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="hidden" id="fSetStartMain" value="200">
+          <div class="ammoStepper">
+            <button class="ammoStepBtn" onclick="stepStartAmmo('fSetStartMain','fStartMainVal',-10,0,500)">−</button>
+            <input type="number" class="ammoStepVal" id="fStartMainVal" value="200" min="0" max="500" step="10" onchange="typeStartAmmo('fSetStartMain','fStartMainVal',0,500)" onblur="typeStartAmmo('fSetStartMain','fStartMainVal',0,500)">
+            <button class="ammoStepBtn" onclick="stepStartAmmo('fSetStartMain','fStartMainVal',10,0,500)">+</button>
+          </div>
         </div>
       </div>
       <div class="settingRow" style="border:none;">
@@ -702,9 +730,13 @@
       </div>
       <div style="padding:4px 0 0 16px;border-left:2px solid #1a0a2a;margin-left:4px;display:flex;align-items:center;justify-content:space-between;">
         <div><div class="settingName" style="color:#9933cc;font-size:10px;">START AMOUNT</div><div class="settingDesc">Secondary ammo at game start</div></div>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <input type="range" class="settingSlider" id="fSetStartSec" min="0" max="500" step="10" value="200" oninput="fOnSlider('fSetStartSec','fStartSecVal',v=>v)">
-          <span class="sliderVal" id="fStartSecVal">200</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <input type="hidden" id="fSetStartSec" value="200">
+          <div class="ammoStepper">
+            <button class="ammoStepBtn" onclick="stepStartAmmo('fSetStartSec','fStartSecVal',-10,0,500)">−</button>
+            <input type="number" class="ammoStepVal" id="fStartSecVal" value="200" min="0" max="500" step="10" onchange="typeStartAmmo('fSetStartSec','fStartSecVal',0,500)" onblur="typeStartAmmo('fSetStartSec','fStartSecVal',0,500)">
+            <button class="ammoStepBtn" onclick="stepStartAmmo('fSetStartSec','fStartSecVal',10,0,500)">+</button>
+          </div>
         </div>
       </div>
     </div>
@@ -830,6 +862,7 @@
           <div class="dfItem" data-diff="hard"       onclick="toggleDiffHide('hard')">      <div class="dfCheck">✓</div><span class="dfLabel" style="color:#ff6600;">HARD</span>      </div>
           <div class="dfItem" data-diff="hardcore"   onclick="toggleDiffHide('hardcore')">  <div class="dfCheck">✓</div><span class="dfLabel" style="color:#ff4466;">HARDCORE</span>  </div>
           <div class="dfItem" data-diff="overpowered" onclick="toggleDiffHide('overpowered')"><div class="dfCheck">✓</div><span class="dfLabel" style="color:#00ffcc;">OVERPOWERED</span></div>
+          <div class="dfItem" data-diff="seasonal"   onclick="toggleDiffHide('seasonal')">  <div class="dfCheck">✓</div><span class="dfLabel" style="color:#aaee44;">SEASONAL</span>  </div>
           <div class="dfItem" data-diff="custom"     onclick="toggleDiffHide('custom')">    <div class="dfCheck">✓</div><span class="dfLabel" style="color:#aa44ff;">CUSTOM</span>    </div>
         </div>
       </div>
@@ -922,6 +955,10 @@ let game = {};
 
 // Cache for crosshair cursor canvas — keyed by dot color, regenerated only on color change
 const _crosshairCache = new Map();
+
+// Desert tile image for seasonal roam floor
+const desertTileImg = new Image();
+desertTileImg.src = 'data:image/webp;base64,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';
 
 
 // ══════════════════════════════════════════════════════════════════
@@ -1215,14 +1252,15 @@ function detectPreset(s){
 }
 
 function syncClassicPreset(){
-  // Only re-detect if not explicitly set to custom — prevents mid-game settings
-  // from snapping to a named preset when custom values happen to match one
-  if(SETTINGS.preset !== 'custom') SETTINGS.preset = detectPreset(SETTINGS);
+  // Re-detect only when in custom mode — allows snapping back to a named preset if values match.
+  // Named presets (seasonal, overpowered, etc.) are always trusted as-is; re-detecting them
+  // risks falsely snapping to 'custom' if any value drifts even slightly.
+  if(SETTINGS.preset === 'custom') SETTINGS.preset = detectPreset(SETTINGS);
   syncPresetBtns('classic', SETTINGS.preset);
   updateCustomControls('classic', SETTINGS.preset === 'custom');
 }
 function syncFortressPreset(){
-  if(FORTRESS_SETTINGS.preset !== 'custom') FORTRESS_SETTINGS.preset = detectPreset(FORTRESS_SETTINGS);
+  if(FORTRESS_SETTINGS.preset === 'custom') FORTRESS_SETTINGS.preset = detectPreset(FORTRESS_SETTINGS);
   syncPresetBtns('fortress', FORTRESS_SETTINGS.preset);
   updateCustomControls('fortress', FORTRESS_SETTINGS.preset === 'custom');
 }
@@ -1295,6 +1333,32 @@ function fOnOverkillSlider(labelId, fmt){
   const val = parseFloat(document.getElementById('fSetOverkill').value);
   document.getElementById(labelId).textContent = fmt(Number.isInteger(val) ? val : val.toFixed(1));
   FORTRESS_SETTINGS.overkillMult = val;
+}
+
+function stepStartAmmo(inputId, valId, delta, min, max){
+  const inp = document.getElementById(inputId);
+  const cur = parseInt(inp.value) || 0;
+  const next = Math.max(min, Math.min(max, cur + delta));
+  inp.value = next;
+  const valEl = document.getElementById(valId);
+  if(valEl) valEl.value = next;
+  _writeStartAmmo(inputId, next);
+}
+function typeStartAmmo(inputId, valId, min, max){
+  const valEl = document.getElementById(valId);
+  let v = parseInt(valEl.value);
+  if(isNaN(v)) v = min;
+  v = Math.max(min, Math.min(max, v));
+  valEl.value = v;
+  document.getElementById(inputId).value = v;
+  _writeStartAmmo(inputId, v);
+}
+function _writeStartAmmo(inputId, v){
+  if(inputId==='setStartLight')  SETTINGS.startLightAmmo  = v;
+  if(inputId==='setStartMedium') SETTINGS.startMediumAmmo = v;
+  if(inputId==='setStartHeavy')  SETTINGS.startHeavyAmmo  = v;
+  if(inputId==='fSetStartMain')  FORTRESS_SETTINGS.startMainAmmo = v;
+  if(inputId==='fSetStartSec')   FORTRESS_SETTINGS.startSecAmmo  = v;
 }
 
 function toggleAmmoEnabled(slot){
@@ -1465,9 +1529,9 @@ function syncClassicUI(){
   document.getElementById('setStartLight').value  = SETTINGS.startLightAmmo  ?? 100;
   document.getElementById('setStartMedium').value = SETTINGS.startMediumAmmo ?? 0;
   document.getElementById('setStartHeavy').value  = SETTINGS.startHeavyAmmo  ?? 0;
-  document.getElementById('startLightVal').textContent  = SETTINGS.startLightAmmo  ?? 100;
-  document.getElementById('startMediumVal').textContent = SETTINGS.startMediumAmmo ?? 0;
-  document.getElementById('startHeavyVal').textContent  = SETTINGS.startHeavyAmmo  ?? 0;
+  document.getElementById('startLightVal').value  = SETTINGS.startLightAmmo  ?? 100;
+  document.getElementById('startMediumVal').value = SETTINGS.startMediumAmmo ?? 0;
+  document.getElementById('startHeavyVal').value  = SETTINGS.startHeavyAmmo  ?? 0;
   document.getElementById('setAllWeapons').checked = !!SETTINGS.allWeaponsUnlocked;
   syncClassicPreset();
 }
@@ -1492,8 +1556,8 @@ function syncFortressUI(){
   syncAmmoEnableBtn('fSetSecEnable','fSetSecDrop',   FORTRESS_SETTINGS.secEnabled  !== false);
   document.getElementById('fSetStartMain').value = FORTRESS_SETTINGS.startMainAmmo ?? 200;
   document.getElementById('fSetStartSec').value  = FORTRESS_SETTINGS.startSecAmmo  ?? 200;
-  document.getElementById('fStartMainVal').textContent = FORTRESS_SETTINGS.startMainAmmo ?? 200;
-  document.getElementById('fStartSecVal').textContent  = FORTRESS_SETTINGS.startSecAmmo  ?? 200;
+  document.getElementById('fStartMainVal').value = FORTRESS_SETTINGS.startMainAmmo ?? 200;
+  document.getElementById('fStartSecVal').value  = FORTRESS_SETTINGS.startSecAmmo  ?? 200;
   document.getElementById('fSetAllWeapons').checked = !!FORTRESS_SETTINGS.allWeaponsUnlocked;
   const ok = FORTRESS_SETTINGS.overkillMult || 0;
   document.getElementById('fSetOverkill').value = ok;
@@ -1739,7 +1803,7 @@ function initGame(mode) {
       xp: 0, xpNext: 20, level: 1,
       weapons: [],
     },
-    enemies: [], bullets: [], gems: [], particles: [],
+    enemies: [], bullets: [], gems: [], particles: [], _dust: [],
     keys: {}, spawnTimer: 0, spawnRate: 1.5,
     rightMouseDown: false,
     inventory: [],
@@ -1965,6 +2029,7 @@ function syncEquipped() {
   }
   game.bullets = [];
   game.rocketTrails = [];
+  game.enemyProjectiles = [];
   updateCrosshairCursor();
 }
 
@@ -2137,6 +2202,25 @@ function spawnEnemy() {
   else{x=camX-pad;y=camY+Math.random()*H;}
   
   const t = game.time;
+
+  // Seasonal Event: only Shriekers and Lobbers spawn, mixed equally
+  if(activeSettings().preset === 'seasonal'){
+    const _fortScale = game.mode==='fortress' ? 0.40 : 1;
+    const type = Math.random() < 0.5 ? 'shrieker' : 'lobber';
+    if(type === 'shrieker'){
+      game.enemies.push({x,y,type:'shrieker',
+        r:Math.round(14*_fortScale), hp:60, maxHp:60,
+        spd:Math.round(45*_fortScale), dmg:8, xp:6, color:'#ff44cc', score:2,
+        shockwaveCd:5.0, shockwaveTimer:2.0+Math.random()*2.0, shockwaves:[], hit:0});
+    } else {
+      game.enemies.push({x,y,type:'lobber',
+        r:Math.round(15*_fortScale), hp:18, maxHp:18,
+        spd:Math.round(28*_fortScale), dmg:0, xp:5, color:'#aa88ff', score:2,
+        throwCd:2.8, throwTimer:1.5+Math.random()*1.5, hit:0});
+    }
+    return;
+  }
+
   // Gradual weighted progression: weights grow unbounded after each type unlocks
   const weights = { slime: 10 + t / 30 };
   if(t >= 60)  weights.runner  = 1 + (t - 60)  / 10;
@@ -2150,10 +2234,10 @@ function spawnEnemy() {
   for(let i=0;i<pool.length;i++){ roll -= wArr[i]; if(roll<=0){ type=pool[i]; break; } }
   
   const configs = {
-    slime: {r:12,hp:30,maxHp:30,spd:60,dmg:10,xp:3,color:'#33ff66',score:1},
-    runner: {r:9,hp:18,maxHp:18,spd:120,dmg:8,xp:2,color:'#ff9933',score:1},
-    tank: {r:20,hp:120,maxHp:120,spd:35,dmg:20,xp:8,color:'#ff3366',score:3},
-    speeder: {r:8,hp:12,maxHp:12,spd:180,dmg:6,xp:2,color:'#ffff00',score:2},
+    slime:   {r:12,hp:30, maxHp:30, spd:60, dmg:10,xp:3, color:'#33ff66',score:1},
+    runner:  {r:9, hp:18, maxHp:18, spd:120,dmg:8, xp:2, color:'#ff9933',score:1},
+    tank:    {r:20,hp:120,maxHp:120,spd:35, dmg:20,xp:8, color:'#ff3366',score:3},
+    speeder: {r:8, hp:12, maxHp:12, spd:180,dmg:6, xp:2, color:'#ffff00',score:2},
   };
   const cfg = configs[type];
   const ecfg = game.mode==='fortress'
@@ -2165,6 +2249,45 @@ function spawnEnemy() {
 function update(dt) {
   if(!game.running || game.paused) return;
   game.time += dt;
+  // Dust blowing (seasonal event, all modes)
+  if(typeof activeSettings === 'function' && activeSettings().preset==='seasonal'){
+    if(!game._dust) game._dust=[];
+    // Spawn new wisps from random screen edges and across the field
+    if(Math.random() < dt * 7){
+      const side = Math.random();
+      let sx, sy;
+      const camX2 = game.camera ? game.camera.x : 0;
+      const camY2 = game.camera ? game.camera.y : 0;
+      if(side < 0.6){
+        sx = camX2 - 20 + Math.random()*(W+40);
+        sy = camY2 + H + 10;
+      } else if(side < 0.8){
+        sx = camX2 - 20;
+        sy = camY2 + Math.random()*H;
+      } else {
+        sx = camX2 + W + 20;
+        sy = camY2 + Math.random()*H;
+      }
+      const spd = 28 + Math.random()*38;
+      const ang = -Math.PI*0.5 + (Math.random()-0.5)*0.7;
+      game._dust.push({
+        x:sx, y:sy,
+        vx: Math.cos(ang)*spd - spd*0.4,
+        vy: Math.sin(ang)*spd,
+        life: 1, maxLife: 2.2+Math.random()*1.4,
+        r: 10+Math.random()*22,
+        rot: Math.random()*Math.PI*2,
+        rotSpd: (Math.random()-0.5)*1.2
+      });
+    }
+    for(let _di=game._dust.length-1;_di>=0;_di--){
+      const _d=game._dust[_di];
+      _d.x += _d.vx*dt; _d.y += _d.vy*dt;
+      _d.rot += _d.rotSpd*dt;
+      _d.life -= dt/_d.maxLife;
+      if(_d.life<=0) game._dust.splice(_di,1);
+    }
+  }
   // Decay main barrel recoil animation — slow return to full length
   if(game.mainRecoil > 0) game.mainRecoil = Math.max(0, game.mainRecoil - dt * 3);
   if(game.muzzleFlash > 0) game.muzzleFlash = Math.max(0, game.muzzleFlash - dt * 14);
@@ -2211,6 +2334,100 @@ function update(dt) {
     if(e.hit>0) e.hit-=dt;
     if(e.hitTimer>0) e.hitTimer-=dt;
 
+    // Lobber: periodically lobs a slow projectile toward the player
+    if(e.type==='lobber'){
+      e.throwTimer = (e.throwTimer||0) - dt;
+      if(e.throwTimer <= 0){
+        e.throwTimer = e.throwCd || 2.8;
+        if(!game.enemyProjectiles) game.enemyProjectiles=[];
+        const dx=p.x-e.x, dy=p.y-e.y;
+        const dist=Math.sqrt(dx*dx+dy*dy)||1;
+        const spd=110;
+        game.enemyProjectiles.push({
+          x:e.x, y:e.y,
+          vx:(dx/dist)*spd, vy:(dy/dist)*spd,
+          r:6, dmg:12, life:2.2, maxLife:2.2,
+          color:'#cc88ff'
+        });
+      }
+    }
+    if(e.type==='shrieker'){
+      if(!e.shockwaves) e.shockwaves=[];
+      // Tick cooldown and fire new shockwave
+      e.shockwaveTimer -= dt;
+      if(e.shockwaveTimer <= 0){
+        e.shockwaveTimer = e.shockwaveCd || 2.5;
+        e.shockwaves.push({r:e.r+2, maxR:200, spd:110, dmg:5, alpha:1, hp:60});
+      }
+      // Update rings
+      for(let si=e.shockwaves.length-1;si>=0;si--){
+        const sw = e.shockwaves[si];
+        sw.r += sw.spd * dt;
+        sw.alpha = Math.max(0, Math.pow(1 - sw.r / sw.maxR, 0.38));
+        // Player damage check — ring is ~8px thick
+        const pdx=p.x-e.x, pdy=p.y-e.y;
+        const pdist=Math.sqrt(pdx*pdx+pdy*pdy);
+        if(Math.abs(pdist - sw.r) < 10){
+          if(!sw._hitPlayer){
+            sw._hitPlayer=true;
+            p.hp = Math.max(0, p.hp - sw.dmg);
+            sfxPlayerHit();
+            spawnParticles(p.x,p.y,'#ff44cc',5);
+            if(p.hp<=0){gameOver();return;}
+          }
+        } else {
+          sw._hitPlayer=false;
+        }
+        // hp ceiling decreases as ring expands — nearly spent wave is easy to break
+        sw.hp = Math.min(sw.hp, 60 * Math.pow(1 - sw.r / sw.maxR, 0.7));
+        // Bullet interaction — pierce weapons pass through with sparks; grenades explode; others damage/deflect
+        for(let bi=game.bullets.length-1;bi>=0;bi--){
+          const b = game.bullets[bi];
+          const bdx=b.x-e.x, bdy=b.y-e.y;
+          const bdist=Math.sqrt(bdx*bdx+bdy*bdy)||1;
+          if(Math.abs(bdist - sw.r) < 10){
+            if(b.pierceable){
+              // Pierce weapons pass straight through — emit a small spark burst
+              if(!b._shriekPierced){
+                b._shriekPierced=true;
+                spawnParticles(b.x, b.y, '#ff88ee', 5);
+              }
+              continue;
+            } else {
+              b._shriekPierced=false;
+            }
+            if(!b._shriekDeflected){
+              b._shriekDeflected=true;
+              // Grenades detonate on contact with the wave
+              const isGrenade = b.weaponId==='grenade'||b.weaponId==='sec_grenade';
+              if(isGrenade && b.explode){
+                doExplosion(b.x, b.y, b.explode.r, b.explode.dmg, game.player ? (game.player.dmgMult||1) : 1);
+                game.bullets.splice(bi,1);
+                sw.hp -= b.explode.dmg * 2;
+              } else {
+                sw.hp -= (b.dmg||5);
+              }
+              if(sw.hp <= 0){
+                spawnParticles(b.x, b.y, '#ff88ee', 8);
+                e.shockwaves.splice(si,1);
+                break;
+              }
+              if(!isGrenade){
+                // Ring survived — deflect bullet radially outward
+                const bspd=Math.sqrt(b.vx*b.vx+b.vy*b.vy)||1;
+                b.vx = (bdx/bdist)*bspd;
+                b.vy = (bdy/bdist)*bspd;
+              }
+            }
+          } else {
+            b._shriekDeflected=false;
+            b._shriekPierced=false;
+          }
+        }
+        if(si < e.shockwaves.length && e.shockwaves[si] === sw && sw.r >= sw.maxR) e.shockwaves.splice(si,1);
+      }
+    }
+
     // Fortress wall collision — stop enemies at the wall perimeter
     if(game.mode==='fortress'){
       const wdx = e.x-p.x, wdy = e.y-p.y;
@@ -2240,6 +2457,40 @@ function update(dt) {
           if(p.hp<=0){gameOver();return;}
         }
       }
+    }
+  }
+
+  // Update enemy projectiles (lobber throws etc.)
+  if(!game.enemyProjectiles) game.enemyProjectiles=[];
+  for(let i=game.enemyProjectiles.length-1;i>=0;i--){
+    const ep=game.enemyProjectiles[i];
+    ep.x+=ep.vx*dt; ep.y+=ep.vy*dt;
+    ep.life-=dt;
+    if(ep.life<=0){game.enemyProjectiles.splice(i,1);continue;}
+    // Destroyed by player bullets
+    let epDestroyed = false;
+    for(let bi=game.bullets.length-1;bi>=0;bi--){
+      const b=game.bullets[bi];
+      const bdx=b.x-ep.x, bdy=b.y-ep.y;
+      if(bdx*bdx+bdy*bdy<(b.r+ep.r)*(b.r+ep.r)){
+        spawnParticles(ep.x,ep.y,'#cc88ff',6);
+        const now=performance.now(); if(!game._lastHitSfx||now-game._lastHitSfx>50){game._lastHitSfx=now;sfxEnemyHit();}
+        game.enemyProjectiles.splice(i,1);
+        // Non-pierce bullets are consumed on hit
+        if(!b.pierceable){ game.bullets.splice(bi,1); }
+        epDestroyed=true;
+        break;
+      }
+    }
+    if(epDestroyed) continue;
+    // Hit player
+    const epdx=p.x-ep.x, epdy=p.y-ep.y;
+    if(epdx*epdx+epdy*epdy<(p.r+ep.r)*(p.r+ep.r)){
+      p.hp=Math.max(0,p.hp-ep.dmg);
+      sfxPlayerHit();
+      spawnParticles(p.x,p.y,'#cc88ff',6);
+      game.enemyProjectiles.splice(i,1);
+      if(p.hp<=0){gameOver();return;}
     }
   }
 
@@ -2329,7 +2580,7 @@ function update(dt) {
           e.flamestacks = Math.min(15, (e.flamestacks || 0) + 1);
           // Start or maintain the flame dot ticker (damage computed live from heat)
           if(!e.dot || !e.dot.isFlame){
-            e.dot = {isFlame:true, tick:0.45, timer:0.45, dur:99};
+            e.dot = {isFlame:true, tick:0.65, timer:0.65, dur:99};
           }
         } else if(b.effect){
           if(b.effect.type==='slow'||b.effect.type==='freeze'){
@@ -2404,8 +2655,8 @@ function update(dt) {
       e.dot.timer-=dt; e.dot.dur-=dt;
       if(e.dot.timer<=0){
         const ddmg = e.dot.isFlame
-          // Damage ramps from ~0 up to 24/tick as flamestacks reaches 15
-          ? Math.max(1, Math.floor(24 * Math.min(1, (e.flamestacks||0) / 15) * (e.flameheat||0) * (p.dmgMult||1)))
+          // Damage ramps from ~0 up to 16/tick as flamestacks reaches 15
+          ? Math.max(1, Math.floor(8 * Math.min(1, (e.flamestacks||0) / 15) * (e.flameheat||0) * (p.dmgMult||1)))
           : Math.floor(e.dot.dmg*(p.dmgMult||1));
         e.hp-=ddmg; e.hit=0.1;
         spawnDamageNum(e.x,e.y-8,ddmg,'#ff8800');
@@ -2524,6 +2775,7 @@ function fireBullet(p, w, ax, ay, angleOffset, ox, oy){
     vx:Math.cos(angle)*spd, vy:Math.sin(angle)*spd,
     r:w.r||4, baseR:w.r||4, dmg:w.dmg, baseDmg:w.dmg, color:w.color, life, maxLife:life,
     pierce:w.pierce||0,
+    pierceable: (w.pierce||0) > 0,  // true for any weapon that can pierce enemies
     pierceDmgLoss: w.pierceDmgLoss || 0,
     effect: w.effect ? {...w.effect} : null,
     explode: w.explode || null,
@@ -3562,6 +3814,24 @@ function draw(){
   // Camera offset for roam mode
   const camX = game.camera ? game.camera.x : 0;
   const camY = game.camera ? game.camera.y : 0;
+  // Desert tile floor for seasonal roam mode
+  const _isSeasonal = game.running && activeSettings().preset==='seasonal';
+  if(_isSeasonal && desertTileImg.complete && desertTileImg.naturalWidth>0){
+    const _pat = ctx.createPattern(desertTileImg,'repeat');
+    if(_pat){
+      const _tw=desertTileImg.naturalWidth, _th=desertTileImg.naturalHeight;
+      // In fortress mode scale the tile down to match smaller entity scale (0.40)
+      const _tileScale = game.mode==='fortress' ? 0.40 : 1;
+      const _offX = -(camX % (_tw * _tileScale)) / _tileScale;
+      const _offY = -(camY % (_th * _tileScale)) / _tileScale;
+      _pat.setTransform(new DOMMatrix().scale(_tileScale, _tileScale).translate(_offX, _offY));
+      ctx.fillStyle=_pat;
+      ctx.fillRect(0,0,W,H);
+      // Pale wash to lighten the sand
+      ctx.fillStyle='rgba(255,250,235,0.62)';
+      ctx.fillRect(0,0,W,H);
+    }
+  }
   // Background grid (drawn in world space for roam)
   ctx.save();
   ctx.translate(-camX, -camY);
@@ -3574,8 +3844,27 @@ function draw(){
   // Only draw grid lines visible in viewport
   const gx0 = Math.floor(camX/gs)*gs;
   const gy0 = Math.floor(camY/gs)*gs;
-  for(let x=gx0;x<camX+W+gs;x+=gs){ctx.beginPath();ctx.moveTo(x,camY);ctx.lineTo(x,camY+H);ctx.stroke();}
-  for(let y=gy0;y<camY+H+gs;y+=gs){ctx.beginPath();ctx.moveTo(camX,y);ctx.lineTo(camX+W,y);ctx.stroke();}
+  if(!_isSeasonal){
+    for(let x=gx0;x<camX+W+gs;x+=gs){ctx.beginPath();ctx.moveTo(x,camY);ctx.lineTo(x,camY+H);ctx.stroke();}
+    for(let y=gy0;y<camY+H+gs;y+=gs){ctx.beginPath();ctx.moveTo(camX,y);ctx.lineTo(camX+W,y);ctx.stroke();}
+  }
+  // Draw dust wisps (seasonal roam) — in world space (already translated by -cam)
+  if(_isSeasonal && game._dust && game._dust.length){
+    ctx.save();
+    for(const _d of game._dust){
+      const _fade = Math.sin(_d.life * Math.PI);
+      ctx.globalAlpha = _fade * 0.18;
+      ctx.fillStyle = 'rgba(230,210,170,1)';
+      ctx.save();
+      ctx.translate(_d.x, _d.y);
+      ctx.rotate(_d.rot);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, _d.r, _d.r*0.38, 0, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    }
+    ctx.restore();
+  }
   // Roam world boundary
   if(game.mode==='roam'){
     ctx.strokeStyle='#ff224466'; ctx.lineWidth=2; ctx.setLineDash([8,6]);
@@ -3654,17 +3943,97 @@ function draw(){
     ctx.restore();
   }
 
+  // Enemies — ground shadows first (drawn before bodies so they stay underneath)
+  if(_isSeasonal){
+    for(const e of game.enemies){
+      ctx.save();
+      ctx.globalAlpha = (e.hit>0?0.20:0.35);
+      ctx.fillStyle='rgba(0,0,0,1)';
+      ctx.beginPath();
+      ctx.arc(e.x + e.r*0.55, e.y + e.r*0.45, e.r, 0, Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
   // Enemies
   for(const e of game.enemies){
     ctx.save();
     if(e.hit>0) ctx.globalAlpha=0.5;
-    ctx.shadowColor=e.color; ctx.shadowBlur=10;
+
+    if(e.type==='shrieker'){
+      // Draw shockwave rings first (behind body)
+      if(e.shockwaves){
+        for(const sw of e.shockwaves){
+          ctx.save();
+          // Stays purple; lineWidth and alpha thin as hp drains to show weakness
+          const _swHpFrac = Math.max(0, Math.min(1, sw.hp / 60));
+          ctx.globalAlpha = sw.alpha * (e.hit>0?0.5:1) * (0.45 + _swHpFrac * 0.5);
+          ctx.strokeStyle='#cc55ff';
+          ctx.shadowColor='#aa22ff';
+          ctx.shadowBlur=14 + _swHpFrac * 8;
+          ctx.lineWidth= 1 + _swHpFrac * 2.5;
+          ctx.beginPath(); ctx.arc(e.x,e.y,sw.r,0,Math.PI*2); ctx.stroke();
+          // Inner thin secondary ring
+          ctx.globalAlpha = sw.alpha * (e.hit>0?0.5:1) * 0.4;
+          ctx.lineWidth=1.5;
+          ctx.beginPath(); ctx.arc(e.x,e.y,sw.r-5,0,Math.PI*2); ctx.stroke();
+          ctx.restore();
+        }
+      }
+      // Pulsing aura
+      const pulse = 0.55+Math.abs(Math.sin(Date.now()*0.004))*0.45;
+      ctx.shadowColor='#ff44cc'; ctx.shadowBlur=22*pulse;
+      ctx.globalAlpha=(e.hit>0?0.5:1)*0.22*pulse;
+      ctx.fillStyle='#ff44cc';
+      ctx.beginPath(); ctx.arc(e.x,e.y,e.r+7,0,Math.PI*2); ctx.fill();
+      // Body
+      ctx.globalAlpha=e.hit>0?0.5:1;
+      ctx.fillStyle='#ff44cc';
+      ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,Math.PI*2); ctx.fill();
+      // Inner lighter core
+      ctx.fillStyle='#ffaaee';
+      ctx.beginPath(); ctx.arc(e.x,e.y,e.r*0.5,0,Math.PI*2); ctx.fill();
+      // "Screaming mouth" — open ellipse
+      const toPlayerA=Math.atan2(p.y-e.y,p.x-e.x);
+      ctx.save();
+      ctx.translate(e.x+Math.cos(toPlayerA)*e.r*0.3, e.y+Math.sin(toPlayerA)*e.r*0.3);
+      ctx.rotate(toPlayerA);
+      ctx.fillStyle='#220011';
+      ctx.beginPath();
+      ctx.ellipse(0,0,e.r*0.42,e.r*0.28,0,0,Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    } else if(e.type==='lobber'){
+      // Chunky purple body with visible "arm" pointed at player
+      ctx.shadowColor='#aa88ff'; ctx.shadowBlur=12;
+      ctx.fillStyle='#aa88ff';
+      ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,Math.PI*2); ctx.fill();
+      // Darker inner ring
+      ctx.fillStyle='#6633cc';
+      ctx.beginPath(); ctx.arc(e.x,e.y,e.r*0.6,0,Math.PI*2); ctx.fill();
+      // Eye
+      const toPlayerA=Math.atan2(p.y-e.y,p.x-e.x);
+      ctx.fillStyle='#ffeeaa';
+      ctx.beginPath(); ctx.arc(e.x+Math.cos(toPlayerA)*e.r*0.38,e.y+Math.sin(toPlayerA)*e.r*0.38,e.r*0.22,0,Math.PI*2); ctx.fill();
+      // Throwing arm line
+      const armPulse = e.throwTimer < 0.5 ? 1-(e.throwTimer/0.5) : 0;
+      ctx.strokeStyle = armPulse>0 ? `rgba(255,200,80,${0.5+armPulse*0.5})` : '#9966dd';
+      ctx.lineWidth = 3+armPulse*3;
+      ctx.shadowBlur=armPulse*18;
+      ctx.shadowColor='#ffcc44';
+      ctx.beginPath();
+      ctx.moveTo(e.x,e.y);
+      ctx.lineTo(e.x+Math.cos(toPlayerA)*(e.r+8), e.y+Math.sin(toPlayerA)*(e.r+8));
+      ctx.stroke();
+    } else {
+      ctx.shadowColor=e.color; ctx.shadowBlur=10;
       ctx.fillStyle=e.color;
       ctx.beginPath(); ctx.arc(e.x,e.y,e.r,0,Math.PI*2); ctx.fill();
       // Eye
       const toPlayerA=Math.atan2(p.y-e.y,p.x-e.x);
       ctx.fillStyle='#000';
       ctx.beginPath(); ctx.arc(e.x+Math.cos(toPlayerA)*e.r*0.4,e.y+Math.sin(toPlayerA)*e.r*0.4,e.r*0.3,0,Math.PI*2); ctx.fill();
+    }
     // Status effect overlay
     if(e.slowAmt){
       ctx.globalAlpha=0.35; ctx.fillStyle='#88ddff';
@@ -3686,6 +4055,23 @@ function draw(){
       ctx.fillRect(e.x-e.r,e.y-e.r-8,e.r*2*(e.hp/e.maxHp),4);
     }
     ctx.restore();
+  }
+
+  // Draw enemy projectiles (lobber throws)
+  if(game.enemyProjectiles){
+    for(const ep of game.enemyProjectiles){
+      ctx.save();
+      const lifeF=ep.life/ep.maxLife;
+      ctx.globalAlpha=Math.min(1,lifeF*3);
+      ctx.shadowColor=ep.color; ctx.shadowBlur=14;
+      ctx.fillStyle=ep.color;
+      ctx.beginPath(); ctx.arc(ep.x,ep.y,ep.r,0,Math.PI*2); ctx.fill();
+      // Bright core
+      ctx.fillStyle='#ffffff';
+      ctx.globalAlpha*=0.5;
+      ctx.beginPath(); ctx.arc(ep.x,ep.y,ep.r*0.45,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }
   }
 
   // Rocket exhaust trails — drawn behind missiles
@@ -4033,6 +4419,16 @@ function draw(){
     ctx.restore();
   }
 
+  // Player ground shadow (seasonal event)
+  if(_isSeasonal){
+    ctx.save();
+    ctx.globalAlpha=0.35;
+    ctx.fillStyle='rgba(0,0,0,1)';
+    ctx.beginPath();
+    ctx.arc(p.x + p.r*0.55, p.y + p.r*0.45, p.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
   // Player
   ctx.save();
 
@@ -4089,6 +4485,13 @@ function draw(){
     const recoilAmt = (game.mainRecoil||0);
     const baseDist = p.r;                                        // base never moves
     const tipDist  = barrelLen + 4 - recoilAmt * (barrelLen * 0.45); // tip retracts inward
+    // Dark outline pass (widest, drawn first)
+    ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+    ctx.strokeStyle = 'rgba(0,0,0,0.60)'; ctx.lineWidth = barrelW * 0.7 + 4.5; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(p.x + Math.cos(a2) * baseDist, p.y + Math.sin(a2) * baseDist);
+    ctx.lineTo(p.x + Math.cos(a2) * tipDist,  p.y + Math.sin(a2) * tipDist);
+    ctx.stroke();
     // Colored glow pass
     ctx.strokeStyle = barrelColor; ctx.lineWidth = barrelW * 0.7 + 2;
     ctx.shadowColor = barrelColor; ctx.shadowBlur = 6;
@@ -4146,6 +4549,10 @@ function draw(){
     // Inner
     ctx.fillStyle='#003344';
     ctx.beginPath(); ctx.arc(p.x,p.y,p.r*0.5,0,Math.PI*2); ctx.fill();
+    // Dark outline pass (drawn wide behind the colored barrel)
+    ctx.shadowBlur=0; ctx.strokeStyle='rgba(0,0,0,0.65)'; ctx.lineWidth=barrelW+2.5; ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(p.x+Math.cos(a2)*p.r,p.y+Math.sin(a2)*p.r);
+    ctx.lineTo(p.x+Math.cos(a2)*barrelLen,p.y+Math.sin(a2)*barrelLen); ctx.stroke();
     ctx.strokeStyle=barrelColor; ctx.lineWidth=barrelW; ctx.shadowColor=barrelColor; ctx.shadowBlur=5;
     ctx.beginPath(); ctx.moveTo(p.x+Math.cos(a2)*p.r,p.y+Math.sin(a2)*p.r);
     ctx.lineTo(p.x+Math.cos(a2)*barrelLen,p.y+Math.sin(a2)*barrelLen); ctx.stroke();
@@ -4703,6 +5110,17 @@ canvas.addEventListener('mouseup',   e=>{ if(e.button===0) game.mouseDown=false;
 canvas.addEventListener('mouseleave',e=>{ game.mouseDown=false; game.rightMouseDown=false; });
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
 document.addEventListener('contextmenu',e=>e.preventDefault());
+canvas.addEventListener('wheel', e => {
+  if(!game.running || game.paused) return;
+  if(game.mode === 'fortress') return;
+  const allSlots = ['light','medium','heavy'];
+  const slots = allSlots.filter(isSlotEnabled);
+  if(slots.length < 2) return;
+  const cur = slots.indexOf(game.activeSlot);
+  const dir = e.deltaY > 0 ? 1 : -1;
+  setActiveSlot(slots[(cur + dir + slots.length) % slots.length]);
+  e.preventDefault();
+}, { passive: false });
 // Close diff filter dropdown when clicking outside
 document.addEventListener('click', e => {
   const wrap = document.getElementById('lbDiffFilterWrap');
@@ -4904,7 +5322,7 @@ let _lbSortField = 'score';
 let _lbSortDir = 'desc';
 let _lbPage = 1;
 const LB_PAGE_SIZE = 100;
-let _lbHiddenDiffs = new Set(['custom', 'overpowered']);
+let _lbHiddenDiffs = new Set(['custom', 'overpowered', 'seasonal']);
 
 function _syncDiffFilterUI(){
   document.querySelectorAll('.dfItem').forEach(item => {
