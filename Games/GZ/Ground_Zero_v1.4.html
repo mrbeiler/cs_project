@@ -3071,116 +3071,73 @@ function updateWeapons(dt){
     // When predicted damage >= target HP, switch to the next nearest immediately.
     let autoSecTarget = null;
     let autoSecPred = null;
+    // ── Per-corner independent targeting ──────────────────────────────
+    const _cWallH = FORTRESS_WALL_R + 4;
+    if(isFortress && isSec && !w._corners){
+      w._corners = [[-1,-1],[1,-1],[-1,1],[1,1]].map(([sx,sy]) => ({
+        sx, sy, aimAngle: Math.PI,
+        lockedTarget: null, aimReady: false, aimSettled: false,
+        aimDelay: 0, predX: 0, predY: 0, onTarget: false,
+        timer: 0
+      }));
+    }
     if(isFortress && isSec && FORTRESS_SETTINGS.autoSecondary && game.enemies.length > 0){
-      const bulletSpd = w.spd || 400;
-      const maxRange  = w.maxRange || Math.min(2.5, (W*1.2)/bulletSpd) * bulletSpd;
-      const sMult     = activeSettings().enemySpeedMult;
-
-      // Find nearest in-range enemy, optionally skipping one
-      // [FIX] Per-target Map tracks predicted damage; skip committed targets.
-      if(!w._secPredMap) w._secPredMap = new Map();
-      const predMap = w._secPredMap;
-      const maxFlightSec = maxRange / bulletSpd + 0.3;
-
-      // Prune dead/gone enemies; expire stale commits (prediction was wrong)
-      for(const [e, info] of predMap){
-        if(e.hp <= 0 || !game.enemies.includes(e)) predMap.delete(e);
-        else if(info.committed && (game.time - info.time) > maxFlightSec) predMap.delete(e);
-      }
-
-      const nearestEnemy = (skip) => {
-        let best = null, bestD = Infinity;
-        for(const e of game.enemies){
-          if(e === skip) continue;
-          const info = predMap.get(e);
-          if(info && info.committed) continue;
-          const dx = e.x-p.x, dy = e.y-p.y;
-          const d  = Math.sqrt(dx*dx+dy*dy);
-          if(d <= maxRange && d < bestD){ bestD = d; best = e; }
+      const bulletSpd2 = w.spd || 400;
+      const maxRange2  = w.maxRange || Math.min(2.5, (W*1.2)/bulletSpd2) * bulletSpd2;
+      const sMult2     = activeSettings().enemySpeedMult;
+      const assignedTargets = new Set();
+      for(const c of w._corners){
+        if(c.lockedTarget && (c.lockedTarget.hp <= 0 || !game.enemies.includes(c.lockedTarget))){
+          c.lockedTarget = null; c.aimReady = false; c.aimSettled = false;
         }
-        return best;
-      };
-
-      // Drop lock if target died or left range
-      if(w._secLockedTarget &&
-         (w._secLockedTarget.hp <= 0 || !game.enemies.includes(w._secLockedTarget))){
-        w._secLockedTarget = null;
-      }
-
-      // Hysteresis: only switch to a different target if it is meaningfully closer
-      // (more than LOCK_HYSTERESIS px). Prevents oscillation when two enemies are
-      // equidistant — the current lock is always preferred in a tie.
-      const LOCK_HYSTERESIS = 5;
-      const nearest = nearestEnemy(null);
-      if(nearest !== w._secLockedTarget){
-        if(!w._secLockedTarget){
-          // No current lock — take whatever is nearest
-          w._secLockedTarget = nearest;
-        } else {
-          const curInfo = predMap.get(w._secLockedTarget);
-          if(curInfo && curInfo.committed){
-            w._secLockedTarget = nearest; // current is done, must switch
-          } else if(nearest){
-            const cdx = w._secLockedTarget.x-p.x, cdy = w._secLockedTarget.y-p.y;
-            const curD = Math.sqrt(cdx*cdx+cdy*cdy);
-            const ndx  = nearest.x-p.x, ndy = nearest.y-p.y;
-            const newD = Math.sqrt(ndx*ndx+ndy*ndy);
-            if(newD < curD - LOCK_HYSTERESIS) w._secLockedTarget = nearest;
-            // else keep current lock — ties and near-ties held stable
+        const cx2 = p.x + c.sx * _cWallH, cy2 = p.y + c.sy * _cWallH;
+        let best = null, bestD = Infinity, fallback = null, fallbackD = Infinity;
+        for(const e of game.enemies){
+          const dx = e.x - cx2, dy = e.y - cy2;
+          const d  = Math.sqrt(dx*dx + dy*dy);
+          if(d > maxRange2) continue;
+          if(!assignedTargets.has(e)){ if(d < bestD){ bestD = d; best = e; } }
+          else                       { if(d < fallbackD){ fallbackD = d; fallback = e; } }
+        }
+        const newTarget = best || fallback;
+        if(newTarget !== c.lockedTarget){
+          const prevTarget = c.lockedTarget;
+          c.lockedTarget = newTarget;
+          c.aimSettled = false;
+          if(newTarget){
+            // Scale aimDelay by how far off the barrel is from the new target (approx)
+            // If barrel is already roughly pointing at the new target, skip most of delay
+            const ntA = Math.atan2(newTarget.y - cy2, newTarget.x - cx2);
+            let angleDiff = ntA - c.aimAngle;
+            while(angleDiff >  Math.PI) angleDiff -= Math.PI*2;
+            while(angleDiff < -Math.PI) angleDiff += Math.PI*2;
+            const distFrac = Math.max(0.08, Math.abs(angleDiff) / Math.PI);
+            c.aimDelay = (w.aimDelay || 0) * distFrac;
+            // Only reset aimReady if the new target is in a very different direction
+            if(Math.abs(angleDiff) > 0.4) c.aimReady = false;
+            // else: keep aimReady=true so turret fires immediately when diff<0.10
+          } else {
+            c.aimDelay = 0;
+            c.aimReady = false;
           }
         }
-      }
-
-      // If current target already committed, move on
-      if(w._secLockedTarget){
-        const info = predMap.get(w._secLockedTarget);
-        if(info && info.committed){
-          w._secLockedTarget = nearestEnemy(w._secLockedTarget);
+        if(c.lockedTarget) assignedTargets.add(c.lockedTarget);
+        if(c.lockedTarget){
+          const e = c.lockedTarget;
+          // Enemies walk toward the player CENTER, not toward the corner turret
+          const toPA = Math.atan2(p.y - e.y, p.x - e.x);
+          const evx2 = Math.cos(toPA) * (e.spd||0) * sMult2;
+          const evy2 = Math.sin(toPA) * (e.spd||0) * sMult2;
+          // But the bullet originates from this corner's position, so intercept from cx2,cy2
+          const pred = predictIntercept(cx2, cy2, e.x, e.y, evx2, evy2, bulletSpd2);
+          c.predX = pred.x; c.predY = pred.y;
         }
       }
-
-      autoSecTarget = w._secLockedTarget;
-      if(autoSecTarget){
-        const toPA = Math.atan2(p.y - autoSecTarget.y, p.x - autoSecTarget.x);
-        const evx  = Math.cos(toPA) * (autoSecTarget.spd||0) * sMult;
-        const evy  = Math.sin(toPA) * (autoSecTarget.spd||0) * sMult;
-        autoSecPred = predictIntercept(p.x, p.y, autoSecTarget.x, autoSecTarget.y, evx, evy, bulletSpd);
-      }
+      autoSecTarget = w._corners[0].lockedTarget;
+      if(autoSecTarget) autoSecPred = { x: w._corners[0].predX, y: w._corners[0].predY };
     }
-    // Single-barrel burst continuation (secondary fortress only)
-    if(isFortress && isSec && w.burstCount){
-      const bs = w['_burstA'];
-      if(bs && bs.fired > 0){
-        bs.timer -= dt;
-        if(bs.timer <= 0){
-          if(w.currentMag > 0){
-            const bsTgt = bs.target || autoSecTarget;
-            const bsPrd = bs.pred;
-            // Fire from the barrel tip position stored when the burst started,
-            // aiming along the stored barrel far point so direction = secAimAngle
-            const bsTipX = bs.tipX !== undefined ? bs.tipX : (p.x + Math.cos(game.secAimAngle||0)*14);
-            const bsTipY = bs.tipY !== undefined ? bs.tipY : (p.y + Math.sin(game.secAimAngle||0)*14);
-            const bsFarX = bs.farX !== undefined ? bs.farX : (bsTipX + Math.cos(game.secAimAngle||0)*2000);
-            const bsFarY = bs.farY !== undefined ? bs.farY : (bsTipY + Math.sin(game.secAimAngle||0)*2000);
-            // Fire burst continuation from all 4 corner turrets
-            const _bsAimA = game.secAimAngle || 0;
-            const _bsWallH = FORTRESS_WALL_R + 4;
-            const _bsFarX = p.x + Math.cos(_bsAimA) * 3000;
-            const _bsFarY = p.y + Math.sin(_bsAimA) * 3000;
-            for(const [csx,csy] of [[-1,-1],[1,-1],[-1,1],[1,1]]){
-              const ctX = p.x + csx*_bsWallH + Math.cos(_bsAimA)*11;
-              const ctY = p.y + csy*_bsWallH + Math.sin(_bsAimA)*11;
-              fireBullet(p, w, _bsFarX, _bsFarY, 0, ctX, ctY);
-            }
-            // Track damage but never cancel mid-burst — always fire all shots
-            secAccumAndSwitch(w, p, bsTgt, 1);
-            w.currentMag--; bs.fired--; bs.timer = w.burstDelay||0.08;
-            if(w.currentMag <= 0) startReload(w);
-          } else { bs.fired=0; startReload(w); }
-        }
-      }
-    } else if(w.burstFired > 0){
-      // Non-fortress or main-weapon burst continuation
+    if(w.burstFired > 0){
+      // Main battery / classic burst continuation
       w.burstTimer -= dt;
       if(w.burstTimer <= 0){
         if(w.currentMag > 0){
@@ -3235,87 +3192,49 @@ function updateWeapons(dt){
         if(dx*dx+dy*dy <= flamerR2){ secFlamerAutoFire=true; break; }
       }
     }
-    // Track secondary aim angle for barrel drawing
+    // Track secondary aim angles per corner
     if(isFortress && isSec){
       if(FORTRESS_SETTINGS.autoSecondary){
-        // sec_flamer: ignore lead prediction and lock onto nearest in-range enemy directly
         const isFlamerSec = w.id === 'sec_flamer';
-        let aimTarget = null;
-        if(isFlamerSec){
-          // Find nearest enemy within flamer maxRange
-          const flamerR2 = (w.maxRange || 96) * (w.maxRange || 96);
-          let bestD2 = Infinity;
-          for(const e of game.enemies){
-            const dx=e.x-p.x, dy=e.y-p.y;
-            const d2 = dx*dx+dy*dy;
-            if(d2 <= flamerR2 && d2 < bestD2){ bestD2=d2; aimTarget=e; }
-          }
-        } else {
-          aimTarget = autoSecTarget;
-        }
-
-        // Reset aim state when target changes
-        if(!isFlamerSec){
-          if(aimTarget !== w._secAimTarget){
-            w._secAimTarget   = aimTarget;
-            w._secAimReady    = false;   // block first shot
-            w._secAimSettled  = false;   // barrel not yet on new target
-            if(aimTarget){
-              const bulletSpd = w.spd || 400;
-              const effRange = w.maxRange || Math.min(2.5, (W*1.2)/bulletSpd) * bulletSpd;
-              const tdx = aimTarget.x - p.x, tdy = aimTarget.y - p.y;
-              const distFrac = Math.max(0.15, Math.sqrt(tdx*tdx+tdy*tdy) / effRange);
-              w._secAimDelay = (w.aimDelay || 0) * distFrac;
-            } else {
-              w._secAimDelay = 0;
+        let anyOnTarget = false;
+        for(const c of (w._corners || [])){
+          const cx2 = p.x + c.sx * _cWallH, cy2 = p.y + c.sy * _cWallH;
+          const aimTarget = c.lockedTarget;
+          if(aimTarget){
+            const targetAngle = isFlamerSec
+              ? Math.atan2(aimTarget.y - cy2, aimTarget.x - cx2)
+              : Math.atan2(c.predY - cy2, c.predX - cx2);
+            const rotSpeed = (isFlamerSec ? 6.0 : 3.2) * (game.player.turretRotMult || 1);
+            let cur = c.aimAngle;
+            let diff = targetAngle - cur;
+            while(diff >  Math.PI) diff -= Math.PI*2;
+            while(diff < -Math.PI) diff += Math.PI*2;
+            const step = rotSpeed * dt;
+            cur += Math.abs(diff) < step ? diff : Math.sign(diff) * step;
+            c.aimAngle = cur;
+            if(!isFlamerSec && !c.aimReady){
+              // Settle: barrel physically on target
+              if(!c.aimSettled && Math.abs(diff) < 0.06) c.aimSettled = true;
+              // Delay countdown only starts after settling
+              if(c.aimSettled){ if(c.aimDelay > 0) c.aimDelay -= dt; if(c.aimDelay <= 0) c.aimReady = true; }
             }
+            // aimReady latches true — only resets if a far-away new target is assigned (handled above)
+            const aimReady = isFlamerSec
+              ? Math.abs(diff) < 0.5
+              : (Math.abs(diff) < 0.12 && (secCloseRangeFire || !!c.aimReady));
+            c.onTarget = aimReady;
+            if(aimReady) anyOnTarget = true;
+          } else {
+            c.onTarget = false;
           }
-        } else {
-          w._secAimTarget  = aimTarget;
-          w._secAimReady   = true;
-          w._secAimSettled = true;
         }
-
-        if(aimTarget){
-          // For flamer: aim directly at enemy; otherwise use lead prediction
-          const pred = (!isFlamerSec && autoSecPred) ? autoSecPred : aimTarget;
-          const targetAngle = Math.atan2(pred.y - p.y, pred.x - p.x);
-          // Flamer rotates faster (it's a spray weapon)
-          const rotSpeed = (isFlamerSec ? 6.0 : 3.2) * (game.player.turretRotMult || 1);
-          let cur = game.secAimAngle !== undefined ? game.secAimAngle : targetAngle;
-          let diff = targetAngle - cur;
-          while(diff > Math.PI)  diff -= Math.PI*2;
-          while(diff < -Math.PI) diff += Math.PI*2;
-          const step = rotSpeed * dt;
-          cur += Math.abs(diff) < step ? diff : Math.sign(diff)*step;
-          game.secAimAngle = cur;
-
-          // Aim-delay logic (non-flamer only):
-          // Step 1 — barrel must physically settle on target first (diff < 0.06 rad ≈ 3.4°).
-          // Step 2 — only then start counting the per-weapon aim delay.
-          // Step 3 — once delay elapses, _secAimReady latches true for this target.
-          // Subsequent shots on the same target skip straight to firing (no delay).
-          // Emergency mode (secCloseRangeFire) bypasses all of this.
-          if(!isFlamerSec && !w._secAimReady){
-            const barrelSettleThresh = 0.06; // ~3.4° — barrel is truly on target
-            if(!w._secAimSettled){
-              if(Math.abs(diff) < barrelSettleThresh) w._secAimSettled = true;
-            }
-            if(w._secAimSettled){
-              if(w._secAimDelay > 0) w._secAimDelay -= dt;
-              if(w._secAimDelay <= 0) w._secAimReady = true;
-            }
-          }
-
-          const aimReady = isFlamerSec
-            ? Math.abs(diff) < 0.5
-            : (Math.abs(diff) < 0.10 && (secCloseRangeFire || !!w._secAimReady));
-          game.secOnTarget = aimReady;
-        }
-        // No target in range: hold current angle, don't fire
+        game.secOnTarget = anyOnTarget;
+        game.secAimAngle = w._corners ? w._corners[0].aimAngle : (game.secAimAngle || Math.PI);
       } else {
-        // Manual: snap instantly to mouse
-        game.secAimAngle = Math.atan2(wmy() - p.y, wmx() - p.x);
+        // Manual: all corners aim at mouse
+        const mouseAngle = Math.atan2(wmy() - p.y, wmx() - p.x);
+        if(w._corners) for(const c of w._corners){ c.aimAngle = mouseAngle; c.onTarget = true; }
+        game.secAimAngle = mouseAngle;
         game.secOnTarget = true;
       }
     }
@@ -3334,129 +3253,168 @@ function updateWeapons(dt){
     // Slow secondary weapons (cd >= 0.35: railgun, sniper, grenade launcher, shotgun) must
     // always be properly aimed before firing — even in emergency mode. Fast secondaries
     // (minigun, flamer, pistol, burst) may still spray freely when enemies are point-blank.
-    const isSlowSecWeapon = isSec && (w.cd >= 0.35);
+    // ── Fortress secondary: each corner fires independently on its own timer ──
+    if(isFortress && isSec && w._corners && FORTRESS_SETTINGS.autoSecondary){
+      if(w.spinUp) w.spinupAmt = (autoSecTarget) ? Math.min(1,(w.spinupAmt||0)+dt*1.5) : Math.max(0,(w.spinupAmt||0)-dt*2);
+      const effectiveCd = w.cd * (p.atkMult||1) * (w.spinUp ? (2-w.spinupAmt) : 1);
+      const isFlamerWep = w.id === 'sec_flamer';
+      for(const c of w._corners){
+        c.timer = Math.max(0, c.timer - dt);
+        if(c.timer > 0) continue;
+        if(!c.lockedTarget || !c.onTarget) continue;
+        if(w.currentMag <= 0) break; // out of ammo — reload already triggered below
+        // Compute fire origin from this corner
+        const cx2 = p.x + c.sx * _cWallH, cy2 = p.y + c.sy * _cWallH;
+        const tipX = cx2 + Math.cos(c.aimAngle) * 11;
+        const tipY = cy2 + Math.sin(c.aimAngle) * 11;
+        const farX = tipX + Math.cos(c.aimAngle) * 3000;
+        const farY = tipY + Math.sin(c.aimAngle) * 3000;
+        // Fire: pellets, burst, single
+        if(w.pellets && w.pellets > 1){
+          const spread = (w.spread||12) * Math.PI/180;
+          const jitter = spread * 0.18;
+          for(let pi=0; pi<w.pellets; pi++){
+            const base = (pi/(w.pellets-1) - 0.5) * spread;
+            const off = base + (Math.random()-0.5)*jitter*2;
+            fireBullet(p, w, farX, farY, off, tipX, tipY);
+          }
+          w.currentMag--;
+          sfxShotgun();
+        } else if(w.burstCount){
+          fireBullet(p, w, farX, farY, 0, tipX, tipY);
+          w.currentMag--;
+          // Schedule remaining burst shots on this corner
+          if(!c._burst) c._burst = {fired: 0};
+          c._burst = {fired: w.burstCount-1, timer: w.burstDelay||0.08, farX, farY, tipX, tipY};
+          const now2=performance.now();if(!game._lastShootSfx||now2-game._lastShootSfx>40){game._lastShootSfx=now2;sfxShoot();}
+        } else if(isFlamerWep){
+          fireBullet(p, w, farX, farY, 0, tipX, tipY);
+          c._flameShotCount = ((c._flameShotCount||0) + 1);
+          if(c._flameShotCount >= 5){ w.currentMag--; c._flameShotCount = 0; }
+          const now2=performance.now();if(!game._lastShootSfx||now2-game._lastShootSfx>40){game._lastShootSfx=now2;sfxShoot();}
+        } else {
+          fireBullet(p, w, farX, farY, 0, tipX, tipY);
+          w.currentMag--;
+          const now2=performance.now();if(!game._lastShootSfx||now2-game._lastShootSfx>40){game._lastShootSfx=now2;sfxShoot();}
+        }
+        c.timer = effectiveCd;
+        if(w.currentMag <= 0){ startReload(w); break; }
+      }
+      // Handle burst continuations per corner
+      for(const c of w._corners){
+        if(!c._burst || c._burst.fired <= 0) continue;
+        c._burst.timer -= dt;
+        if(c._burst.timer <= 0 && w.currentMag > 0 && !w.reloading){
+          // Re-aim along corner's current angle for remaining burst shots
+          const cx2 = p.x + c.sx * _cWallH, cy2 = p.y + c.sy * _cWallH;
+          const tipX = cx2 + Math.cos(c.aimAngle)*11;
+          const tipY = cy2 + Math.sin(c.aimAngle)*11;
+          const farX = tipX + Math.cos(c.aimAngle)*3000;
+          const farY = tipY + Math.sin(c.aimAngle)*3000;
+          fireBullet(p, w, farX, farY, 0, tipX, tipY);
+          w.currentMag--;
+          c._burst.fired--;
+          c._burst.timer = w.burstDelay||0.08;
+          if(w.currentMag <= 0){ startReload(w); c._burst.fired=0; }
+        }
+      }
+      // Out of ammo check
+      if(w.currentMag <= 0 && !w.reloading) startReload(w);
+      continue; // skip shared fire logic below
+    }
+    // Manual secondary (auto off): use right-mouse / shortRangeAutoFire for all corners at once
+    if(isFortress && isSec && w._corners && !FORTRESS_SETTINGS.autoSecondary){
+      if(w.spinUp) w.spinupAmt = (game.rightMouseDown||shortRangeAutoFire) ? Math.min(1,(w.spinupAmt||0)+dt*1.5) : Math.max(0,(w.spinupAmt||0)-dt*2);
+      const manualFire = game.rightMouseDown || shortRangeAutoFire;
+      if(manualFire && w.timer <= 0 && w.currentMag > 0){
+        const effectiveCd = w.cd * (p.atkMult||1) * (w.spinUp ? (2-w.spinupAmt) : 1);
+        w.timer = effectiveCd;
+        for(const c of w._corners){
+          c.timer = effectiveCd;
+          const cx2 = p.x + c.sx * _cWallH, cy2 = p.y + c.sy * _cWallH;
+          const tipX = cx2 + Math.cos(c.aimAngle)*11, tipY = cy2 + Math.sin(c.aimAngle)*11;
+          const farX = tipX + Math.cos(c.aimAngle)*3000, farY = tipY + Math.sin(c.aimAngle)*3000;
+          if(w.pellets && w.pellets > 1){
+            const spread=(w.spread||12)*Math.PI/180,jitter=spread*0.18;
+            for(let pi=0;pi<w.pellets;pi++){const base=(pi/(w.pellets-1)-0.5)*spread;fireBullet(p,w,farX,farY,base+(Math.random()-0.5)*jitter*2,tipX,tipY);}
+            sfxShotgun();
+          } else { fireBullet(p,w,farX,farY,0,tipX,tipY); const now2=performance.now();if(!game._lastShootSfx||now2-game._lastShootSfx>40){game._lastShootSfx=now2;sfxShoot();} }
+        }
+        w.currentMag--;
+        if(w.currentMag<=0) startReload(w);
+      } else if(!manualFire || w.timer <= 0){ /* idle */ }
+      continue;
+    }
+
+    // ── Non-secondary weapon shared fire logic (main battery + classic) ──
     const fireBtn = isFortress
-      ? (isMain ? (game.mouseDown || spaceDown || shortRangeAutoFire) : (isSec ? (FORTRESS_SETTINGS.autoSecondary ? (secFlamerAutoFire || (autoSecTarget && (game.secOnTarget || (secCloseRangeFire && !isSlowSecWeapon)))) : (game.rightMouseDown || shortRangeAutoFire)) : false))
+      ? (isMain ? (game.mouseDown || spaceDown || shortRangeAutoFire) : false)
       : (game.mouseDown || spaceDown || shortRangeAutoFire);
     if(w.spinUp) w.spinupAmt = fireBtn ? Math.min(1,(w.spinupAmt||0)+dt*1.5) : Math.max(0,(w.spinupAmt||0)-dt*2);
     if(!fireBtn || w.timer > 0) continue;
-    // [FIX] Don't fire at a target that already has enough bullets in flight
-    // sec_flamer is DOT-based — skip this check so it sprays continuously
-    if(isFortress && isSec && w.id !== 'sec_flamer' && autoSecTarget && w._secPredMap){
-      const ci = w._secPredMap.get(autoSecTarget);
-      if(ci && ci.committed) continue;
-    }
     if(w.currentMag <= 0){
       const s2 = activeSettings();
-      if(!s2.infiniteAmmo && (game.ammo[w.cls||'light']||0) <= 0){
-        spawnScreenAlert('NO AMMO');
-      }
+      if(!s2.infiniteAmmo && (game.ammo[w.cls||'light']||0) <= 0) spawnScreenAlert('NO AMMO');
       startReload(w); continue;
     }
     const effectiveCd = w.cd * (p.atkMult||1) * (w.spinUp ? (2-w.spinupAmt) : 1);
     w.timer = effectiveCd;
-    // Trigger recoil animation for fortress main barrel
     if(isFortress && isMain){ game.mainRecoil = 1.0; game.muzzleFlash = 1.0; game.muzzleWeaponId = w.id; }
-    const ax = (autoSecPred && isSec) ? autoSecPred.x
-             : (autoSecTarget && isSec) ? autoSecTarget.x
-             : (isFortress && isMain && game.mainAimAngle !== undefined && !w.rocket)
-               ? p.x + Math.cos(game.mainAimAngle) * 1000
-             : (!isFortress && game.classicAimAngle !== undefined)
-               ? p.x + Math.cos(game.classicAimAngle) * 1000
+    const ax = (isFortress && isMain && game.mainAimAngle !== undefined && !w.rocket)
+                 ? p.x + Math.cos(game.mainAimAngle) * 1000
+               : (!isFortress && game.classicAimAngle !== undefined)
+                 ? p.x + Math.cos(game.classicAimAngle) * 1000
                : wmx();
-    const ay = (autoSecPred && isSec) ? autoSecPred.y
-             : (autoSecTarget && isSec) ? autoSecTarget.y
-             : (isFortress && isMain && game.mainAimAngle !== undefined && !w.rocket)
-               ? p.y + Math.sin(game.mainAimAngle) * 1000
-             : (!isFortress && game.classicAimAngle !== undefined)
-               ? p.y + Math.sin(game.classicAimAngle) * 1000
+    const ay = (isFortress && isMain && game.mainAimAngle !== undefined && !w.rocket)
+                 ? p.y + Math.sin(game.mainAimAngle) * 1000
+               : (!isFortress && game.classicAimAngle !== undefined)
+                 ? p.y + Math.sin(game.classicAimAngle) * 1000
                : wmy();
-    // For fortress secondary, fire from the barrel TIP (not the turret center)
-    // and aim along secAimAngle (not toward the target position) so bullets
-    // travel in a straight line out of the barrel. Accuracy jitter is applied
-    // by fireBullet on top of this base angle.
-    const secAimA = game.secAimAngle !== undefined ? game.secAimAngle : Math.atan2(ay - p.y, ax - p.x);
-    // All 4 corner turrets fire simultaneously
-    const _secWallH = FORTRESS_WALL_R + 4; // must match wall drawing
-    const _secAllTips = [[-1,-1],[1,-1],[-1,1],[1,1]].map(([sx,sy]) => {
-      const cx = p.x + sx * _secWallH, cy = p.y + sy * _secWallH;
-      return [cx + Math.cos(secAimA) * 11, cy + Math.sin(secAimA) * 11];
-    });
-    const secTipX = _secAllTips[0][0], secTipY = _secAllTips[0][1]; // compat ref for burst
-    // Far point along aim direction — shared by all corners
-    const secFarX = p.x + Math.cos(secAimA) * 3000;
-    const secFarY = p.y + Math.sin(secAimA) * 3000;
-    const secOrigins = _secAllTips;
-    if(isFortress && isSec){ w._barrelIdx = 0; }
-    const fireFromOrigins = (angleOffset=0) => {
-      if(isFortress && isSec){
-        // All 4 corner turrets fire at once
-        for(const [ox,oy] of secOrigins){
-          fireBullet(p, w, secFarX, secFarY, angleOffset, ox, oy);
-        }
-      } else {
-        fireBullet(p, w, ax, ay, angleOffset);
-      }
-    };
+    // Dummy secAimA / secTipX for non-secondary weapons (burst compat)
+    const secAimA = game.secAimAngle !== undefined ? game.secAimAngle : 0;
+    const secTipX = p.x, secTipY = p.y;
+    const secFarX = p.x + Math.cos(secAimA)*3000;
+    const secFarY = p.y + Math.sin(secAimA)*3000;
+    const fireFromOrigins = (angleOffset=0) => fireBullet(p, w, ax, ay, angleOffset);
     if(w.pellets && w.pellets > 1){
       const spread = (w.spread||12) * Math.PI/180;
-      const jitter = spread * 0.18; // ±18% of spread arc as random noise
+      const jitter = spread * 0.18;
       for(let i=0; i<w.pellets; i++){
         const base = (i/(w.pellets-1) - 0.5) * spread;
-        const off = base + (Math.random() - 0.5) * jitter * 2;
-        fireFromOrigins(off);
+        fireFromOrigins(base + (Math.random()-0.5)*jitter*2);
       }
-      // [FIX] Check all actual pellets just fired against the target
-      if(isFortress && isSec && w.id !== 'sec_flamer') secAccumAndSwitch(w, p, autoSecTarget, w.pellets);
       w.currentMag--;
       if(isFortress&&isMain) sfxMainBattery(); else sfxShotgun();
       if(!isFortress){ game.muzzleFlash=1.0; game.muzzleWeaponId=w.id; }
     } else if(w.burstCount){
-      if(isFortress && isSec){
-        // Fire first burst shot from all 4 corner turrets simultaneously
-        for(const [ox,oy] of secOrigins){
-          fireBullet(p, w, secFarX, secFarY, 0, ox, oy);
-        }
-        w.currentMag--;
-        w['_burstA'] = {fired: w.burstCount - 1, timer: w.burstDelay||0.08, target: autoSecTarget, pred: autoSecPred, tipX: secTipX, tipY: secTipY, farX: secFarX, farY: secFarY};
-        // [FIX] Check actual first bullet of burst
-        if(w.id !== 'sec_flamer') secAccumAndSwitch(w, p, autoSecTarget, 1);
+      // rocket_emplace sweep
+      if(w.id === 'rocket_emplace'){
+        const aimA = game.mainAimAngle !== undefined ? game.mainAimAngle : Math.atan2(ay-p.y, ax-p.x);
+        const perpA = aimA + Math.PI * 0.5;
+        const podDist = p.r * 0.18;
+        w._rocketSide = 0;
+        const lateralOffset = (w._rocketSide - 1.5) * podDist;
+        w._rocketSide++;
+        const ox = p.x + Math.cos(perpA)*lateralOffset;
+        const oy = p.y + Math.sin(perpA)*lateralOffset;
+        const mouseDist = Math.sqrt((ax-p.x)**2 + (ay-p.y)**2);
+        const tx = ox + Math.cos(aimA) * mouseDist;
+        const ty = oy + Math.sin(aimA) * mouseDist;
+        fireBullet(p, w, tx, ty, 0, ox, oy);
+        const rb = game.bullets[game.bullets.length-1];
+        rb.barrelPhase = true; rb.barrelDist = 0;
+        rb.barrelLateral = lateralOffset; rb.barrelExitDist = p.r * 2.2;
+        rb.firingMouseDist = mouseDist;
       } else {
-        // For rocket_emplace: sweep left-to-right, all rockets fly along mainAimAngle
-        if(w.id === 'rocket_emplace'){
-          const aimA = game.mainAimAngle !== undefined ? game.mainAimAngle : Math.atan2(ay-p.y, ax-p.x);
-          const perpA = aimA + Math.PI * 0.5;
-          const podDist = p.r * 0.18;
-          w._rocketSide = 0; // reset: shot 0 = leftmost
-          const lateralOffset = (w._rocketSide - 1.5) * podDist;
-          w._rocketSide++;
-          const ox = p.x + Math.cos(perpA)*lateralOffset;
-          const oy = p.y + Math.sin(perpA)*lateralOffset;
-          // Target is mouse-distance along aimA from pod origin so rocket flies straight out
-          const mouseDist = Math.sqrt((ax-p.x)**2 + (ay-p.y)**2);
-          const tx = ox + Math.cos(aimA) * mouseDist;
-          const ty = oy + Math.sin(aimA) * mouseDist;
-          fireBullet(p, w, tx, ty, 0, ox, oy);
-          // Barrel phase: rocket tracks turret rotation until exiting barrel
-          const rb = game.bullets[game.bullets.length-1];
-          rb.barrelPhase = true;
-          rb.barrelDist = 0;
-          rb.barrelLateral = lateralOffset;
-          rb.barrelExitDist = p.r * 2.2;
-          rb.firingMouseDist = mouseDist; // distance from turret to mouse at fire time
-        } else {
-          fireFromOrigins();
-        }
-        w.currentMag--;
-        w.burstFired = w.burstCount - 1;
-        w.burstTimer = w.burstDelay||0.08;
+        fireFromOrigins();
       }
+      w.currentMag--;
+      w.burstFired = w.burstCount - 1;
+      w.burstTimer = w.burstDelay||0.08;
       if(isFortress&&isMain){sfxMainBattery();}else{const now=performance.now();if(!game._lastShootSfx||now-game._lastShootSfx>40){game._lastShootSfx=now;sfxShoot();} if(!isFortress&&w.id!=='flamer'&&w.id!=='railgun'){game.muzzleFlash=1.0;game.muzzleWeaponId=w.id||'shotgun';}}
     } else {
       fireFromOrigins();
-      // [FIX] Check actual bullet just fired
-      if(isFortress && isSec && w.id !== 'sec_flamer') secAccumAndSwitch(w, p, autoSecTarget, 1);
-      const isFlamerWep = w.id==='flamer'||w.id==='sec_flamer';
+      const isFlamerWep = w.id==='flamer';
       if(isFlamerWep){
         w._flameShotCount = ((w._flameShotCount||0) + 1);
         if(w._flameShotCount >= 5){ w.currentMag--; w._flameShotCount = 0; }
@@ -4559,11 +4517,14 @@ function draw(){
       ctx.restore();
     }
 
-    // Draw all 4 corner turrets — all aim at the same target, all active
-    for(const [csx, csy] of [[-1,-1],[1,-1],[-1,1],[1,1]]){
+    // Draw all 4 corner turrets — each uses its own aim angle from w._corners
+    for(let _ci = 0; _ci < 4; _ci++){
+      const csx = [[-1,-1],[1,-1],[-1,1],[1,1]][_ci][0];
+      const csy = [[-1,-1],[1,-1],[-1,1],[1,1]][_ci][1];
+      const cornerAimAngle = (secW._corners && secW._corners[_ci]) ? secW._corners[_ci].aimAngle : sAngle;
       const tx = p.x + csx * wH;
       const ty = p.y + csy * wH;
-      const barrelAngle = sAngle;
+      const barrelAngle = cornerAimAngle;
       const barrelLen2 = 11;
       const ex = tx + Math.cos(barrelAngle) * barrelLen2;
       const ey = ty + Math.sin(barrelAngle) * barrelLen2;
