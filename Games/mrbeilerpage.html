@@ -4,9 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FROGGO — Crossy Road</title>
-<audio id="bg-music" autoplay loop>
-  <source src="cs_project\Pondlight Bounce.mp3" type="audio/mpeg">
-</audio>  
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;700;900&display=swap');
 
@@ -220,11 +217,84 @@
     transition: background 0.1s;
   }
 
-  .mob-btn:active { background: rgba(255,255,255,0.35); }
-  .mob-up { grid-column: 2; grid-row: 1; }
-  .mob-left { grid-column: 1; grid-row: 2; }
-  .mob-down { grid-column: 2; grid-row: 2; }
-  .mob-right { grid-column: 3; grid-row: 2; }
+  .username-input {
+    background: rgba(255,255,255,0.1);
+    border: 2px solid rgba(255,255,255,0.3);
+    border-radius: 50px;
+    color: #fff;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.3rem;
+    padding: 0.7rem 1.5rem;
+    text-align: center;
+    outline: none;
+    width: 280px;
+    margin-bottom: 1.2rem;
+    transition: border-color 0.2s;
+  }
+  .username-input::placeholder { color: rgba(255,255,255,0.35); }
+  .username-input:focus { border-color: #4ade80; }
+
+  #leaderboard {
+    margin-top: 1.5rem;
+    width: 320px;
+    background: rgba(0,0,0,0.4);
+    border-radius: 16px;
+    padding: 1rem 1.2rem;
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  #leaderboard h3 {
+    font-family: 'Fredoka One', cursive;
+    color: #ffd700;
+    font-size: 1.1rem;
+    text-align: center;
+    margin-bottom: 0.7rem;
+    letter-spacing: 1px;
+  }
+
+  .lb-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.35rem 0.5rem;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    transition: background 0.2s;
+  }
+
+  .lb-row:nth-child(even) { background: rgba(255,255,255,0.05); }
+  .lb-row.lb-me { background: rgba(74,222,128,0.2); border: 1px solid rgba(74,222,128,0.4); }
+
+  .lb-rank { color: #ffd700; font-family: 'Fredoka One', cursive; width: 28px; }
+  .lb-rank.gold { color: #FFD700; }
+  .lb-rank.silver { color: #C0C0C0; }
+  .lb-rank.bronze { color: #CD7F32; }
+  .lb-name { flex: 1; color: #fff; padding: 0 0.5rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lb-score { color: #4ade80; font-family: 'Fredoka One', cursive; }
+
+  .lb-loading {
+    text-align: center;
+    color: rgba(255,255,255,0.4);
+    font-size: 0.9rem;
+    padding: 0.5rem;
+  }
+
+  .lb-error {
+    text-align: center;
+    color: #ff6b6b;
+    font-size: 0.85rem;
+    padding: 0.5rem;
+  }
+
+  .submit-status {
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.9rem;
+    color: #4ade80;
+    margin-top: -0.8rem;
+    margin-bottom: 0.8rem;
+    min-height: 1.2em;
+    text-align: center;
+  }
 </style>
 </head>
 <body>
@@ -233,6 +303,7 @@
   <span class="frog-emoji">🐸</span>
   <div class="title">FROGGO</div>
   <div class="subtitle">Cross the road. Hop the logs. Survive.</div>
+  <input class="username-input" id="username-input" type="text" maxlength="20" placeholder="Enter your name..." autocomplete="off" />
   <button class="btn" id="start-btn">PLAY</button>
   <div class="controls-hint">
     Arrow Keys / WASD to move<br>
@@ -244,7 +315,12 @@
   <div class="death-title">💀 SQUISHED! 💀</div>
   <div class="death-score" id="death-score">Score: 0</div>
   <div class="death-best" id="death-best">Best: 0</div>
+  <div class="submit-status" id="submit-status"></div>
   <button class="btn" id="retry-btn">TRY AGAIN</button>
+  <div id="leaderboard">
+    <h3>🏆 LEADERBOARD</h3>
+    <div id="lb-rows"><div class="lb-loading">Loading...</div></div>
+  </div>
 </div>
 
 <div id="score-display">🐸 0</div>
@@ -260,6 +336,74 @@
 </div>
 
 <script>
+// ─── SUPABASE ──────────────────────────────────────
+const SUPABASE_URL = 'https://dqyhhqwzlijqtvavkgpn.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_ps84rYKdQkxvhNHfBHa-zQ_NCOWIW-n';
+
+let currentUsername = 'Anonymous';
+
+async function submitScore(username, score) {
+  if (!score || score < 1) return;
+  try {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/Froggo`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({ username, score }),
+    });
+
+    const text = await res.text();
+    console.log('Supabase status:', res.status);
+    console.log('Supabase response:', text);
+
+    if (!res.ok) {
+      document.getElementById('submit-status').textContent = '⚠️ Error ' + res.status + ': ' + text;
+      return;
+    }
+    document.getElementById('submit-status').textContent = '✅ Score saved!';
+  } catch (e) {
+    console.error('Network error:', e);
+    document.getElementById('submit-status').textContent = '⚠️ Network error: ' + e.message;
+  }
+}
+
+async function fetchLeaderboard(highlightUser) {
+  const el = document.getElementById('lb-rows');
+  el.innerHTML = '<div class="lb-loading">Loading...</div>';
+  try {
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/Froggo?select=username,score&order=score.desc&limit=10`,
+      { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }
+    );
+    if (!res.ok) throw new Error('fetch failed');
+    const rows = await res.json();
+    if (!rows.length) { el.innerHTML = '<div class="lb-loading">No scores yet — be first!</div>'; return; }
+
+    const medals = ['🥇','🥈','🥉'];
+    const rankClass = ['gold','silver','bronze'];
+    el.innerHTML = rows.map((row, i) => {
+      const isMe = row.username === highlightUser;
+      const rank = i < 3 ? `<span class="lb-rank ${rankClass[i]}">${medals[i]}</span>` : `<span class="lb-rank">#${i+1}</span>`;
+      return `<div class="lb-row${isMe ? ' lb-me' : ''}">
+        ${rank}
+        <span class="lb-name">${escapeHtml(row.username)}</span>
+        <span class="lb-score">${row.score}</span>
+      </div>`;
+    }).join('');
+  } catch (e) {
+    el.innerHTML = '<div class="lb-error">Could not load leaderboard.</div>';
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
 
@@ -539,12 +683,16 @@ function die(cause) {
   game.player.dead = true;
   game.player.deathAnim = 0;
 
-  setTimeout(() => {
+  setTimeout(async () => {
     if (game.score > bestScore) bestScore = game.score;
     document.getElementById('death-score').textContent = 'Score: ' + game.score;
     document.getElementById('death-best').textContent = '⭐ Best: ' + bestScore;
     document.getElementById('best-display').textContent = '⭐ BEST: ' + bestScore;
+    document.getElementById('submit-status').textContent = '💾 Saving score...';
     document.getElementById('death-screen').classList.add('show');
+
+    await submitScore(currentUsername, game.score);
+    await fetchLeaderboard(currentUsername);
   }, 800);
 }
 
@@ -852,8 +1000,13 @@ function updateScore(s) {
 
 // ─── START / RETRY ─────────────────────────────────
 function startGame() {
+  const input = document.getElementById('username-input');
+  const name = input ? input.value.trim() : '';
+  currentUsername = name.length > 0 ? name : 'Anonymous';
+
   document.getElementById('ui-overlay').classList.add('hidden');
   document.getElementById('death-screen').classList.remove('show');
+  document.getElementById('submit-status').textContent = '';
   gameRunning = true;
   if (animFrame) cancelAnimationFrame(animFrame);
   initGame();
@@ -863,6 +1016,11 @@ function startGame() {
 
 document.getElementById('start-btn').addEventListener('click', startGame);
 document.getElementById('retry-btn').addEventListener('click', startGame);
+
+// Allow pressing Enter in username field to start
+document.getElementById('username-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') startGame();
+});
 </script>
 </body>
 </html>
