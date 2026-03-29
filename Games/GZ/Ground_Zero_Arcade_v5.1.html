@@ -6,6 +6,7 @@
 <title>GROUND ZERO (ARCADE)</title>
 <link rel="icon" type="image/png" href="All_Images/Images/GZ no backround.png">
 <link rel="apple-touch-icon" href="All_Images/Images/GZ no backround.png">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
   *{margin:0;padding:0;box-sizing:border-box;}
@@ -1804,6 +1805,12 @@ function initGame(mode) {
       weapons: [],
     },
     enemies: [], bullets: [], gems: [], particles: [], _dust: [],
+    fortWalls: isFort ? {
+      top:    { hp:200, maxHp:200, destroyed:false },
+      bottom: { hp:200, maxHp:200, destroyed:false },
+      left:   { hp:200, maxHp:200, destroyed:false },
+      right:  { hp:200, maxHp:200, destroyed:false },
+    } : null,
     keys: {}, spawnTimer: 0, spawnRate: 1.5,
     rightMouseDown: false,
     inventory: [],
@@ -1815,6 +1822,13 @@ function initGame(mode) {
     classicAimAngle: undefined,
     secAimAngle: Math.PI,
     secOnTarget: false,
+    // 4 independent corner turrets for secondary weapons
+    secTurrets: isFort ? [
+      {cx:-56, cy:-56, aimAngle: -Math.PI*0.75, onTarget:false, emergencyMode:false, timer:0, currentMag:0, reloading:false, reloadTimer:0, reloadDuration:0, lockedTarget:null, predMap:new Map(), aimTarget:null, aimReady:false, aimSettled:false, aimDelay:0, burstState:null, spinupAmt:0, flameShotCount:0, barrelIdx:0},
+      {cx: 56, cy:-56, aimAngle: -Math.PI*0.25, onTarget:false, emergencyMode:false, timer:0, currentMag:0, reloading:false, reloadTimer:0, reloadDuration:0, lockedTarget:null, predMap:new Map(), aimTarget:null, aimReady:false, aimSettled:false, aimDelay:0, burstState:null, spinupAmt:0, flameShotCount:0, barrelIdx:0},
+      {cx: 56, cy: 56, aimAngle:  Math.PI*0.25, onTarget:false, emergencyMode:false, timer:0, currentMag:0, reloading:false, reloadTimer:0, reloadDuration:0, lockedTarget:null, predMap:new Map(), aimTarget:null, aimReady:false, aimSettled:false, aimDelay:0, burstState:null, spinupAmt:0, flameShotCount:0, barrelIdx:0},
+      {cx:-56, cy: 56, aimAngle:  Math.PI*0.75, onTarget:false, emergencyMode:false, timer:0, currentMag:0, reloading:false, reloadTimer:0, reloadDuration:0, lockedTarget:null, predMap:new Map(), aimTarget:null, aimReady:false, aimSettled:false, aimDelay:0, burstState:null, spinupAmt:0, flameShotCount:0, barrelIdx:0},
+    ] : null,
     mainRecoil: 0,
       muzzleFlash: 0,
   };
@@ -1869,14 +1883,14 @@ const FORTRESS_WEAPONS = {
   //                                                                                                                     mag  reload
   revolver: {name:'AUTO CANNON',   icon:'<img src="All_Images/Images/autocannon icon.PNG" class="weaponIcon icon-lg">', rarity:'common',    cls:'main',  color:'#aaccff', cd:0.35, dmg:60,  spd:600, r:5,  pierce:5, pierceDmgLoss:0.05, spread:0,    effect:null,                               mag:6,  reload:1.8, accuracy:1.5, desc:'6-shot auto cannon. High stopping power.'},
   rocket_emplace: {name:'ROCKET EMPLACEMENT', icon:'<img src="All_Images/Images/New Rocket Emplacement.png" class="weaponIcon icon-xs">', rarity:'rare', cls:'main', color:'#ff4422', cd:1.0, dmg:40, spd:80, r:6, pierce:0, spread:0, effect:null, rocket:true, explode:{r:70,dmg:80}, burstCount:4, burstDelay:0.12, mag:4, reload:3.5, accuracy:1.0, desc:'4 rockets fly to cursor & explode. Splash damage.'},
-  sec_pistol: {name:'AUTOPISTOL',       icon:'<img src="All_Images/Images/pistol icon.png" class="weaponIcon">', rarity:'common',    cls:'secondary', color:'#aaccff', cd:0.22, dmg:12,  spd:208, r:1.6, pierce:0, spread:0,    effect:null,                               mag:12, reload:1.4, maxRange:260, accuracy:2.5, aimDelay:0.36, desc:'Fast semi-auto. 12 round mag.'},
-  sec_shotgun:{name:'SHOTGUN',          icon:'<img src="All_Images/Images/shotgun icon.png" class="weaponIcon">', rarity:'common',    cls:'secondary', color:'#ff8844', cd:0.9,   dmg:9,  spd:152, r:1.2, pierce:0, spread:22,   effect:null,  pellets:7,                   mag:6,  reload:2.2, maxRange:168, accuracy:3.0, aimDelay:0.6, desc:'7 pellets, wide spread. 6 shells.'},
-  sec_sniper: {name:'SNIPER RIFLE',     icon:'<img src="All_Images/Images/sniper icon 2.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#00ffcc', cd:1.1,   dmg:75,  spd:360, r:1.6, pierce:1, pierceDmgLoss:0.40, spread:0,    effect:null,                               mag:5,  reload:2.5, accuracy:0.4, aimDelay:1.35, desc:'Extreme damage, pierces. 5 rounds.'},
-  sec_grenade:{name:'GRENADE LAUNCHER', icon:'<img src="All_Images/Images/grenade launcher icon.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#ffcc00', cd:1.0,  dmg:55,  spd:128, r:3.2, pierce:0, spread:0,    effect:null,  explode:{r:90,dmg:30},       mag:4,  reload:2.5, maxRange:152, accuracy:3.5, aimDelay:0.9, desc:'4 grenades. Big explosion.'},
-  sec_flamer: {name:'FLAMETHROWER',     icon:'<img src="All_Images/Images/flamethrower icon 2.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#ff5500', cd:0.07,  dmg:0,   spd:96,  r:2.4, pierce:99, pierceDmgLoss:0.20, spread:0,    effect:null,                               mag:40, reload:2.0, maxRange:96, accuracy:2.0, aimDelay:0.0, desc:'Pierces all enemies. Burns hotter with sustained fire.'},
-  sec_railgun:{name:'RAILGUN',         icon:'<img src="All_Images/Images/railgun icon.png" class="weaponIcon">', rarity:'epic',      cls:'secondary', color:'#cc44ff', cd:2.2,   dmg:180, spd:440,r:1.6, pierce:99, pierceDmgLoss:0.06, spread:0,    effect:null,  chargeVfx:true,               mag:3,  reload:3.0, accuracy:0.0, aimDelay:1.65, desc:'3 shots. Full-screen pierce.'},
-  sec_burst:  {name:'BURST RIFLE',     icon:'<img src="All_Images/Images/bullpup icon.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#44aaff', cd:0.55,  dmg:20,  spd:240, r:1.6, pierce:0, spread:0,    effect:null,  burstCount:3,burstDelay:0.08, mag:18, reload:1.6, accuracy:1.2, aimDelay:0.54, desc:'18 rounds, 3-burst. Precise.'},
-  sec_minigun:{name:'MINIGUN',         icon:'<img src="All_Images/Images/Minigun icon.webp" class="weaponIcon">', rarity:'legendary', cls:'secondary', color:'#ff4444', cd:0.06,  dmg:9,   spd:224, r:1.2, pierce:0, spread:0,    effect:null,  spinUp:true,                  mag:100,reload:3.5, accuracy:3.0, aimDelay:0.24, desc:'100 rounds. Spin up required.'},
+  sec_pistol: {name:'AUTOPISTOL',       icon:'<img src="All_Images/Images/pistol icon.png" class="weaponIcon">', rarity:'common',    cls:'secondary', color:'#aaccff', cd:0.11, dmg:12,  spd:208, r:1.6, pierce:0, spread:0,    effect:null,                               mag:12, reload:1.4, maxRange:260, accuracy:2.5, aimDelay:0.36, desc:'Fast semi-auto. 12 round mag.'},
+  sec_shotgun:{name:'SHOTGUN',          icon:'<img src="All_Images/Images/shotgun icon.png" class="weaponIcon">', rarity:'common',    cls:'secondary', color:'#ff8844', cd:0.45,  dmg:9,  spd:152, r:1.2, pierce:0, spread:22,   effect:null,  pellets:7,                   mag:6,  reload:2.2, maxRange:168, accuracy:3.0, aimDelay:0.6, desc:'7 pellets, wide spread. 6 shells.'},
+  sec_sniper: {name:'SNIPER RIFLE',     icon:'<img src="All_Images/Images/sniper icon 2.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#00ffcc', cd:0.55,  dmg:75,  spd:360, r:1.6, pierce:1, pierceDmgLoss:0.40, spread:0,    effect:null,                               mag:5,  reload:2.5, accuracy:0.4, aimDelay:1.35, desc:'Extreme damage, pierces. 5 rounds.'},
+  sec_grenade:{name:'GRENADE LAUNCHER', icon:'<img src="All_Images/Images/grenade launcher icon.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#ffcc00', cd:0.5,  dmg:55,  spd:128, r:3.2, pierce:0, spread:0,    effect:null,  explode:{r:90,dmg:30},       mag:4,  reload:2.5, maxRange:152, accuracy:3.5, aimDelay:0.9, desc:'4 grenades. Big explosion.'},
+  sec_flamer: {name:'FLAMETHROWER',     icon:'<img src="All_Images/Images/flamethrower icon 2.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#ff5500', cd:0.035, dmg:0,   spd:96,  r:2.4, pierce:99, pierceDmgLoss:0.20, spread:0,    effect:null,                               mag:40, reload:2.0, maxRange:96, accuracy:2.0, aimDelay:0.0, desc:'Pierces all enemies. Burns hotter with sustained fire.'},
+  sec_railgun:{name:'RAILGUN',         icon:'<img src="All_Images/Images/railgun icon.png" class="weaponIcon">', rarity:'epic',      cls:'secondary', color:'#cc44ff', cd:1.1,  dmg:180, spd:440,r:1.6, pierce:99, pierceDmgLoss:0.06, spread:0,    effect:null,  chargeVfx:true,               mag:3,  reload:3.0, accuracy:0.0, aimDelay:1.65, desc:'3 shots. Full-screen pierce.'},
+  sec_burst:  {name:'BURST RIFLE',     icon:'<img src="All_Images/Images/bullpup icon.png" class="weaponIcon">', rarity:'rare',      cls:'secondary', color:'#44aaff', cd:0.275, dmg:20,  spd:240, r:1.6, pierce:0, spread:0,    effect:null,  burstCount:3,burstDelay:0.08, mag:18, reload:1.6, accuracy:1.2, aimDelay:0.54, desc:'18 rounds, 3-burst. Precise.'},
+  sec_minigun:{name:'MINIGUN',         icon:'<img src="All_Images/Images/Minigun icon.webp" class="weaponIcon">', rarity:'legendary', cls:'secondary', color:'#ff4444', cd:0.03, dmg:9,   spd:224, r:1.2, pierce:0, spread:0,    effect:null,  spinUp:true,                  mag:100,reload:3.5, accuracy:3.0, aimDelay:0.24, desc:'100 rounds. Spin up required.'},
 };
 
 const FORTRESS_UPGRADES = [
@@ -2023,6 +2037,7 @@ function syncEquipped() {
     const wMain = isSlotEnabled('main')      ? game.equipped['main']      : null;
     const wSec  = isSlotEnabled('secondary') ? game.equipped['secondary'] : null;
     game.player.weapons = [wMain, wSec].filter(Boolean);
+    syncCornerTurretMags();
   } else {
     const w = isSlotEnabled(game.activeSlot) ? game.equipped[game.activeSlot] : null;
     game.player.weapons = w ? [w] : [];
@@ -2428,22 +2443,65 @@ function update(dt) {
       }
     }
 
-    // Fortress wall collision — stop enemies at the wall perimeter
+    // Fortress wall collision — square outer wall with per-side health, then inner turret circle
     if(game.mode==='fortress'){
       const wdx = e.x-p.x, wdy = e.y-p.y;
-      const wdist = Math.sqrt(wdx*wdx+wdy*wdy)||1;
-      const wallStop = FORTRESS_WALL_R + e.r;
-      if(wdist < wallStop){
-        // Push enemy back to wall surface
-        e.x = p.x + (wdx/wdist)*wallStop;
-        e.y = p.y + (wdy/wdist)*wallStop;
-        // Deal damage to player while pressed against wall
-        if(!e.hitTimer || e.hitTimer<=0){
-          p.hp = Math.max(0, p.hp - e.dmg);
-          e.hitTimer = 0.8;
-          sfxPlayerHit();
-          spawnParticles(p.x + (wdx/wdist)*FORTRESS_WALL_R, p.y + (wdy/wdist)*FORTRESS_WALL_R,'#ff4466',6);
-          if(p.hp<=0){gameOver();return;}
+      const FW = 56, FTW = 13; // must match draw constants
+      const adx = Math.abs(wdx), ady = Math.abs(wdy);
+      let wallBlocked = false;
+
+      if(adx < FW + e.r && ady < FW + e.r){
+        // Determine which wall face the enemy is pressing against
+        const overlapX = FW - adx + e.r;
+        const overlapY = FW - ady + e.r;
+        let side;
+        if(overlapX < overlapY) side = wdx > 0 ? 'right' : 'left';
+        else                    side = wdy > 0 ? 'bottom' : 'top';
+
+        const fw = game.fortWalls && game.fortWalls[side];
+        if(fw && !fw.destroyed){
+          // Push enemy back to outer face of that wall
+          if(side==='right')  e.x = Math.max(e.x, p.x + FW + e.r);
+          if(side==='left')   e.x = Math.min(e.x, p.x - FW - e.r);
+          if(side==='bottom') e.y = Math.max(e.y, p.y + FW + e.r);
+          if(side==='top')    e.y = Math.min(e.y, p.y - FW - e.r);
+          // Cancel the slide: undo movement along the wall face this frame
+          const _moveAmt = e.spd * slowF * activeSettings().enemySpeedMult * dt;
+          if(side==='left' || side==='right') e.y -= (edy/dist)*_moveAmt;
+          else                                e.x -= (edx/dist)*_moveAmt;
+          wallBlocked = true;
+
+          // Damage this wall segment
+          if(!e.wallHitTimer || e.wallHitTimer<=0){
+            const prevHp = fw.hp;
+            fw.hp = Math.max(0, fw.hp - e.dmg * 0.35);
+            e.wallHitTimer = 0.55;
+            // Spark particles at hit point
+            const hpx = side==='right' ? p.x+FW : side==='left' ? p.x-FW : e.x;
+            const hpy = side==='bottom'? p.y+FW : side==='top'  ? p.y-FW : e.y;
+            spawnParticles(hpx, hpy, '#ff8800', 4);
+            if(fw.hp<=0 && prevHp>0){
+              fw.destroyed = true;
+              spawnParticles(hpx, hpy, '#ff4400', 18);
+            }
+          }
+        }
+      }
+
+      // Inner turret base circle — always active (enemies that breach a wall still stop here)
+      if(!wallBlocked){
+        const wdist = Math.sqrt(wdx*wdx+wdy*wdy)||1;
+        const wallStop = FORTRESS_WALL_R + e.r;
+        if(wdist < wallStop){
+          e.x = p.x + (wdx/wdist)*wallStop;
+          e.y = p.y + (wdy/wdist)*wallStop;
+          if(!e.hitTimer || e.hitTimer<=0){
+            p.hp = Math.max(0, p.hp - e.dmg);
+            e.hitTimer = 0.8;
+            sfxPlayerHit();
+            spawnParticles(p.x + (wdx/wdist)*FORTRESS_WALL_R, p.y + (wdy/wdist)*FORTRESS_WALL_R,'#ff4466',6);
+            if(p.hp<=0){gameOver();return;}
+          }
         }
       }
     } else {
@@ -2496,6 +2554,7 @@ function update(dt) {
 
   // Update weapons/bullets
   updateWeapons(dt);
+  updateCornerTurrets(dt);
 
   // Update bullets
   for(let i=game.bullets.length-1;i>=0;i--){
@@ -3040,6 +3099,8 @@ function updateWeapons(dt){
   const s = activeSettings();
   game.secEmergencyMode = false; // reset each frame; set true below when enemy within 240
   for(const w of p.weapons){
+    // Fortress secondary weapons are fully handled by updateCornerTurrets()
+    if(game.mode === 'fortress' && w.cls === 'secondary') continue;
     // Reload tick
     if(w.reloading){
       w.reloadTimer -= dt;
@@ -3071,73 +3132,107 @@ function updateWeapons(dt){
     // When predicted damage >= target HP, switch to the next nearest immediately.
     let autoSecTarget = null;
     let autoSecPred = null;
-    // ── Per-corner independent targeting ──────────────────────────────
-    const _cWallH = FORTRESS_WALL_R + 4;
-    if(isFortress && isSec && !w._corners){
-      w._corners = [[-1,-1],[1,-1],[-1,1],[1,1]].map(([sx,sy]) => ({
-        sx, sy, aimAngle: Math.PI,
-        lockedTarget: null, aimReady: false, aimSettled: false,
-        aimDelay: 0, predX: 0, predY: 0, onTarget: false,
-        timer: 0
-      }));
-    }
     if(isFortress && isSec && FORTRESS_SETTINGS.autoSecondary && game.enemies.length > 0){
-      const bulletSpd2 = w.spd || 400;
-      const maxRange2  = w.maxRange || Math.min(2.5, (W*1.2)/bulletSpd2) * bulletSpd2;
-      const sMult2     = activeSettings().enemySpeedMult;
-      const assignedTargets = new Set();
-      for(const c of w._corners){
-        if(c.lockedTarget && (c.lockedTarget.hp <= 0 || !game.enemies.includes(c.lockedTarget))){
-          c.lockedTarget = null; c.aimReady = false; c.aimSettled = false;
-        }
-        const cx2 = p.x + c.sx * _cWallH, cy2 = p.y + c.sy * _cWallH;
-        let best = null, bestD = Infinity, fallback = null, fallbackD = Infinity;
+      const bulletSpd = w.spd || 400;
+      const maxRange  = w.maxRange || Math.min(2.5, (W*1.2)/bulletSpd) * bulletSpd;
+      const sMult     = activeSettings().enemySpeedMult;
+
+      // Find nearest in-range enemy, optionally skipping one
+      // [FIX] Per-target Map tracks predicted damage; skip committed targets.
+      if(!w._secPredMap) w._secPredMap = new Map();
+      const predMap = w._secPredMap;
+      const maxFlightSec = maxRange / bulletSpd + 0.3;
+
+      // Prune dead/gone enemies; expire stale commits (prediction was wrong)
+      for(const [e, info] of predMap){
+        if(e.hp <= 0 || !game.enemies.includes(e)) predMap.delete(e);
+        else if(info.committed && (game.time - info.time) > maxFlightSec) predMap.delete(e);
+      }
+
+      const nearestEnemy = (skip) => {
+        let best = null, bestD = Infinity;
         for(const e of game.enemies){
-          const dx = e.x - cx2, dy = e.y - cy2;
-          const d  = Math.sqrt(dx*dx + dy*dy);
-          if(d > maxRange2) continue;
-          if(!assignedTargets.has(e)){ if(d < bestD){ bestD = d; best = e; } }
-          else                       { if(d < fallbackD){ fallbackD = d; fallback = e; } }
+          if(e === skip) continue;
+          const info = predMap.get(e);
+          if(info && info.committed) continue;
+          const dx = e.x-p.x, dy = e.y-p.y;
+          const d  = Math.sqrt(dx*dx+dy*dy);
+          if(d <= maxRange && d < bestD){ bestD = d; best = e; }
         }
-        const newTarget = best || fallback;
-        if(newTarget !== c.lockedTarget){
-          const prevTarget = c.lockedTarget;
-          c.lockedTarget = newTarget;
-          c.aimSettled = false;
-          if(newTarget){
-            // Scale aimDelay by how far off the barrel is from the new target (approx)
-            // If barrel is already roughly pointing at the new target, skip most of delay
-            const ntA = Math.atan2(newTarget.y - cy2, newTarget.x - cx2);
-            let angleDiff = ntA - c.aimAngle;
-            while(angleDiff >  Math.PI) angleDiff -= Math.PI*2;
-            while(angleDiff < -Math.PI) angleDiff += Math.PI*2;
-            const distFrac = Math.max(0.08, Math.abs(angleDiff) / Math.PI);
-            c.aimDelay = (w.aimDelay || 0) * distFrac;
-            // Only reset aimReady if the new target is in a very different direction
-            if(Math.abs(angleDiff) > 0.4) c.aimReady = false;
-            // else: keep aimReady=true so turret fires immediately when diff<0.10
-          } else {
-            c.aimDelay = 0;
-            c.aimReady = false;
+        return best;
+      };
+
+      // Drop lock if target died or left range
+      if(w._secLockedTarget &&
+         (w._secLockedTarget.hp <= 0 || !game.enemies.includes(w._secLockedTarget))){
+        w._secLockedTarget = null;
+      }
+
+      // Hysteresis: only switch to a different target if it is meaningfully closer
+      // (more than LOCK_HYSTERESIS px). Prevents oscillation when two enemies are
+      // equidistant — the current lock is always preferred in a tie.
+      const LOCK_HYSTERESIS = 5;
+      const nearest = nearestEnemy(null);
+      if(nearest !== w._secLockedTarget){
+        if(!w._secLockedTarget){
+          // No current lock — take whatever is nearest
+          w._secLockedTarget = nearest;
+        } else {
+          const curInfo = predMap.get(w._secLockedTarget);
+          if(curInfo && curInfo.committed){
+            w._secLockedTarget = nearest; // current is done, must switch
+          } else if(nearest){
+            const cdx = w._secLockedTarget.x-p.x, cdy = w._secLockedTarget.y-p.y;
+            const curD = Math.sqrt(cdx*cdx+cdy*cdy);
+            const ndx  = nearest.x-p.x, ndy = nearest.y-p.y;
+            const newD = Math.sqrt(ndx*ndx+ndy*ndy);
+            if(newD < curD - LOCK_HYSTERESIS) w._secLockedTarget = nearest;
+            // else keep current lock — ties and near-ties held stable
           }
         }
-        if(c.lockedTarget) assignedTargets.add(c.lockedTarget);
-        if(c.lockedTarget){
-          const e = c.lockedTarget;
-          // Enemies walk toward the player CENTER, not toward the corner turret
-          const toPA = Math.atan2(p.y - e.y, p.x - e.x);
-          const evx2 = Math.cos(toPA) * (e.spd||0) * sMult2;
-          const evy2 = Math.sin(toPA) * (e.spd||0) * sMult2;
-          // But the bullet originates from this corner's position, so intercept from cx2,cy2
-          const pred = predictIntercept(cx2, cy2, e.x, e.y, evx2, evy2, bulletSpd2);
-          c.predX = pred.x; c.predY = pred.y;
+      }
+
+      // If current target already committed, move on
+      if(w._secLockedTarget){
+        const info = predMap.get(w._secLockedTarget);
+        if(info && info.committed){
+          w._secLockedTarget = nearestEnemy(w._secLockedTarget);
         }
       }
-      autoSecTarget = w._corners[0].lockedTarget;
-      if(autoSecTarget) autoSecPred = { x: w._corners[0].predX, y: w._corners[0].predY };
+
+      autoSecTarget = w._secLockedTarget;
+      if(autoSecTarget){
+        const toPA = Math.atan2(p.y - autoSecTarget.y, p.x - autoSecTarget.x);
+        const evx  = Math.cos(toPA) * (autoSecTarget.spd||0) * sMult;
+        const evy  = Math.sin(toPA) * (autoSecTarget.spd||0) * sMult;
+        autoSecPred = predictIntercept(p.x, p.y, autoSecTarget.x, autoSecTarget.y, evx, evy, bulletSpd);
+      }
     }
-    if(w.burstFired > 0){
-      // Main battery / classic burst continuation
+    // Single-barrel burst continuation (secondary fortress only)
+    if(isFortress && isSec && w.burstCount){
+      const bs = w['_burstA'];
+      if(bs && bs.fired > 0){
+        bs.timer -= dt;
+        if(bs.timer <= 0){
+          if(w.currentMag > 0){
+            const bsTgt = bs.target || autoSecTarget;
+            const bsPrd = bs.pred;
+            // Fire from the barrel tip position stored when the burst started,
+            // aiming along the stored barrel far point so direction = secAimAngle
+            const bsTipX = bs.tipX !== undefined ? bs.tipX : (p.x + Math.cos(game.secAimAngle||0)*14);
+            const bsTipY = bs.tipY !== undefined ? bs.tipY : (p.y + Math.sin(game.secAimAngle||0)*14);
+            const bsFarX = bs.farX !== undefined ? bs.farX : (bsTipX + Math.cos(game.secAimAngle||0)*2000);
+            const bsFarY = bs.farY !== undefined ? bs.farY : (bsTipY + Math.sin(game.secAimAngle||0)*2000);
+            fireBullet(p, w, bsFarX, bsFarY, 0, bsTipX, bsTipY);
+            // Track damage but never cancel mid-burst — always fire all shots
+            secAccumAndSwitch(w, p, bsTgt, 1);
+            w.currentMag--; bs.fired--; bs.timer = w.burstDelay||0.08;
+            if(w.currentMag <= 0) startReload(w);
+          } else { bs.fired=0; startReload(w); }
+        }
+      }
+    } else if(w.burstFired > 0){
+      // Non-fortress or main-weapon burst continuation
       w.burstTimer -= dt;
       if(w.burstTimer <= 0){
         if(w.currentMag > 0){
@@ -3192,49 +3287,87 @@ function updateWeapons(dt){
         if(dx*dx+dy*dy <= flamerR2){ secFlamerAutoFire=true; break; }
       }
     }
-    // Track secondary aim angles per corner
+    // Track secondary aim angle for barrel drawing
     if(isFortress && isSec){
       if(FORTRESS_SETTINGS.autoSecondary){
+        // sec_flamer: ignore lead prediction and lock onto nearest in-range enemy directly
         const isFlamerSec = w.id === 'sec_flamer';
-        let anyOnTarget = false;
-        for(const c of (w._corners || [])){
-          const cx2 = p.x + c.sx * _cWallH, cy2 = p.y + c.sy * _cWallH;
-          const aimTarget = c.lockedTarget;
-          if(aimTarget){
-            const targetAngle = isFlamerSec
-              ? Math.atan2(aimTarget.y - cy2, aimTarget.x - cx2)
-              : Math.atan2(c.predY - cy2, c.predX - cx2);
-            const rotSpeed = (isFlamerSec ? 6.0 : 3.2) * (game.player.turretRotMult || 1);
-            let cur = c.aimAngle;
-            let diff = targetAngle - cur;
-            while(diff >  Math.PI) diff -= Math.PI*2;
-            while(diff < -Math.PI) diff += Math.PI*2;
-            const step = rotSpeed * dt;
-            cur += Math.abs(diff) < step ? diff : Math.sign(diff) * step;
-            c.aimAngle = cur;
-            if(!isFlamerSec && !c.aimReady){
-              // Settle: barrel physically on target
-              if(!c.aimSettled && Math.abs(diff) < 0.06) c.aimSettled = true;
-              // Delay countdown only starts after settling
-              if(c.aimSettled){ if(c.aimDelay > 0) c.aimDelay -= dt; if(c.aimDelay <= 0) c.aimReady = true; }
-            }
-            // aimReady latches true — only resets if a far-away new target is assigned (handled above)
-            const aimReady = isFlamerSec
-              ? Math.abs(diff) < 0.5
-              : (Math.abs(diff) < 0.12 && (secCloseRangeFire || !!c.aimReady));
-            c.onTarget = aimReady;
-            if(aimReady) anyOnTarget = true;
-          } else {
-            c.onTarget = false;
+        let aimTarget = null;
+        if(isFlamerSec){
+          // Find nearest enemy within flamer maxRange
+          const flamerR2 = (w.maxRange || 96) * (w.maxRange || 96);
+          let bestD2 = Infinity;
+          for(const e of game.enemies){
+            const dx=e.x-p.x, dy=e.y-p.y;
+            const d2 = dx*dx+dy*dy;
+            if(d2 <= flamerR2 && d2 < bestD2){ bestD2=d2; aimTarget=e; }
           }
+        } else {
+          aimTarget = autoSecTarget;
         }
-        game.secOnTarget = anyOnTarget;
-        game.secAimAngle = w._corners ? w._corners[0].aimAngle : (game.secAimAngle || Math.PI);
+
+        // Reset aim state when target changes
+        if(!isFlamerSec){
+          if(aimTarget !== w._secAimTarget){
+            w._secAimTarget   = aimTarget;
+            w._secAimReady    = false;   // block first shot
+            w._secAimSettled  = false;   // barrel not yet on new target
+            if(aimTarget){
+              const bulletSpd = w.spd || 400;
+              const effRange = w.maxRange || Math.min(2.5, (W*1.2)/bulletSpd) * bulletSpd;
+              const tdx = aimTarget.x - p.x, tdy = aimTarget.y - p.y;
+              const distFrac = Math.max(0.15, Math.sqrt(tdx*tdx+tdy*tdy) / effRange);
+              w._secAimDelay = (w.aimDelay || 0) * distFrac;
+            } else {
+              w._secAimDelay = 0;
+            }
+          }
+        } else {
+          w._secAimTarget  = aimTarget;
+          w._secAimReady   = true;
+          w._secAimSettled = true;
+        }
+
+        if(aimTarget){
+          // For flamer: aim directly at enemy; otherwise use lead prediction
+          const pred = (!isFlamerSec && autoSecPred) ? autoSecPred : aimTarget;
+          const targetAngle = Math.atan2(pred.y - p.y, pred.x - p.x);
+          // Flamer rotates faster (it's a spray weapon)
+          const rotSpeed = (isFlamerSec ? 6.0 : 3.2) * (game.player.turretRotMult || 1);
+          let cur = game.secAimAngle !== undefined ? game.secAimAngle : targetAngle;
+          let diff = targetAngle - cur;
+          while(diff > Math.PI)  diff -= Math.PI*2;
+          while(diff < -Math.PI) diff += Math.PI*2;
+          const step = rotSpeed * dt;
+          cur += Math.abs(diff) < step ? diff : Math.sign(diff)*step;
+          game.secAimAngle = cur;
+
+          // Aim-delay logic (non-flamer only):
+          // Step 1 — barrel must physically settle on target first (diff < 0.06 rad ≈ 3.4°).
+          // Step 2 — only then start counting the per-weapon aim delay.
+          // Step 3 — once delay elapses, _secAimReady latches true for this target.
+          // Subsequent shots on the same target skip straight to firing (no delay).
+          // Emergency mode (secCloseRangeFire) bypasses all of this.
+          if(!isFlamerSec && !w._secAimReady){
+            const barrelSettleThresh = 0.06; // ~3.4° — barrel is truly on target
+            if(!w._secAimSettled){
+              if(Math.abs(diff) < barrelSettleThresh) w._secAimSettled = true;
+            }
+            if(w._secAimSettled){
+              if(w._secAimDelay > 0) w._secAimDelay -= dt;
+              if(w._secAimDelay <= 0) w._secAimReady = true;
+            }
+          }
+
+          const aimReady = isFlamerSec
+            ? Math.abs(diff) < 0.5
+            : (Math.abs(diff) < 0.10 && (secCloseRangeFire || !!w._secAimReady));
+          game.secOnTarget = aimReady;
+        }
+        // No target in range: hold current angle, don't fire
       } else {
-        // Manual: all corners aim at mouse
-        const mouseAngle = Math.atan2(wmy() - p.y, wmx() - p.x);
-        if(w._corners) for(const c of w._corners){ c.aimAngle = mouseAngle; c.onTarget = true; }
-        game.secAimAngle = mouseAngle;
+        // Manual: snap instantly to mouse
+        game.secAimAngle = Math.atan2(wmy() - p.y, wmx() - p.x);
         game.secOnTarget = true;
       }
     }
@@ -3253,168 +3386,121 @@ function updateWeapons(dt){
     // Slow secondary weapons (cd >= 0.35: railgun, sniper, grenade launcher, shotgun) must
     // always be properly aimed before firing — even in emergency mode. Fast secondaries
     // (minigun, flamer, pistol, burst) may still spray freely when enemies are point-blank.
-    // ── Fortress secondary: each corner fires independently on its own timer ──
-    if(isFortress && isSec && w._corners && FORTRESS_SETTINGS.autoSecondary){
-      if(w.spinUp) w.spinupAmt = (autoSecTarget) ? Math.min(1,(w.spinupAmt||0)+dt*1.5) : Math.max(0,(w.spinupAmt||0)-dt*2);
-      const effectiveCd = w.cd * (p.atkMult||1) * (w.spinUp ? (2-w.spinupAmt) : 1);
-      const isFlamerWep = w.id === 'sec_flamer';
-      for(const c of w._corners){
-        c.timer = Math.max(0, c.timer - dt);
-        if(c.timer > 0) continue;
-        if(!c.lockedTarget || !c.onTarget) continue;
-        if(w.currentMag <= 0) break; // out of ammo — reload already triggered below
-        // Compute fire origin from this corner
-        const cx2 = p.x + c.sx * _cWallH, cy2 = p.y + c.sy * _cWallH;
-        const tipX = cx2 + Math.cos(c.aimAngle) * 11;
-        const tipY = cy2 + Math.sin(c.aimAngle) * 11;
-        const farX = tipX + Math.cos(c.aimAngle) * 3000;
-        const farY = tipY + Math.sin(c.aimAngle) * 3000;
-        // Fire: pellets, burst, single
-        if(w.pellets && w.pellets > 1){
-          const spread = (w.spread||12) * Math.PI/180;
-          const jitter = spread * 0.18;
-          for(let pi=0; pi<w.pellets; pi++){
-            const base = (pi/(w.pellets-1) - 0.5) * spread;
-            const off = base + (Math.random()-0.5)*jitter*2;
-            fireBullet(p, w, farX, farY, off, tipX, tipY);
-          }
-          w.currentMag--;
-          sfxShotgun();
-        } else if(w.burstCount){
-          fireBullet(p, w, farX, farY, 0, tipX, tipY);
-          w.currentMag--;
-          // Schedule remaining burst shots on this corner
-          if(!c._burst) c._burst = {fired: 0};
-          c._burst = {fired: w.burstCount-1, timer: w.burstDelay||0.08, farX, farY, tipX, tipY};
-          const now2=performance.now();if(!game._lastShootSfx||now2-game._lastShootSfx>40){game._lastShootSfx=now2;sfxShoot();}
-        } else if(isFlamerWep){
-          fireBullet(p, w, farX, farY, 0, tipX, tipY);
-          c._flameShotCount = ((c._flameShotCount||0) + 1);
-          if(c._flameShotCount >= 5){ w.currentMag--; c._flameShotCount = 0; }
-          const now2=performance.now();if(!game._lastShootSfx||now2-game._lastShootSfx>40){game._lastShootSfx=now2;sfxShoot();}
-        } else {
-          fireBullet(p, w, farX, farY, 0, tipX, tipY);
-          w.currentMag--;
-          const now2=performance.now();if(!game._lastShootSfx||now2-game._lastShootSfx>40){game._lastShootSfx=now2;sfxShoot();}
-        }
-        c.timer = effectiveCd;
-        if(w.currentMag <= 0){ startReload(w); break; }
-      }
-      // Handle burst continuations per corner
-      for(const c of w._corners){
-        if(!c._burst || c._burst.fired <= 0) continue;
-        c._burst.timer -= dt;
-        if(c._burst.timer <= 0 && w.currentMag > 0 && !w.reloading){
-          // Re-aim along corner's current angle for remaining burst shots
-          const cx2 = p.x + c.sx * _cWallH, cy2 = p.y + c.sy * _cWallH;
-          const tipX = cx2 + Math.cos(c.aimAngle)*11;
-          const tipY = cy2 + Math.sin(c.aimAngle)*11;
-          const farX = tipX + Math.cos(c.aimAngle)*3000;
-          const farY = tipY + Math.sin(c.aimAngle)*3000;
-          fireBullet(p, w, farX, farY, 0, tipX, tipY);
-          w.currentMag--;
-          c._burst.fired--;
-          c._burst.timer = w.burstDelay||0.08;
-          if(w.currentMag <= 0){ startReload(w); c._burst.fired=0; }
-        }
-      }
-      // Out of ammo check
-      if(w.currentMag <= 0 && !w.reloading) startReload(w);
-      continue; // skip shared fire logic below
-    }
-    // Manual secondary (auto off): use right-mouse / shortRangeAutoFire for all corners at once
-    if(isFortress && isSec && w._corners && !FORTRESS_SETTINGS.autoSecondary){
-      if(w.spinUp) w.spinupAmt = (game.rightMouseDown||shortRangeAutoFire) ? Math.min(1,(w.spinupAmt||0)+dt*1.5) : Math.max(0,(w.spinupAmt||0)-dt*2);
-      const manualFire = game.rightMouseDown || shortRangeAutoFire;
-      if(manualFire && w.timer <= 0 && w.currentMag > 0){
-        const effectiveCd = w.cd * (p.atkMult||1) * (w.spinUp ? (2-w.spinupAmt) : 1);
-        w.timer = effectiveCd;
-        for(const c of w._corners){
-          c.timer = effectiveCd;
-          const cx2 = p.x + c.sx * _cWallH, cy2 = p.y + c.sy * _cWallH;
-          const tipX = cx2 + Math.cos(c.aimAngle)*11, tipY = cy2 + Math.sin(c.aimAngle)*11;
-          const farX = tipX + Math.cos(c.aimAngle)*3000, farY = tipY + Math.sin(c.aimAngle)*3000;
-          if(w.pellets && w.pellets > 1){
-            const spread=(w.spread||12)*Math.PI/180,jitter=spread*0.18;
-            for(let pi=0;pi<w.pellets;pi++){const base=(pi/(w.pellets-1)-0.5)*spread;fireBullet(p,w,farX,farY,base+(Math.random()-0.5)*jitter*2,tipX,tipY);}
-            sfxShotgun();
-          } else { fireBullet(p,w,farX,farY,0,tipX,tipY); const now2=performance.now();if(!game._lastShootSfx||now2-game._lastShootSfx>40){game._lastShootSfx=now2;sfxShoot();} }
-        }
-        w.currentMag--;
-        if(w.currentMag<=0) startReload(w);
-      } else if(!manualFire || w.timer <= 0){ /* idle */ }
-      continue;
-    }
-
-    // ── Non-secondary weapon shared fire logic (main battery + classic) ──
+    const isSlowSecWeapon = isSec && (w.cd >= 0.35);
     const fireBtn = isFortress
-      ? (isMain ? (game.mouseDown || spaceDown || shortRangeAutoFire) : false)
+      ? (isMain ? (game.mouseDown || spaceDown || shortRangeAutoFire) : (isSec ? (FORTRESS_SETTINGS.autoSecondary ? (secFlamerAutoFire || (autoSecTarget && (game.secOnTarget || (secCloseRangeFire && !isSlowSecWeapon)))) : (game.rightMouseDown || shortRangeAutoFire)) : false))
       : (game.mouseDown || spaceDown || shortRangeAutoFire);
     if(w.spinUp) w.spinupAmt = fireBtn ? Math.min(1,(w.spinupAmt||0)+dt*1.5) : Math.max(0,(w.spinupAmt||0)-dt*2);
     if(!fireBtn || w.timer > 0) continue;
+    // [FIX] Don't fire at a target that already has enough bullets in flight
+    // sec_flamer is DOT-based — skip this check so it sprays continuously
+    if(isFortress && isSec && w.id !== 'sec_flamer' && autoSecTarget && w._secPredMap){
+      const ci = w._secPredMap.get(autoSecTarget);
+      if(ci && ci.committed) continue;
+    }
     if(w.currentMag <= 0){
       const s2 = activeSettings();
-      if(!s2.infiniteAmmo && (game.ammo[w.cls||'light']||0) <= 0) spawnScreenAlert('NO AMMO');
+      if(!s2.infiniteAmmo && (game.ammo[w.cls||'light']||0) <= 0){
+        spawnScreenAlert('NO AMMO');
+      }
       startReload(w); continue;
     }
     const effectiveCd = w.cd * (p.atkMult||1) * (w.spinUp ? (2-w.spinupAmt) : 1);
     w.timer = effectiveCd;
+    // Trigger recoil animation for fortress main barrel
     if(isFortress && isMain){ game.mainRecoil = 1.0; game.muzzleFlash = 1.0; game.muzzleWeaponId = w.id; }
-    const ax = (isFortress && isMain && game.mainAimAngle !== undefined && !w.rocket)
-                 ? p.x + Math.cos(game.mainAimAngle) * 1000
-               : (!isFortress && game.classicAimAngle !== undefined)
-                 ? p.x + Math.cos(game.classicAimAngle) * 1000
+    const ax = (autoSecPred && isSec) ? autoSecPred.x
+             : (autoSecTarget && isSec) ? autoSecTarget.x
+             : (isFortress && isMain && game.mainAimAngle !== undefined && !w.rocket)
+               ? p.x + Math.cos(game.mainAimAngle) * 1000
+             : (!isFortress && game.classicAimAngle !== undefined)
+               ? p.x + Math.cos(game.classicAimAngle) * 1000
                : wmx();
-    const ay = (isFortress && isMain && game.mainAimAngle !== undefined && !w.rocket)
-                 ? p.y + Math.sin(game.mainAimAngle) * 1000
-               : (!isFortress && game.classicAimAngle !== undefined)
-                 ? p.y + Math.sin(game.classicAimAngle) * 1000
+    const ay = (autoSecPred && isSec) ? autoSecPred.y
+             : (autoSecTarget && isSec) ? autoSecTarget.y
+             : (isFortress && isMain && game.mainAimAngle !== undefined && !w.rocket)
+               ? p.y + Math.sin(game.mainAimAngle) * 1000
+             : (!isFortress && game.classicAimAngle !== undefined)
+               ? p.y + Math.sin(game.classicAimAngle) * 1000
                : wmy();
-    // Dummy secAimA / secTipX for non-secondary weapons (burst compat)
-    const secAimA = game.secAimAngle !== undefined ? game.secAimAngle : 0;
-    const secTipX = p.x, secTipY = p.y;
-    const secFarX = p.x + Math.cos(secAimA)*3000;
-    const secFarY = p.y + Math.sin(secAimA)*3000;
-    const fireFromOrigins = (angleOffset=0) => fireBullet(p, w, ax, ay, angleOffset);
+    // For fortress secondary, fire from the barrel TIP (not the turret center)
+    // and aim along secAimAngle (not toward the target position) so bullets
+    // travel in a straight line out of the barrel. Accuracy jitter is applied
+    // by fireBullet on top of this base angle.
+    const secAimA = game.secAimAngle !== undefined ? game.secAimAngle : Math.atan2(ay - p.y, ax - p.x);
+    const secTipX = p.x + Math.cos(secAimA) * 14;
+    const secTipY = p.y + Math.sin(secAimA) * 14;
+    // Far point along barrel direction — makes fireBullet compute direction = secAimA exactly
+    const secFarX = secTipX + Math.cos(secAimA) * 2000;
+    const secFarY = secTipY + Math.sin(secAimA) * 2000;
+    const secOrigins = [[secTipX, secTipY]];
+    // Single barrel: always index 0
+    if(isFortress && isSec){ w._barrelIdx = 0; }
+    const fireFromOrigins = (angleOffset=0) => {
+      if(isFortress && isSec){
+        const [ox,oy] = secOrigins[w._barrelIdx];
+        fireBullet(p, w, secFarX, secFarY, angleOffset, ox, oy);
+      } else {
+        fireBullet(p, w, ax, ay, angleOffset);
+      }
+    };
     if(w.pellets && w.pellets > 1){
       const spread = (w.spread||12) * Math.PI/180;
-      const jitter = spread * 0.18;
+      const jitter = spread * 0.18; // ±18% of spread arc as random noise
       for(let i=0; i<w.pellets; i++){
         const base = (i/(w.pellets-1) - 0.5) * spread;
-        fireFromOrigins(base + (Math.random()-0.5)*jitter*2);
+        const off = base + (Math.random() - 0.5) * jitter * 2;
+        fireFromOrigins(off);
       }
+      // [FIX] Check all actual pellets just fired against the target
+      if(isFortress && isSec && w.id !== 'sec_flamer') secAccumAndSwitch(w, p, autoSecTarget, w.pellets);
       w.currentMag--;
       if(isFortress&&isMain) sfxMainBattery(); else sfxShotgun();
       if(!isFortress){ game.muzzleFlash=1.0; game.muzzleWeaponId=w.id; }
     } else if(w.burstCount){
-      // rocket_emplace sweep
-      if(w.id === 'rocket_emplace'){
-        const aimA = game.mainAimAngle !== undefined ? game.mainAimAngle : Math.atan2(ay-p.y, ax-p.x);
-        const perpA = aimA + Math.PI * 0.5;
-        const podDist = p.r * 0.18;
-        w._rocketSide = 0;
-        const lateralOffset = (w._rocketSide - 1.5) * podDist;
-        w._rocketSide++;
-        const ox = p.x + Math.cos(perpA)*lateralOffset;
-        const oy = p.y + Math.sin(perpA)*lateralOffset;
-        const mouseDist = Math.sqrt((ax-p.x)**2 + (ay-p.y)**2);
-        const tx = ox + Math.cos(aimA) * mouseDist;
-        const ty = oy + Math.sin(aimA) * mouseDist;
-        fireBullet(p, w, tx, ty, 0, ox, oy);
-        const rb = game.bullets[game.bullets.length-1];
-        rb.barrelPhase = true; rb.barrelDist = 0;
-        rb.barrelLateral = lateralOffset; rb.barrelExitDist = p.r * 2.2;
-        rb.firingMouseDist = mouseDist;
+      if(isFortress && isSec){
+        // Fire first burst shot from barrel tip along barrel direction
+        fireBullet(p, w, secFarX, secFarY, 0, secTipX, secTipY);
+        w.currentMag--;
+        w['_burstA'] = {fired: w.burstCount - 1, timer: w.burstDelay||0.08, target: autoSecTarget, pred: autoSecPred, tipX: secTipX, tipY: secTipY, farX: secFarX, farY: secFarY};
+        // [FIX] Check actual first bullet of burst
+        if(w.id !== 'sec_flamer') secAccumAndSwitch(w, p, autoSecTarget, 1);
       } else {
-        fireFromOrigins();
+        // For rocket_emplace: sweep left-to-right, all rockets fly along mainAimAngle
+        if(w.id === 'rocket_emplace'){
+          const aimA = game.mainAimAngle !== undefined ? game.mainAimAngle : Math.atan2(ay-p.y, ax-p.x);
+          const perpA = aimA + Math.PI * 0.5;
+          const podDist = p.r * 0.18;
+          w._rocketSide = 0; // reset: shot 0 = leftmost
+          const lateralOffset = (w._rocketSide - 1.5) * podDist;
+          w._rocketSide++;
+          const ox = p.x + Math.cos(perpA)*lateralOffset;
+          const oy = p.y + Math.sin(perpA)*lateralOffset;
+          // Target is mouse-distance along aimA from pod origin so rocket flies straight out
+          const mouseDist = Math.sqrt((ax-p.x)**2 + (ay-p.y)**2);
+          const tx = ox + Math.cos(aimA) * mouseDist;
+          const ty = oy + Math.sin(aimA) * mouseDist;
+          fireBullet(p, w, tx, ty, 0, ox, oy);
+          // Barrel phase: rocket tracks turret rotation until exiting barrel
+          const rb = game.bullets[game.bullets.length-1];
+          rb.barrelPhase = true;
+          rb.barrelDist = 0;
+          rb.barrelLateral = lateralOffset;
+          rb.barrelExitDist = p.r * 2.2;
+          rb.firingMouseDist = mouseDist; // distance from turret to mouse at fire time
+        } else {
+          fireFromOrigins();
+        }
+        w.currentMag--;
+        w.burstFired = w.burstCount - 1;
+        w.burstTimer = w.burstDelay||0.08;
       }
-      w.currentMag--;
-      w.burstFired = w.burstCount - 1;
-      w.burstTimer = w.burstDelay||0.08;
       if(isFortress&&isMain){sfxMainBattery();}else{const now=performance.now();if(!game._lastShootSfx||now-game._lastShootSfx>40){game._lastShootSfx=now;sfxShoot();} if(!isFortress&&w.id!=='flamer'&&w.id!=='railgun'){game.muzzleFlash=1.0;game.muzzleWeaponId=w.id||'shotgun';}}
     } else {
       fireFromOrigins();
-      const isFlamerWep = w.id==='flamer';
+      // [FIX] Check actual bullet just fired
+      if(isFortress && isSec && w.id !== 'sec_flamer') secAccumAndSwitch(w, p, autoSecTarget, 1);
+      const isFlamerWep = w.id==='flamer'||w.id==='sec_flamer';
       if(isFlamerWep){
         w._flameShotCount = ((w._flameShotCount||0) + 1);
         if(w._flameShotCount >= 5){ w.currentMag--; w._flameShotCount = 0; }
@@ -3432,6 +3518,335 @@ function updateWeapons(dt){
 
 
 function applyPassive(w){ /* no passive weapons */ }
+
+
+// ── CORNER TURRET SYSTEM ──────────────────────────────────────────
+// Each of the 4 corner turrets operates independently with its own targeting,
+// aiming, prediction, magazine, and reload state. They share the equipped
+// secondary weapon definition and the secondary ammo pool.
+
+function startCornerReload(turret, w, s){
+  turret.flameShotCount = 0;
+  if(!s.reload){
+    if(s.infiniteAmmo){ turret.currentMag = w.mag; }
+    else {
+      const need = w.mag - turret.currentMag;
+      const take = Math.min(need, game.ammo.secondary||0);
+      turret.currentMag += take;
+      game.ammo.secondary = (game.ammo.secondary||0) - take;
+    }
+    turret.reloading = false;
+    return;
+  }
+  if(turret.reloading || turret.currentMag >= w.mag) return;
+  if(!s.infiniteAmmo && (game.ammo.secondary||0) <= 0) return;
+  turret.reloading = true;
+  turret.reloadDuration = (w.reload||1.5) / (s.reloadSpeedMult * (game.player.reloadMult||1) * (turret.emergencyMode ? 1.5 : 1.0));
+  turret.reloadTimer = turret.reloadDuration;
+}
+
+function cornerAccumAndSwitch(turret, w, p, target, numBullets, tx, ty){
+  if(!target) return false;
+  if(!turret.predMap) turret.predMap = new Map();
+  const pm = turret.predMap;
+  const info = pm.get(target) || {dmg:0, committed:false, time:0, initHp:target.hp};
+  if(info.initHp == null) info.initHp = target.hp;
+  for(let i = game.bullets.length - numBullets; i < game.bullets.length; i++){
+    if(i >= 0) info.dmg += calcBulletHitDmg(game.bullets[i], target, p);
+  }
+  pm.set(target, info);
+  const shotDmg = (w.dmg||1) * (w.pellets||1);
+  const killShots  = Math.ceil(info.initHp / shotDmg);
+  const extraShots = Math.ceil((FORTRESS_SETTINGS.overkillMult||0) * info.initHp / shotDmg);
+  const overkillThreshold = (killShots + extraShots) * shotDmg;
+  if(info.dmg >= overkillThreshold){
+    info.committed = true;
+    info.time = game.time;
+    const bulletSpd = w.spd||400;
+    const maxRange = w.maxRange || Math.min(2.5,(W*1.2)/bulletSpd)*bulletSpd;
+    let next = null, nextD = Infinity;
+    for(const e of game.enemies){
+      if(e === target) continue;
+      const ci = pm.get(e);
+      if(ci && ci.committed) continue;
+      const ddx = e.x-tx, ddy = e.y-ty;
+      const d = Math.sqrt(ddx*ddx + ddy*ddy);
+      if(d <= maxRange && d < nextD){ nextD = d; next = e; }
+    }
+    turret.lockedTarget = next;
+    return true;
+  }
+  return false;
+}
+
+function syncCornerTurretMags(){
+  if(!game.secTurrets) return;
+  const w = game.equipped ? game.equipped['secondary'] : null;
+  if(!w) return;
+  for(const turret of game.secTurrets){
+    turret.currentMag = w.mag;
+    turret.reloading = false;
+    turret.timer = 0;
+    turret.lockedTarget = null;
+    turret.predMap = new Map();
+    turret.aimTarget = null;
+    turret.aimReady = false;
+    turret.aimSettled = false;
+    turret.burstState = null;
+    turret.spinupAmt = 0;
+    turret.flameShotCount = 0;
+  }
+}
+
+function updateCornerTurrets(dt){
+  if(game.mode !== 'fortress' || !game.secTurrets) return;
+  const w = game.equipped ? game.equipped['secondary'] : null;
+  if(!w || !isSlotEnabled('secondary')) return;
+  const p = game.player;
+  const s = activeSettings();
+
+  for(let ti = 0; ti < 4; ti++){
+    const turret = game.secTurrets[ti];
+    const tx = p.x + turret.cx;
+    const ty = p.y + turret.cy;
+
+    // ── Reload tick ──
+    if(turret.reloading){
+      turret.reloadTimer -= dt;
+      if(turret.reloadTimer <= 0){
+        if(s.infiniteAmmo){ turret.currentMag = w.mag; }
+        else {
+          const need = w.mag - turret.currentMag;
+          const take = Math.min(need, game.ammo.secondary||0);
+          turret.currentMag += take;
+          game.ammo.secondary = (game.ammo.secondary||0) - take;
+        }
+        turret.reloading = false;
+      }
+      continue;
+    }
+
+    turret.timer -= dt;
+
+    // ── Emergency close-range fire ──
+    let secCloseRangeFire = false;
+    if(FORTRESS_SETTINGS.autoSecondary && FORTRESS_SETTINGS.emergencyMode){
+      const secRange2 = 100*100;
+      for(const e of game.enemies){
+        const dx=e.x-tx, dy=e.y-ty;
+        if(dx*dx+dy*dy <= secRange2){ secCloseRangeFire=true; break; }
+      }
+      turret.emergencyMode = secCloseRangeFire;
+      if(secCloseRangeFire) game.secEmergencyMode = true;
+    }
+
+    // ── Flamer auto-fire ──
+    let secFlamerAutoFire = false;
+    if(w.id==='sec_flamer' && FORTRESS_SETTINGS.autoSecondary){
+      const flamerR2 = (w.maxRange||96)**2;
+      for(const e of game.enemies){
+        const dx=e.x-tx, dy=e.y-ty;
+        if(dx*dx+dy*dy <= flamerR2){ secFlamerAutoFire=true; break; }
+      }
+    }
+
+    // ── Auto-targeting with prediction ──
+    const bulletSpd = w.spd||400;
+    const maxRange = w.maxRange || Math.min(2.5,(W*1.2)/bulletSpd)*bulletSpd;
+    const sMult = s.enemySpeedMult;
+    let autoSecTarget = null, autoSecPred = null;
+
+    if(FORTRESS_SETTINGS.autoSecondary && game.enemies.length > 0){
+      if(!turret.predMap) turret.predMap = new Map();
+      const predMap = turret.predMap;
+      const maxFlightSec = maxRange/bulletSpd + 0.3;
+
+      for(const [e, info] of predMap){
+        if(e.hp<=0 || !game.enemies.includes(e)) predMap.delete(e);
+        else if(info.committed && (game.time-info.time)>maxFlightSec) predMap.delete(e);
+      }
+
+      const nearestEn = (skip) => {
+        let best=null, bestD=Infinity;
+        for(const e of game.enemies){
+          if(e===skip) continue;
+          const inf=predMap.get(e);
+          if(inf && inf.committed) continue;
+          const dx=e.x-tx, dy=e.y-ty;
+          const d=Math.sqrt(dx*dx+dy*dy);
+          if(d<=maxRange && d<bestD){ bestD=d; best=e; }
+        }
+        return best;
+      };
+
+      if(turret.lockedTarget && (turret.lockedTarget.hp<=0 || !game.enemies.includes(turret.lockedTarget)))
+        turret.lockedTarget = null;
+
+      const LOCK_HYSTERESIS = 5;
+      const nearest = nearestEn(null);
+      if(nearest !== turret.lockedTarget){
+        if(!turret.lockedTarget){
+          turret.lockedTarget = nearest;
+        } else {
+          const curInfo = predMap.get(turret.lockedTarget);
+          if(curInfo && curInfo.committed){
+            turret.lockedTarget = nearest;
+          } else if(nearest){
+            const cdx=turret.lockedTarget.x-tx, cdy=turret.lockedTarget.y-ty;
+            const curD=Math.sqrt(cdx*cdx+cdy*cdy);
+            const ndx=nearest.x-tx, ndy=nearest.y-ty;
+            const newD=Math.sqrt(ndx*ndx+ndy*ndy);
+            if(newD < curD-LOCK_HYSTERESIS) turret.lockedTarget = nearest;
+          }
+        }
+      }
+
+      if(turret.lockedTarget){
+        const inf=predMap.get(turret.lockedTarget);
+        if(inf && inf.committed) turret.lockedTarget = nearestEn(turret.lockedTarget);
+      }
+
+      autoSecTarget = turret.lockedTarget;
+      if(autoSecTarget){
+        const toPA=Math.atan2(p.y-autoSecTarget.y, p.x-autoSecTarget.x);
+        const evx=Math.cos(toPA)*(autoSecTarget.spd||0)*sMult;
+        const evy=Math.sin(toPA)*(autoSecTarget.spd||0)*sMult;
+        autoSecPred = predictIntercept(tx, ty, autoSecTarget.x, autoSecTarget.y, evx, evy, bulletSpd);
+      }
+    }
+
+    // ── Burst continuation ──
+    if(w.burstCount && turret.burstState && turret.burstState.fired > 0){
+      turret.burstState.timer -= dt;
+      if(turret.burstState.timer <= 0){
+        if(turret.currentMag > 0){
+          const bs=turret.burstState;
+          const bsTgt = bs.target||autoSecTarget;
+          const bsTipX = bs.tipX!==undefined ? bs.tipX : (tx+Math.cos(turret.aimAngle)*14);
+          const bsTipY = bs.tipY!==undefined ? bs.tipY : (ty+Math.sin(turret.aimAngle)*14);
+          const bsFarX = bs.farX!==undefined ? bs.farX : (bsTipX+Math.cos(turret.aimAngle)*2000);
+          const bsFarY = bs.farY!==undefined ? bs.farY : (bsTipY+Math.sin(turret.aimAngle)*2000);
+          fireBullet(p, w, bsFarX, bsFarY, 0, bsTipX, bsTipY);
+          game.bullets[game.bullets.length-1].cornerTurret = ti;
+          cornerAccumAndSwitch(turret, w, p, bsTgt, 1, tx, ty);
+          turret.currentMag--; bs.fired--; bs.timer = w.burstDelay||0.08;
+          if(turret.currentMag<=0) startCornerReload(turret, w, s);
+        } else { turret.burstState.fired=0; startCornerReload(turret, w, s); }
+      }
+    }
+
+    // ── Aim tracking ──
+    const isFlamerSec = w.id==='sec_flamer';
+    if(FORTRESS_SETTINGS.autoSecondary){
+      let aimTgt = null;
+      if(isFlamerSec){
+        const fr2=(w.maxRange||96)**2;
+        let bd2=Infinity;
+        for(const e of game.enemies){
+          const dx=e.x-tx,dy=e.y-ty,d2=dx*dx+dy*dy;
+          if(d2<=fr2 && d2<bd2){bd2=d2; aimTgt=e;}
+        }
+      } else { aimTgt = autoSecTarget; }
+
+      if(!isFlamerSec){
+        if(aimTgt !== turret.aimTarget){
+          turret.aimTarget=aimTgt; turret.aimReady=false; turret.aimSettled=false;
+          if(aimTgt){
+            const effR=w.maxRange||Math.min(2.5,(W*1.2)/bulletSpd)*bulletSpd;
+            const tdx=aimTgt.x-tx,tdy=aimTgt.y-ty;
+            turret.aimDelay=(w.aimDelay||0)*Math.max(0.15,Math.sqrt(tdx*tdx+tdy*tdy)/effR);
+          } else turret.aimDelay=0;
+        }
+      } else { turret.aimTarget=aimTgt; turret.aimReady=true; turret.aimSettled=true; }
+
+      if(aimTgt){
+        const pred=(!isFlamerSec && autoSecPred)?autoSecPred:aimTgt;
+        const tgtA=Math.atan2(pred.y-ty, pred.x-tx);
+        const rSpd=(isFlamerSec?6.0:3.2)*(game.player.turretRotMult||1);
+        let cur=turret.aimAngle;
+        let diff=tgtA-cur;
+        while(diff>Math.PI)diff-=Math.PI*2;
+        while(diff<-Math.PI)diff+=Math.PI*2;
+        const step=rSpd*dt;
+        cur+=Math.abs(diff)<step?diff:Math.sign(diff)*step;
+        turret.aimAngle=cur;
+
+        if(!isFlamerSec && !turret.aimReady){
+          if(!turret.aimSettled && Math.abs(diff)<0.06) turret.aimSettled=true;
+          if(turret.aimSettled){
+            if(turret.aimDelay>0) turret.aimDelay-=dt;
+            if(turret.aimDelay<=0) turret.aimReady=true;
+          }
+        }
+        turret.onTarget = isFlamerSec
+          ? Math.abs(diff)<0.5
+          : (Math.abs(diff)<0.10 && (secCloseRangeFire||turret.aimReady));
+      }
+    } else {
+      turret.aimAngle = Math.atan2(wmy()-ty, wmx()-tx);
+      turret.onTarget = true;
+    }
+
+    // ── Fire decision ──
+    const isSlowSec = w.cd>=0.35;
+    const fireBtn = FORTRESS_SETTINGS.autoSecondary
+      ? (secFlamerAutoFire || (autoSecTarget && (turret.onTarget || (secCloseRangeFire && !isSlowSec))))
+      : game.rightMouseDown;
+    if(w.spinUp) turret.spinupAmt = fireBtn ? Math.min(1,(turret.spinupAmt||0)+dt*1.5) : Math.max(0,(turret.spinupAmt||0)-dt*2);
+    if(!fireBtn || turret.timer>0) continue;
+
+    if(w.id!=='sec_flamer' && autoSecTarget && turret.predMap){
+      const ci=turret.predMap.get(autoSecTarget);
+      if(ci && ci.committed) continue;
+    }
+
+    if(turret.currentMag<=0){
+      if(!s.infiniteAmmo && (game.ammo.secondary||0)<=0) spawnScreenAlert('NO AMMO');
+      startCornerReload(turret, w, s);
+      continue;
+    }
+
+    const effCd = w.cd*(p.atkMult||1)*(w.spinUp?(2-(turret.spinupAmt||0)):1);
+    turret.timer = effCd;
+
+    const sAimA = turret.aimAngle;
+    const sTipX = tx+Math.cos(sAimA)*14;
+    const sTipY = ty+Math.sin(sAimA)*14;
+    const sFarX = sTipX+Math.cos(sAimA)*2000;
+    const sFarY = sTipY+Math.sin(sAimA)*2000;
+
+    if(w.pellets && w.pellets>1){
+      const spread=(w.spread||12)*Math.PI/180;
+      const jitter=spread*0.18;
+      for(let i=0;i<w.pellets;i++){
+        const base=(i/(w.pellets-1)-0.5)*spread;
+        const off=base+(Math.random()-0.5)*jitter*2;
+        fireBullet(p,w,sFarX,sFarY,off,sTipX,sTipY);
+        game.bullets[game.bullets.length-1].cornerTurret=ti;
+      }
+      if(w.id!=='sec_flamer') cornerAccumAndSwitch(turret,w,p,autoSecTarget,w.pellets,tx,ty);
+      turret.currentMag--;
+      sfxShotgun();
+    } else if(w.burstCount){
+      fireBullet(p,w,sFarX,sFarY,0,sTipX,sTipY);
+      game.bullets[game.bullets.length-1].cornerTurret=ti;
+      turret.currentMag--;
+      turret.burstState={fired:w.burstCount-1, timer:w.burstDelay||0.08, target:autoSecTarget, pred:autoSecPred, tipX:sTipX, tipY:sTipY, farX:sFarX, farY:sFarY};
+      if(w.id!=='sec_flamer') cornerAccumAndSwitch(turret,w,p,autoSecTarget,1,tx,ty);
+      const now=performance.now();if(!game._lastShootSfx||now-game._lastShootSfx>40){game._lastShootSfx=now;sfxShoot();}
+    } else {
+      fireBullet(p,w,sFarX,sFarY,0,sTipX,sTipY);
+      game.bullets[game.bullets.length-1].cornerTurret=ti;
+      if(w.id!=='sec_flamer') cornerAccumAndSwitch(turret,w,p,autoSecTarget,1,tx,ty);
+      if(w.id==='sec_flamer'){
+        turret.flameShotCount=((turret.flameShotCount||0)+1);
+        if(turret.flameShotCount>=5){turret.currentMag--;turret.flameShotCount=0;}
+      } else { turret.currentMag--; }
+      const now=performance.now();if(!game._lastShootSfx||now-game._lastShootSfx>40){game._lastShootSfx=now;sfxShoot();}
+    }
+    if(turret.currentMag<=0) startCornerReload(turret,w,s);
+  }
+}
 
 
 
@@ -3677,7 +4092,19 @@ function updateHUD(){
 
   if(isFortressMode){
     const mainReloading = wMain && wMain.reloading && settings.reload;
-    const secReloading  = wSec  && wSec.reloading  && settings.reload;
+    // Corner turrets: show reload if any turret is reloading
+    let secReloading = false;
+    let secReloadPctVal = 0;
+    if(wSec && settings.reload && game.secTurrets){
+      for(const turret of game.secTurrets){
+        if(turret.reloading){
+          secReloading = true;
+          const dur = turret.reloadDuration || wSec.reload || 1.5;
+          const tp = Math.min(1, Math.max(0, 1 - (turret.reloadTimer / dur)));
+          if(tp > secReloadPctVal) secReloadPctVal = tp;
+        }
+      }
+    }
     reloadTrackOuter.style.display='';
     if(mainReloading || secReloading){
       reloadAnim.style.display='flex';
@@ -3700,10 +4127,8 @@ function updateHUD(){
       }
       const innerCirc = 2*Math.PI*27;
       if(secReloading){
-        const dur=wSec.reloadDuration||wSec.reload||1.5;
-        const pct=Math.min(1,Math.max(0,1-(wSec.reloadTimer/dur)));
         reloadProg.style.strokeDasharray=innerCirc;
-        reloadProg.style.strokeDashoffset=innerCirc*(1-pct);
+        reloadProg.style.strokeDashoffset=innerCirc*(1-secReloadPctVal);
         const col=wSec.color||'#cc44ff';
         reloadProg.style.stroke=col;
         reloadProg.style.filter=`drop-shadow(0 0 5px ${col})`;
@@ -3711,7 +4136,7 @@ function updateHUD(){
         if(!mainReloading){
           reloadIcon.dataset.weaponId=wSec.id; reloadIcon.innerHTML=wSec.icon||'🔫';
           reloadPct.style.color=col;
-          reloadPct.textContent=Math.round(pct*100)+'%';
+          reloadPct.textContent=Math.round(secReloadPctVal*100)+'%';
         }
       } else {
         reloadProg.style.strokeDashoffset=innerCirc;
@@ -3757,13 +4182,19 @@ function updateHUD(){
     const cc=CLS_COLORS2[slotName];
     const keyNum=si+1;
     const reserve = game.ammo ? (game.ammo[slotName]||0) : 0;
-    const totalAmmo = w ? (w.currentMag||0) + reserve : reserve;
+    // For secondary slot in fortress, aggregate corner turret magazines
+    let secTotalMag = 0, secAnyReloading = false, secMagStr = '';
+    if(slotName === 'secondary' && game.secTurrets && w){
+      for(const turret of game.secTurrets){ secTotalMag += turret.currentMag; if(turret.reloading) secAnyReloading = true; }
+      secMagStr = secAnyReloading ? `<span style="color:#ffcc00;font-size:7px;">RLD</span>` : `<span style="color:#888;font-size:7px;">${secTotalMag}/${w.mag*4||0}</span>`;
+    }
+    const totalAmmo = w ? ((slotName==='secondary'&&game.secTurrets) ? secTotalMag + reserve : (w.currentMag||0) + reserve) : reserve;
     const ammoTxt = `<span style="color:${cc};font-family:'Orbitron',monospace;font-size:7px;">${w ? totalAmmo : reserve}</span>`;
     if(w){
       const rc=RC2[w.rarity]||'#aaa';
       const fw = game.mode==='fortress' && FORTRESS_WEAPONS[w.id];
       const wIcon = fw ? fw.icon : w.icon;
-      const magTxt=w.reloading?`<span style="color:#ffcc00;font-size:7px;">RLD</span>`:`<span style="color:#888;font-size:7px;">${w.currentMag||0}/${w.mag||0}</span>`;
+      const magTxt = (slotName==='secondary'&&game.secTurrets) ? secMagStr : (w.reloading?`<span style="color:#ffcc00;font-size:7px;">RLD</span>`:`<span style="color:#888;font-size:7px;">${w.currentMag||0}/${w.mag||0}</span>`);
       html+=`<div title="${fw?fw.name:w.name} [${keyNum}]" style="width:62px;height:68px;font-size:22px;border:1px solid ${isActive?cc:'#1a1a2e'};background:${isActive?cc+'18':'#060610'};box-shadow:${isActive?'0 0 16px '+cc+'66':''};border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;pointer-events:none;transition:all 0.15s;position:relative;">
         <span style="position:absolute;top:2px;left:4px;font-size:7px;color:${cc};font-family:'Orbitron',monospace;opacity:0.8;">[${keyNum}]</span>
         ${wIcon}
@@ -3881,113 +4312,275 @@ function draw(){
     }
   }
 
+  // Fortress outer wall with corner towers — drawn first so everything renders in front of it
+  if(game.mode==='fortress'){
+    const cx = p.x, cy = p.y;
+    const WH = 56;   // half-size of wall square (must match collision constant FW)
+    const TW = 13;   // corner tower half-size (must match collision constant FTW)
+    const WT = 10;   // wall thickness
+    const t  = Date.now() * 0.001;
+    const fw = game.fortWalls || { top:{hp:200,maxHp:200,destroyed:false}, bottom:{hp:200,maxHp:200,destroyed:false}, left:{hp:200,maxHp:200,destroyed:false}, right:{hp:200,maxHp:200,destroyed:false} };
+    ctx.save();
+
+    // ── Seasonal ground shadows under fortress (drawn first, behind everything) ──
+    if(_isSeasonal){
+      const SX=7, SY=6; // shadow offset
+      ctx.save();
+      ctx.globalAlpha=0.32;
+      ctx.fillStyle='rgba(0,0,0,1)';
+      // Wall slab shadows
+      const shadowSegs=[
+        { x:cx-WH+TW,   y:cy-WH-WT/2, w:(WH-TW)*2, h:WT  },
+        { x:cx-WH+TW,   y:cy+WH-WT/2, w:(WH-TW)*2, h:WT  },
+        { x:cx-WH-WT/2, y:cy-WH+TW,   w:WT,         h:(WH-TW)*2 },
+        { x:cx+WH-WT/2, y:cy-WH+TW,   w:WT,         h:(WH-TW)*2 },
+      ];
+      for(const ss of shadowSegs) ctx.fillRect(ss.x+SX, ss.y+SY, ss.w, ss.h);
+      // Corner tower shadows
+      const cShadows=[
+        {x:cx-WH,y:cy-WH},{x:cx+WH,y:cy-WH},{x:cx+WH,y:cy+WH},{x:cx-WH,y:cy+WH}
+      ];
+      for(const cs of cShadows) ctx.fillRect(cs.x-TW+SX, cs.y-TW+SY, TW*2, TW*2);
+      ctx.restore();
+    }
+
+    // Helper: wall color tinted by health (concrete grey → scorched orange → charred red)
+    const wallColor = (side) => {
+      if(fw[side].destroyed) return '#1a1818';
+      const pct = fw[side].hp / fw[side].maxHp;
+      if(pct > 0.5) return '#363636';
+      if(pct > 0.25) return '#2e1e14';
+      return '#241010';
+    };
+    const wallHighlight = (side) => {
+      if(fw[side].destroyed) return '#201c1c';
+      const pct = fw[side].hp / fw[side].maxHp;
+      if(pct > 0.5) return '#484848';
+      if(pct > 0.25) return '#3a2218';
+      return '#2e1212';
+    };
+
+    // ── Wall segments definition ──
+    // top/bottom: horizontal slabs between towers
+    // left/right: vertical slabs between towers
+    const wallSegs = [
+      { id:'top',    x: cx-WH+TW, y: cy-WH-WT/2, w: (WH-TW)*2, h: WT, hor:true  },
+      { id:'bottom', x: cx-WH+TW, y: cy+WH-WT/2, w: (WH-TW)*2, h: WT, hor:true  },
+      { id:'left',   x: cx-WH-WT/2, y: cy-WH+TW, w: WT, h: (WH-TW)*2, hor:false },
+      { id:'right',  x: cx+WH-WT/2, y: cy-WH+TW, w: WT, h: (WH-TW)*2, hor:false },
+    ];
+
+    for(const s of wallSegs){
+      const dead = fw[s.id].destroyed;
+      const pct  = fw[s.id].hp / fw[s.id].maxHp;
+
+      if(dead){
+        // Rubble — dark crumbled patch
+        ctx.globalAlpha = 0.5;
+        ctx.fillStyle = '#1c1414';
+        ctx.fillRect(s.x, s.y, s.w, s.h);
+        // Crack lines
+        ctx.strokeStyle='#0d0808'; ctx.lineWidth=1; ctx.globalAlpha=0.7;
+        if(s.hor){
+          ctx.beginPath(); ctx.moveTo(s.x+s.w*0.3,s.y); ctx.lineTo(s.x+s.w*0.25,s.y+s.h); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(s.x+s.w*0.65,s.y); ctx.lineTo(s.x+s.w*0.7,s.y+s.h); ctx.stroke();
+        } else {
+          ctx.beginPath(); ctx.moveTo(s.x,s.y+s.h*0.3); ctx.lineTo(s.x+s.w,s.y+s.h*0.25); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(s.x,s.y+s.h*0.65); ctx.lineTo(s.x+s.w,s.y+s.h*0.7); ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+        continue;
+      }
+
+      // Drop shadow
+      ctx.shadowColor='#00000088'; ctx.shadowBlur=10;
+      ctx.fillStyle='#111111';
+      ctx.fillRect(s.x-2, s.y-2, s.w+4, s.h+4);
+      ctx.shadowBlur=0;
+
+      // Base fill — concrete grey
+      ctx.fillStyle = wallColor(s.id);
+      ctx.fillRect(s.x, s.y, s.w, s.h);
+
+      // Surface highlight stripe (top/left edge lighter)
+      ctx.fillStyle = wallHighlight(s.id);
+      if(s.hor) ctx.fillRect(s.x+2, s.y+1,     s.w-4, 2);
+      else      ctx.fillRect(s.x+1, s.y+2,     2,     s.h-4);
+
+      // Bottom/right edge shadow stripe
+      ctx.fillStyle='#1a1a1a';
+      if(s.hor) ctx.fillRect(s.x+2, s.y+s.h-3, s.w-4, 2);
+      else      ctx.fillRect(s.x+s.w-3, s.y+2, 2,     s.h-4);
+
+      // Panel divider grooves
+      ctx.strokeStyle='#252525'; ctx.lineWidth=1;
+      if(s.hor){
+        for(let px=s.x+18; px<s.x+s.w-4; px+=18){
+          ctx.beginPath(); ctx.moveTo(px,s.y+1); ctx.lineTo(px,s.y+s.h-1); ctx.stroke();
+        }
+      } else {
+        for(let py=s.y+18; py<s.y+s.h-4; py+=18){
+          ctx.beginPath(); ctx.moveTo(s.x+1,py); ctx.lineTo(s.x+s.w-1,py); ctx.stroke();
+        }
+      }
+
+      // Damage crack overlay when below 50%
+      if(pct < 0.5){
+        ctx.save();
+        ctx.globalAlpha = (0.5-pct)*1.6;
+        ctx.strokeStyle='#cc2200'; ctx.lineWidth=0.7;
+        if(s.hor){
+          const cy2=s.y+s.h/2;
+          ctx.beginPath(); ctx.moveTo(s.x+s.w*0.2,cy2-2); ctx.lineTo(s.x+s.w*0.35,s.y+1); ctx.lineTo(s.x+s.w*0.4,cy2+1); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(s.x+s.w*0.6,cy2+2); ctx.lineTo(s.x+s.w*0.72,s.y+s.h-1); ctx.lineTo(s.x+s.w*0.78,cy2-1); ctx.stroke();
+        } else {
+          const cx2=s.x+s.w/2;
+          ctx.beginPath(); ctx.moveTo(cx2-2,s.y+s.h*0.2); ctx.lineTo(s.x+1,s.y+s.h*0.35); ctx.lineTo(cx2+1,s.y+s.h*0.4); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(cx2+2,s.y+s.h*0.6); ctx.lineTo(s.x+s.w-1,s.y+s.h*0.72); ctx.lineTo(cx2-1,s.y+s.h*0.78); ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      // Rivet dots — steel grey
+      ctx.fillStyle='#505050';
+      if(s.hor){
+        for(let rx=s.x+9; rx<s.x+s.w-4; rx+=18){
+          ctx.beginPath(); ctx.arc(rx, s.y+s.h*0.5, 1.1, 0, Math.PI*2); ctx.fill();
+        }
+      } else {
+        for(let ry=s.y+9; ry<s.y+s.h-4; ry+=18){
+          ctx.beginPath(); ctx.arc(s.x+s.w*0.5, ry, 1.1, 0, Math.PI*2); ctx.fill();
+        }
+      }
+
+      // Outer border — plain dark edge, no glow
+      ctx.strokeStyle='rgba(0,0,0,0.55)'; ctx.lineWidth=1;
+      ctx.strokeRect(s.x, s.y, s.w, s.h);
+      // Inner bevel
+      ctx.strokeStyle='rgba(255,255,255,0.04)'; ctx.lineWidth=0.5;
+      ctx.strokeRect(s.x+1.5, s.y+1.5, s.w-3, s.h-3);
+
+    }
+
+    // ── Battlements / crenellations on each wall — concrete style ──
+    const cW=6, cH=5, cGap=7;
+    const drawCrens = (startX, startY, count, isVertical, sideId) => {
+      if(fw[sideId].destroyed) return;
+      const pct = fw[sideId].hp / fw[sideId].maxHp;
+      // Concrete grey tinting by health
+      ctx.fillStyle = pct > 0.5 ? '#3a3a3a' : pct > 0.25 ? '#2e1e10' : '#241010';
+      for(let i=0;i<count;i++){
+        const bx = isVertical ? startX              : startX + i*(cW+cGap);
+        const by = isVertical ? startY + i*(cW+cGap): startY;
+        const bw = isVertical ? cH : cW;
+        const bh = isVertical ? cW : cH;
+        ctx.fillRect(bx, by, bw, bh);
+        // Subtle dark outline only, no glow
+        ctx.strokeStyle='rgba(0,0,0,0.5)'; ctx.lineWidth=0.5;
+        ctx.strokeRect(bx, by, bw, bh);
+      }
+    };
+    // top crenellations: stick upward (negative y), horizontal row
+    drawCrens(cx-WH+TW+4,   cy-WH-WT/2-cH, 6, false, 'top');
+    // bottom crenellations: stick downward
+    drawCrens(cx-WH+TW+4,   cy+WH+WT/2,    6, false, 'bottom');
+    // left crenellations: stick left (negative x), vertical column
+    drawCrens(cx-WH-WT/2-cH, cy-WH+TW+4,   6, true,  'left');
+    // right crenellations: stick right
+    drawCrens(cx+WH+WT/2,    cy-WH+TW+4,   6, true,  'right');
+
+    // ── Corner towers — concrete/steel, no glow ──
+    const corners = [
+      { x:cx-WH, y:cy-WH },
+      { x:cx+WH, y:cy-WH },
+      { x:cx+WH, y:cy+WH },
+      { x:cx-WH, y:cy+WH },
+    ];
+    for(const c of corners){
+      // Drop shadow
+      ctx.shadowColor='#00000099'; ctx.shadowBlur=12;
+      ctx.fillStyle='#111111';
+      ctx.fillRect(c.x-TW-1, c.y-TW-1, TW*2+2, TW*2+2);
+      ctx.shadowBlur=0;
+      // Tower base — dark concrete
+      ctx.fillStyle='#2a2a2a';
+      ctx.fillRect(c.x-TW, c.y-TW, TW*2, TW*2);
+      // Structural cross lines
+      ctx.strokeStyle='#1e1e1e'; ctx.lineWidth=1;
+      ctx.beginPath(); ctx.moveTo(c.x-TW+2,c.y); ctx.lineTo(c.x+TW-2,c.y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(c.x,c.y-TW+2); ctx.lineTo(c.x,c.y+TW-2); ctx.stroke();
+      // Corner accent squares
+      const CP=4;
+      ctx.fillStyle='#3c3c3c';
+      ctx.fillRect(c.x-TW,    c.y-TW,    CP, CP);
+      ctx.fillRect(c.x+TW-CP, c.y-TW,    CP, CP);
+      ctx.fillRect(c.x-TW,    c.y+TW-CP, CP, CP);
+      ctx.fillRect(c.x+TW-CP, c.y+TW-CP, CP, CP);
+      // Chamfer lines
+      ctx.strokeStyle='#444'; ctx.lineWidth=0.6;
+      ctx.beginPath(); ctx.moveTo(c.x-TW+CP,c.y-TW);  ctx.lineTo(c.x-TW,c.y-TW+CP); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(c.x+TW-CP,c.y-TW);  ctx.lineTo(c.x+TW,c.y-TW+CP); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(c.x-TW+CP,c.y+TW);  ctx.lineTo(c.x-TW,c.y+TW-CP); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(c.x+TW-CP,c.y+TW);  ctx.lineTo(c.x+TW,c.y+TW-CP); ctx.stroke();
+      // Bolt studs at quadrant positions — plain steel grey
+      ctx.fillStyle='#666';
+      [[-1,-1],[1,-1],[-1,1],[1,1]].forEach(([sx,sy])=>{
+        ctx.beginPath(); ctx.arc(c.x+sx*(TW*0.52), c.y+sy*(TW*0.52), 1.3, 0, Math.PI*2); ctx.fill();
+        // Stud highlight
+        ctx.fillStyle='#888';
+        ctx.beginPath(); ctx.arc(c.x+sx*(TW*0.52)-0.4, c.y+sy*(TW*0.52)-0.4, 0.5, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle='#666';
+      });
+      // Center bolt — solid grey, no glow
+      ctx.fillStyle='#555';
+      ctx.beginPath(); ctx.arc(c.x, c.y, 2.0, 0, Math.PI*2); ctx.fill();
+      ctx.fillStyle='#888';
+      ctx.beginPath(); ctx.arc(c.x-0.5, c.y-0.5, 0.8, 0, Math.PI*2); ctx.fill();
+      // Tower border — dark, no color glow
+      ctx.strokeStyle='rgba(0,0,0,0.6)'; ctx.lineWidth=1;
+      ctx.strokeRect(c.x-TW, c.y-TW, TW*2, TW*2);
+      ctx.strokeStyle='rgba(255,255,255,0.05)'; ctx.lineWidth=0.5;
+      ctx.strokeRect(c.x-TW+2, c.y-TW+2, TW*2-4, TW*2-4);
+    }
+
+    ctx.restore();
+  }
+
   // Fortress base circle — drawn BEFORE enemies so enemies appear in front of it
   if(game.mode==='fortress'){
     const cx = p.x, cy = p.y;
     ctx.save();
     ctx.shadowBlur = 0;
     ctx.globalAlpha = 0.85;
-    ctx.fillStyle = '#1e1e2c';
+    ctx.fillStyle = '#363636';
     ctx.beginPath(); ctx.arc(cx, cy, FORTRESS_WALL_R, 0, Math.PI*2); ctx.fill();
     ctx.globalAlpha = 0.35;
-    ctx.fillStyle = '#0a0a12';
+    ctx.fillStyle = '#272727';
     ctx.beginPath(); ctx.arc(cx, cy, FORTRESS_WALL_R * 0.55, 0, Math.PI*2); ctx.fill();
     ctx.globalAlpha = 0.3;
-    ctx.strokeStyle = '#2e2e42'; ctx.lineWidth = 1;
+    ctx.strokeStyle = '#252525'; ctx.lineWidth = 1;
     const _innerR = FORTRESS_WALL_R - 6;
     ctx.beginPath(); ctx.moveTo(cx - _innerR, cy); ctx.lineTo(cx + _innerR, cy); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(cx, cy - _innerR); ctx.lineTo(cx, cy + _innerR); ctx.stroke();
     ctx.globalAlpha = 0.5;
-    ctx.strokeStyle = '#26263a'; ctx.lineWidth = 1;
+    ctx.strokeStyle = '#444444'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.arc(cx, cy, FORTRESS_WALL_R * 0.62, 0, Math.PI*2); ctx.stroke();
     ctx.globalAlpha = 1;
-    ctx.strokeStyle = '#0e0e16'; ctx.lineWidth = 5;
+    ctx.strokeStyle = '#111111'; ctx.lineWidth = 5;
     ctx.beginPath(); ctx.arc(cx, cy, FORTRESS_WALL_R, 0, Math.PI*2); ctx.stroke();
-    ctx.strokeStyle = '#28283a'; ctx.lineWidth = 1;
+    ctx.strokeStyle = '#404040'; ctx.lineWidth = 1;
     ctx.beginPath(); ctx.arc(cx, cy, FORTRESS_WALL_R - 4, 0, Math.PI*2); ctx.stroke();
-    ctx.fillStyle = '#272739';
+    ctx.fillStyle = '#2a2a2a';
     for(let _i = 0; _i < 8; _i++){
       const _a = (Math.PI*2/8)*_i + Math.PI/8;
       const _rx = cx + Math.cos(_a) * (FORTRESS_WALL_R - 7);
       const _ry = cy + Math.sin(_a) * (FORTRESS_WALL_R - 7);
       ctx.beginPath(); ctx.arc(_rx, _ry, 1.8, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = '#4a4a66';
+      ctx.fillStyle = '#505050';
       ctx.beginPath(); ctx.arc(_rx - 0.5, _ry - 0.5, 0.9, 0, Math.PI*2); ctx.fill();
-      ctx.fillStyle = '#272739';
+      ctx.fillStyle = '#2a2a2a';
     }
     ctx.restore();
-
-    // ── Square fortress wall around the turret ──────────────────────────
-    {
-      const wH = FORTRESS_WALL_R + 4; // wall half-size (square from -wH to +wH)
-      const cR = 6;                   // corner post radius
-      ctx.save();
-
-      // Wall fill (thick solid segments on all 4 sides)
-      ctx.fillStyle = '#1a1a28';
-      ctx.strokeStyle = '#2e2e44';
-
-      // Top wall segment
-      ctx.fillRect(cx - wH + cR, cy - wH - 4, (wH - cR) * 2, 8);
-      // Bottom wall segment
-      ctx.fillRect(cx - wH + cR, cy + wH - 4, (wH - cR) * 2, 8);
-      // Left wall segment
-      ctx.fillRect(cx - wH - 4, cy - wH + cR, 8, (wH - cR) * 2);
-      // Right wall segment
-      ctx.fillRect(cx + wH - 4, cy - wH + cR, 8, (wH - cR) * 2);
-
-      // Wall inner edge lines (top & bottom)
-      ctx.strokeStyle = '#3a3a54'; ctx.lineWidth = 1; ctx.globalAlpha = 0.7;
-      ctx.beginPath(); ctx.moveTo(cx - wH + cR, cy - wH); ctx.lineTo(cx + wH - cR, cy - wH); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(cx - wH + cR, cy + wH); ctx.lineTo(cx + wH - cR, cy + wH); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(cx - wH, cy - wH + cR); ctx.lineTo(cx - wH, cy + wH - cR); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(cx + wH, cy - wH + cR); ctx.lineTo(cx + wH, cy + wH - cR); ctx.stroke();
-
-      // Crenellation notches on top/bottom walls
-      ctx.fillStyle = '#0d0d18';
-      const notchW = 5, notchH = 5, notchGap = 10;
-      for(let nx = cx - wH + cR + 4; nx < cx + wH - cR - notchW; nx += notchGap){
-        ctx.fillRect(nx, cy - wH - 4, notchW, notchH); // top
-        ctx.fillRect(nx, cy + wH,     notchW, notchH); // bottom
-      }
-      // Crenellation notches on left/right walls
-      for(let ny = cy - wH + cR + 4; ny < cy + wH - cR - notchW; ny += notchGap){
-        ctx.fillRect(cx - wH - 4, ny, notchH, notchW); // left
-        ctx.fillRect(cx + wH,     ny, notchH, notchW); // right
-      }
-
-      // Corner posts (round bastion towers at each corner)
-      const corners = [[-1,-1],[1,-1],[-1,1],[1,1]];
-      for(const [sx2, sy2] of corners){
-        const cpx = cx + sx2 * wH, cpy = cy + sy2 * wH;
-        // Shadow
-        ctx.globalAlpha = 0.4; ctx.fillStyle = '#000';
-        ctx.beginPath(); ctx.arc(cpx + 2, cpy + 2, cR + 1, 0, Math.PI*2); ctx.fill();
-        // Body fill
-        ctx.globalAlpha = 1; ctx.fillStyle = '#252538';
-        ctx.beginPath(); ctx.arc(cpx, cpy, cR, 0, Math.PI*2); ctx.fill();
-        // Outer ring
-        ctx.strokeStyle = '#3a3a52'; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(cpx, cpy, cR, 0, Math.PI*2); ctx.stroke();
-        // Inner highlight
-        ctx.strokeStyle = '#4a4a68'; ctx.lineWidth = 1; ctx.globalAlpha = 0.6;
-        ctx.beginPath(); ctx.arc(cpx, cpy, cR - 2.5, 0, Math.PI*2); ctx.stroke();
-        // Center rivet
-        ctx.globalAlpha = 1; ctx.fillStyle = '#2e2e44';
-        ctx.beginPath(); ctx.arc(cpx, cpy, 2, 0, Math.PI*2); ctx.fill();
-      }
-
-      // Side wall accent lines (inner surface)
-      ctx.globalAlpha = 0.3; ctx.strokeStyle = '#4444aa'; ctx.lineWidth = 1;
-      ctx.setLineDash([3, 5]);
-      ctx.beginPath(); ctx.moveTo(cx - wH + cR, cy - wH + 2); ctx.lineTo(cx + wH - cR, cy - wH + 2); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(cx - wH + cR, cy + wH - 2); ctx.lineTo(cx + wH - cR, cy + wH - 2); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(cx - wH + 2, cy - wH + cR); ctx.lineTo(cx - wH + 2, cy + wH - cR); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(cx + wH - 2, cy - wH + cR); ctx.lineTo(cx + wH - 2, cy + wH - cR); ctx.stroke();
-      ctx.setLineDash([]);
-
-      ctx.restore();
-    }
   }
 
   // Enemies — ground shadows first (drawn before bodies so they stay underneath)
@@ -4490,87 +5083,6 @@ function draw(){
   const barrelLen = game.mode==='fortress' ? p.r+20 : p.r+10;
   const barrelW   = game.mode==='fortress' ? 4.5 : 3;
 
-  // ── Fortress: 4 corner secondary turrets — drawn BEFORE main turret so main appears on top ──
-  if(game.mode==='fortress' && game.equipped && game.equipped['secondary']){
-    const secW = game.equipped['secondary'];
-    const sAngle = game.secAimAngle !== undefined ? game.secAimAngle : a2;
-    const secColor = secW.color || '#cc44ff';
-    const secR = 7; // turret body radius
-    const wH = FORTRESS_WALL_R + 4; // must match wall drawing
-
-    // Emergency range ring
-    if(FORTRESS_SETTINGS.showEmergencyZone !== false){
-      const emrgR = 100;
-      const pulseT = (Date.now() % 700) / 700;
-      const pulse  = 0.5 + 0.5 * Math.sin(pulseT * Math.PI * 2);
-      ctx.save();
-      ctx.setLineDash([5, 7]);
-      if(game.secEmergencyMode){
-        ctx.strokeStyle = '#ff3300'; ctx.shadowColor = '#ff4400';
-        ctx.shadowBlur = 8 + 6*pulse; ctx.globalAlpha = 0.22 + 0.18*pulse; ctx.lineWidth = 1.2;
-      } else {
-        ctx.strokeStyle = secColor; ctx.shadowColor = secColor;
-        ctx.shadowBlur = 0; ctx.globalAlpha = 0.08; ctx.lineWidth = 0.8;
-      }
-      ctx.beginPath(); ctx.arc(p.x, p.y, emrgR, 0, Math.PI*2); ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.restore();
-    }
-
-    // Draw all 4 corner turrets — each uses its own aim angle from w._corners
-    for(let _ci = 0; _ci < 4; _ci++){
-      const csx = [[-1,-1],[1,-1],[-1,1],[1,1]][_ci][0];
-      const csy = [[-1,-1],[1,-1],[-1,1],[1,1]][_ci][1];
-      const cornerAimAngle = (secW._corners && secW._corners[_ci]) ? secW._corners[_ci].aimAngle : sAngle;
-      const tx = p.x + csx * wH;
-      const ty = p.y + csy * wH;
-      const barrelAngle = cornerAimAngle;
-      const barrelLen2 = 11;
-      const ex = tx + Math.cos(barrelAngle) * barrelLen2;
-      const ey = ty + Math.sin(barrelAngle) * barrelLen2;
-
-      ctx.save();
-      // Glow ring
-      ctx.shadowColor = secColor;
-      ctx.shadowBlur = game.secEmergencyMode ? 22 : 12;
-      ctx.strokeStyle = secColor; ctx.lineWidth = 2;
-      ctx.globalAlpha = 0.85;
-      ctx.beginPath(); ctx.arc(tx, ty, secR, 0, Math.PI*2); ctx.stroke();
-      // Body fill
-      ctx.globalAlpha = 1; ctx.shadowBlur = 0;
-      ctx.fillStyle = '#0a0a14';
-      ctx.beginPath(); ctx.arc(tx, ty, secR, 0, Math.PI*2); ctx.fill();
-      // Inner ring
-      ctx.strokeStyle = secColor; ctx.lineWidth = 1; ctx.globalAlpha = 0.4;
-      ctx.beginPath(); ctx.arc(tx, ty, secR * 0.6, 0, Math.PI*2); ctx.stroke();
-      // Indicator light (back of turret)
-      {
-        const lx = tx + Math.cos(barrelAngle + Math.PI) * (secR * 0.7);
-        const ly = ty + Math.sin(barrelAngle + Math.PI) * (secR * 0.7);
-        const p2 = 0.5 + 0.5 * Math.sin(((Date.now() % 600) / 600) * Math.PI * 2);
-        ctx.globalAlpha = 1;
-        if(game.secEmergencyMode){
-          ctx.shadowColor = '#ff2200'; ctx.shadowBlur = 4 + 3*p2;
-          ctx.fillStyle = `rgb(${Math.round(200+55*p2)},${Math.round(20*p2)},0)`;
-          ctx.globalAlpha = 0.85 + 0.15*p2;
-        } else {
-          ctx.shadowColor = '#550000'; ctx.shadowBlur = 2;
-          ctx.fillStyle = '#550000'; ctx.globalAlpha = 0.75;
-        }
-        ctx.beginPath(); ctx.arc(lx, ly, 1.5, 0, Math.PI*2); ctx.fill();
-      }
-      ctx.restore();
-      // Barrel glow
-      ctx.globalAlpha = 0.55;
-      ctx.strokeStyle = secColor; ctx.lineWidth = 4;
-      ctx.shadowColor = secColor; ctx.shadowBlur = 8;
-      ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(ex, ey); ctx.stroke();
-      // Barrel black
-      ctx.globalAlpha = 1; ctx.strokeStyle = '#000'; ctx.lineWidth = 2.5; ctx.shadowBlur = 0;
-      ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(ex, ey); ctx.stroke();
-    }
-  } // end 4-corner secondary turrets
-
   if(game.mode==='fortress'){
     // Draw turret image rotated toward aim angle
     // Image barrel faces LEFT, so rotate to a2 + PI to point barrel at mouse
@@ -4856,6 +5368,97 @@ function draw(){
     ctx.setLineDash([]);
     ctx.restore();
   }
+  // Fortress: 4 corner turrets for secondary weapon, each independently aimed
+  if(game.mode==='fortress' && game.equipped && game.equipped['secondary'] && game.secTurrets){
+    const secW = game.equipped['secondary'];
+    const secColor = secW.color || '#cc44ff';
+    const secR = 7.5; // corner turret body radius (fits inside corner tower)
+
+    for(let ti = 0; ti < 4; ti++){
+      const turret = game.secTurrets[ti];
+      const sx = p.x + turret.cx;
+      const sy = p.y + turret.cy;
+      const sAngle = turret.aimAngle;
+
+      // Emergency range ring per turret (smaller, 100px)
+      if(FORTRESS_SETTINGS.showEmergencyZone !== false){
+        const emrgR = 100;
+        const pulseT = (Date.now() % 700) / 700;
+        const pulse  = 0.5 + 0.5 * Math.sin(pulseT * Math.PI * 2);
+        ctx.save();
+        ctx.setLineDash([3, 5]);
+        if(turret.emergencyMode){
+          ctx.strokeStyle = '#ff3300';
+          ctx.shadowColor  = '#ff4400';
+          ctx.shadowBlur   = 6 + 4 * pulse;
+          ctx.globalAlpha  = 0.15 + 0.12 * pulse;
+          ctx.lineWidth    = 0.8;
+        } else {
+          ctx.strokeStyle = secColor;
+          ctx.shadowColor  = secColor;
+          ctx.shadowBlur   = 0;
+          ctx.globalAlpha  = 0.05;
+          ctx.lineWidth    = 0.5;
+        }
+        ctx.beginPath(); ctx.arc(sx, sy, emrgR, 0, Math.PI * 2); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+      }
+
+      ctx.save();
+      // Outer glow ring
+      ctx.shadowColor = secColor; ctx.shadowBlur = 16;
+      ctx.strokeStyle = secColor; ctx.lineWidth = 2; ctx.globalAlpha = 0.7;
+      ctx.beginPath(); ctx.arc(sx, sy, secR, 0, Math.PI * 2); ctx.stroke();
+      // Black body fill
+      ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+      ctx.fillStyle = '#0a0a0a';
+      ctx.beginPath(); ctx.arc(sx, sy, secR, 0, Math.PI * 2); ctx.fill();
+      // Center dot
+      ctx.fillStyle = '#000';
+      ctx.beginPath(); ctx.arc(sx, sy, secR * 0.25, 0, Math.PI * 2); ctx.fill();
+
+      // Red indicator light on the back
+      {
+        const lightDist = secR * 0.72;
+        const backA = sAngle + Math.PI;
+        const lx = sx + Math.cos(backA) * lightDist;
+        const ly = sy + Math.sin(backA) * lightDist;
+        const pulseT2 = (Date.now() % 600) / 600;
+        const pulse2  = 0.5 + 0.5 * Math.sin(pulseT2 * Math.PI * 2);
+        ctx.save();
+        if(turret.emergencyMode){
+          ctx.shadowColor = '#ff2200';
+          ctx.shadowBlur  = 4 + 3 * pulse2;
+          ctx.fillStyle   = `rgb(${Math.round(200 + 55*pulse2)},${Math.round(20*pulse2)},0)`;
+          ctx.globalAlpha = 0.85 + 0.15 * pulse2;
+        } else {
+          ctx.shadowColor = '#550000';
+          ctx.shadowBlur  = 2;
+          ctx.fillStyle   = '#3a0000';
+          ctx.globalAlpha = 0.7;
+        }
+        ctx.beginPath(); ctx.arc(lx, ly, 1.4, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
+      ctx.restore();
+
+      // Barrel pointing along turret aim angle
+      {
+        const bx = sx;
+        const by = sy;
+        const ex = bx + Math.cos(sAngle) * 13;
+        const ey = by + Math.sin(sAngle) * 13;
+        ctx.globalAlpha = 0.6;
+        ctx.strokeStyle = secColor; ctx.lineWidth = 4; ctx.shadowColor = secColor; ctx.shadowBlur = 8;
+        ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(ex, ey); ctx.stroke();
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = '#000'; ctx.lineWidth = 2.5; ctx.shadowBlur = 0;
+        ctx.beginPath(); ctx.moveTo(bx, by); ctx.lineTo(ex, ey); ctx.stroke();
+      }
+    }
+  } // end if fortress corner turrets
+
   ctx.restore();
 
   // Secondary bullet pass — drawn on top of the main turret, identical visuals to main pass
@@ -5213,20 +5816,74 @@ window.addEventListener('resize', ()=>{
   if(_fullscreenMode) applyFullscreenSize();
 });
 
+// ── SUPABASE CONFIG ──────────────────────────────────────────────────
+// Required SQL to run once in your Supabase SQL editor:
+//
+//   create table if not exists gz_accounts (
+//     key text primary key,
+//     pin text not null,
+//     display text not null
+//   );
+//   create table if not exists gz_leaderboard (
+//     id uuid primary key default gen_random_uuid(),
+//     key text not null,
+//     display text not null,
+//     mode text not null,
+//     difficulty text not null default 'custom',
+//     time float not null default 0,
+//     kills int not null default 0,
+//     level int not null default 1,
+//     score int not null default 0,
+//     created_at timestamptz not null default now()
+//   );
+//   alter table gz_accounts enable row level security;
+//   alter table gz_leaderboard enable row level security;
+//   create policy "public read accounts"  on gz_accounts  for select using (true);
+//   create policy "public write accounts" on gz_accounts  for insert with check (true);
+//   create policy "public read lb"        on gz_leaderboard for select using (true);
+//   create policy "public write lb"       on gz_leaderboard for insert with check (true);
+//   create policy "public delete lb"      on gz_leaderboard for delete using (true);
+// ─────────────────────────────────────────────────────────────────────
+const _SUPA_URL = 'https://avyvlmexrenuzjpftyth.supabase.co';
+const _SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImF2eXZsbWV4cmVudXpqcGZ0eXRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ2MzMxOTgsImV4cCI6MjA5MDIwOTE5OH0.3wleCLrCoENfC6u8uS1VSl-qHKcoa07uE5lb924iGE4';
+const _supa = supabase.createClient(_SUPA_URL, _SUPA_KEY);
+
 // ── AUTH ────────────────────────────────────────────────────────────
-let _currentUser = null; // {gamertag, display}
+let _currentUser = null; // {key, display}
 
-function _getAccounts(){
-  try{ const r=localStorage.getItem('survivorAccounts'); return r?JSON.parse(r):{}; }catch(e){ return {}; }
+async function _getAccountByKey(key){
+  try{
+    const { data } = await _supa.from('gz_accounts').select('*').eq('key', key).maybeSingle();
+    return data;
+  }catch(e){ return null; }
 }
-function _saveAccounts(a){ try{ localStorage.setItem('survivorAccounts',JSON.stringify(a)); }catch(e){} }
-
-function _getLbEntries(){
-  try{ const r=localStorage.getItem('survivorLeaderboard'); return r?JSON.parse(r):[]; }catch(e){ return []; }
+async function _saveAccount(key, pin, display){
+  try{ await _supa.from('gz_accounts').upsert({ key, pin, display }); }catch(e){}
 }
-function _saveLbEntries(arr){ try{ localStorage.setItem('survivorLeaderboard',JSON.stringify(arr)); }catch(e){} }
 
-function doLogin(){
+async function _getLbEntries(){
+  try{
+    const { data } = await _supa.from('gz_leaderboard').select('*').order('score', { ascending: false });
+    return data || [];
+  }catch(e){ return []; }
+}
+async function _saveLbEntry(entry){
+  try{ await _supa.from('gz_leaderboard').insert(entry); }catch(e){}
+}
+async function _deleteLbEntriesByKey(key){
+  try{ await _supa.from('gz_leaderboard').delete().eq('key', key); }catch(e){}
+}
+async function _pruneLbEntriesForUser(key, mode){
+  try{
+    const { data } = await _supa.from('gz_leaderboard').select('id,score').eq('key', key).eq('mode', mode).order('score', { ascending: false });
+    if(data && data.length > 10){
+      const toDelete = data.slice(10).map(e => e.id);
+      await _supa.from('gz_leaderboard').delete().in('id', toDelete);
+    }
+  }catch(e){}
+}
+
+async function doLogin(){
   const raw = document.getElementById('loginGtag').value.trim();
   const gtag = raw.toUpperCase().replace(/[^A-Z0-9_\-]/g,'');
   const pin  = ['pin0','pin1','pin2','pin3'].map(id=>document.getElementById(id).value).join('');
@@ -5239,17 +5896,22 @@ function doLogin(){
     msg.className='err'; msg.textContent='Enter all 4 PIN digits.'; return;
   }
 
-  const accounts = _getAccounts();
-  const key = gtag.toLowerCase();
+  msg.className=''; msg.textContent='CONNECTING...';
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true;
 
-  if(accounts[key]){
-    if(accounts[key].pin !== pin){
+  const key = gtag.toLowerCase();
+  const existing = await _getAccountByKey(key);
+
+  btn.disabled = false;
+
+  if(existing){
+    if(existing.pin !== pin){
       msg.className='err'; msg.textContent='Wrong PIN. Try again.'; return;
     }
-    msg.className='ok'; msg.textContent='Welcome back, '+accounts[key].display+'!';
+    msg.className='ok'; msg.textContent='Welcome back, '+existing.display+'!';
   } else {
-    accounts[key] = { pin, display: gtag };
-    _saveAccounts(accounts);
+    await _saveAccount(key, pin, gtag);
     msg.className='ok'; msg.textContent='Account created! Welcome, '+gtag+'!';
   }
 
@@ -5367,11 +6029,11 @@ function _syncDiffFilterUI(){
   }
 }
 
-function toggleDiffHide(diff){
+async function toggleDiffHide(diff){
   if(_lbHiddenDiffs.has(diff)) _lbHiddenDiffs.delete(diff);
   else _lbHiddenDiffs.add(diff);
   _syncDiffFilterUI();
-  renderLeaderboard();
+  await renderLeaderboard();
 }
 
 function toggleDiffFilterDropdown(){
@@ -5381,52 +6043,44 @@ function toggleDiffFilterDropdown(){
   btn.classList.toggle('open', open);
 }
 
-function setLbSortField(field, btn){
+async function setLbSortField(field, btn){
   _lbSortField = field;
   _lbPage = 1;
   document.querySelectorAll('.lbSortFieldBtn').forEach(b => b.classList.remove('active'));
   if(btn) btn.classList.add('active');
-  renderLeaderboard();
+  await renderLeaderboard();
 }
 
-function setLbDir(dir){
+async function setLbDir(dir){
   _lbSortDir = dir;
   _lbPage = 1;
   document.getElementById('lbDirDesc').classList.toggle('active', dir === 'desc');
   document.getElementById('lbDirAsc').classList.toggle('active',  dir === 'asc');
-  renderLeaderboard();
+  await renderLeaderboard();
 }
 
 function calcScore(time, killScore, level){
   return Math.round((killScore * 10) + (level * 50) + (time * 2));
 }
 
-function saveHighScore(mode, time, kills, level, difficulty, killScore){
+async function saveHighScore(mode, time, kills, level, difficulty, killScore){
   if(!_currentUser) return;
   // Don't save to leaderboard if developer settings were on
   if(document.getElementById('devSettingsToggle').checked) return;
   const score = calcScore(time, killScore != null ? killScore : kills, level);
-  const entries = _getLbEntries();
   const key = _currentUser.key;
   const display = _currentUser.display;
   const newEntry = { key, display, mode, difficulty: difficulty || 'custom', time, kills, level, score };
-
-  // Collect this user's entries for this mode, append new one, keep top 10 by score
-  const others = entries.filter(e => !(e.key === key && e.mode === mode));
-  const mine   = entries.filter(e =>   e.key === key && e.mode === mode);
-  mine.push(newEntry);
-  mine.sort((a, b) => b.score - a.score);
-  const kept = mine.slice(0, 10);
-
-  _saveLbEntries([...others, ...kept]);
+  await _saveLbEntry(newEntry);
+  await _pruneLbEntriesForUser(key, mode);
 }
 
-function setLbFilter(mode, btn){
+async function setLbFilter(mode, btn){
   _lbFilter = mode;
   _lbPage = 1;
   document.querySelectorAll('.lbFilterBtn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  renderLeaderboard();
+  await renderLeaderboard();
 }
 
 function fmtTime(t){
@@ -5435,9 +6089,12 @@ function fmtTime(t){
   return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
 }
 
-function renderLeaderboard(){
+async function renderLeaderboard(){
   document.getElementById('lbUserTag').textContent = _currentUser ? _currentUser.display : '—';
-  const allEntries = _getLbEntries();
+  const body = document.getElementById('lbBody');
+  body.innerHTML = '<div style="color:#336;font-family:\'Orbitron\',monospace;font-size:10px;letter-spacing:3px;padding:30px;text-align:center;">LOADING SCORES...</div>';
+
+  const allEntries = await _getLbEntries();
   let filtered = _lbFilter === 'all' ? allEntries : allEntries.filter(e => e.mode === _lbFilter);
   // Filter out hidden difficulties
   if(_lbHiddenDiffs.size > 0){
@@ -5458,7 +6115,6 @@ function renderLeaderboard(){
     return d === 'desc' ? bv - av : av - bv;
   });
 
-  const body = document.getElementById('lbBody');
   body.innerHTML = '';
 
   if(sorted.length === 0){
@@ -5530,7 +6186,7 @@ function renderLeaderboard(){
   document.getElementById('lbClearBtn').style.visibility = myScores.length > 0 ? 'visible' : 'hidden';
 }
 
-function showLeaderboard(){
+async function showLeaderboard(){
   _lbFilter = 'all';
   _lbSortField = 'score';
   _lbSortDir = 'desc';
@@ -5548,9 +6204,9 @@ function showLeaderboard(){
   document.getElementById('lbDirDesc').classList.add('active');
   document.getElementById('lbDirAsc').classList.remove('active');
   _syncDiffFilterUI();
-  renderLeaderboard();
   document.getElementById('startScreen').style.display='none';
   document.getElementById('leaderboardScreen').style.display='flex';
+  await renderLeaderboard();
 }
 
 function hideLeaderboard(){
@@ -5564,7 +6220,7 @@ function hideLeaderboard(){
 }
 
 let _clearConfirmTimer = null;
-function clearLeaderboard(){
+async function clearLeaderboard(){
   if(!_currentUser) return;
   const btn = document.getElementById('lbClearBtn');
   if(!btn.classList.contains('confirming')){
@@ -5579,10 +6235,12 @@ function clearLeaderboard(){
   }
   clearTimeout(_clearConfirmTimer);
   btn.classList.remove('confirming');
+  btn.textContent = 'CLEARING...';
+  btn.disabled = true;
+  await _deleteLbEntriesByKey(_currentUser.key);
   btn.textContent = 'CLEAR MY SCORES';
-  const entries = _getLbEntries().filter(e => e.key !== _currentUser.key);
-  _saveLbEntries(entries);
-  renderLeaderboard();
+  btn.disabled = false;
+  await renderLeaderboard();
 }
 // ── END LEADERBOARD ────────────────────────────────────────────────
 
