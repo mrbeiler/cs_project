@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Simple Game</title>
+</head>
+<body>
+<canvas id="game" width="800" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+// ===== GAME STATE =====
+let game = {
+  running: true,
+  player: { x: 400, y: 300, hp: 100 },
+  bullets: [],
+  enemies: [],
+};
+
+// ===== INPUT =====
+let keys = {};
+document.addEventListener("keydown", e => keys[e.key] = true);
+document.addEventListener("keyup", e => keys[e.key] = false);
+
+// ===== SPAWN ENEMIES =====
+function spawnEnemy() {
+  game.enemies.push({
+    x: Math.random() * 800,
+    y: 0,
+    hp: 10
+  });
+}
+
+// ===== SHOOT =====
+function shoot() {
+  game.bullets.push({
+    x: game.player.x,
+    y: game.player.y,
+    vx: 0,
+    vy: -5
+  });
+}
+
+// ===== UPDATE =====
+function update() {
+  // Move player
+  if (keys["a"]) game.player.x -= 3;
+  if (keys["d"]) game.player.x += 3;
+  if (keys["w"]) game.player.y -= 3;
+  if (keys["s"]) game.player.y += 3;
+
+  // Shoot
+  if (keys[" "]) shoot();
+
+  // Update bullets
+  game.bullets.forEach(b => b.y += b.vy);
+
+  // Update enemies
+  game.enemies.forEach(e => e.y += 1);
+
+  // Collision
+  game.enemies.forEach(e => {
+    game.bullets.forEach(b => {
+      if (Math.abs(e.x - b.x) < 10 && Math.abs(e.y - b.y) < 10) {
+        e.hp--;
+        b.dead = true;
+      }
+    });
+  });
+
+  // Cleanup
+  game.bullets = game.bullets.filter(b => !b.dead);
+  game.enemies = game.enemies.filter(e => e.hp > 0);
+}
+
+// ===== DRAW =====
+function draw() {
+  ctx.clearRect(0, 0, 800, 600);
+
+  // Player
+  ctx.fillRect(game.player.x, game.player.y, 20, 20);
+
+  // Bullets
+  game.bullets.forEach(b => {
+    ctx.fillRect(b.x, b.y, 5, 5);
+  });
+
+  // Enemies
+  game.enemies.forEach(e => {
+    ctx.fillRect(e.x, e.y, 20, 20);
+  });
+}
+
+// ===== GAME LOOP =====
+function loop() {
+  if (!game.running) return;
+
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+
+// ===== START =====
+setInterval(spawnEnemy, 1000);
+loop();
+</script>
+</body>
+</html>
