@@ -104,7 +104,7 @@
     border-bottom: 1px solid #0ff1;
     transition: background 0.15s;
   }
-  .sb-row:hover { background: #0ff0a; }
+  .sb-row:hover { background: #00ffff10; }
   .sb-row.new-entry { background: #ff08; animation: flashNew 0.6s ease 2; }
   @keyframes flashNew { 0%,100%{background:#ff08} 50%{background:#ff03} }
   .sb-rank {
@@ -505,7 +505,15 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
 <script>
+const sbClient = window.supabase.createClient(
+  "https://mqkbzxbrvzosemndjwja.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xa2J6eGJydnpvc2VtbmRqd2phIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MzE3NTEsImV4cCI6MjA5MTMwNzc1MX0.mSdhi4Pl5aJEIIXJv9SOTaj_jKJ_TRrM2LSNS0aqYag"
+);
+  
+
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
 const W = canvas.width, H = canvas.height;
@@ -557,8 +565,8 @@ function updateCurrentHint(typedVal) {
 
 // Render the live leaderboard inside the username screen,
 // highlighting rows that match the typed name
-function renderLiveBoard(typed) {
-  const scores = loadScores();           // safe to call before SB_KEY is used below
+async function renderLiveBoard(typed) {
+  const scores = await loadScores();           // safe to call before SB_KEY is used below
   const list = document.getElementById('usLiveList');
   if (!list) return;
   if (scores.length === 0) {
@@ -590,6 +598,8 @@ function confirmUsername() {
   savePilot(name);
   hideUsernameScreen();
   updatePilotTag();
+  // Start the game immediately so the FLY button actually flies!
+  restart();
 }
 
 function changePilot() {
@@ -618,40 +628,55 @@ bootGame();
 const SB_KEY = 'flappyFrenzy_scores';
 let latestEntryIdx = -1;
 
-function loadScores() {
-  try { return JSON.parse(localStorage.getItem(SB_KEY)) || []; }
-  catch(e) { return []; }
+async function loadScores() {
+  const { data, error } = await sbClient
+    .from("Scores")
+    .select("*")
+    .order("score", { ascending: false })
+    .limit(10);
+
+  if (error) {
+    console.error("loadScores error:", JSON.stringify(error));
+    return [];
+  }
+
+  return data;
 }
 
-function saveScores(arr) {
-  try { localStorage.setItem(SB_KEY, JSON.stringify(arr)); }
-  catch(e) {}
-}
-
-function addScore(name, sc, activeModes) {
-  const scores = loadScores();
+async function addScore(name, sc, activeModes) {
   const entry = {
     name: (name || 'ANON').toUpperCase().slice(0, 12),
     score: sc,
-    modes: activeModes,
-    date: new Date().toLocaleDateString('en-US', { month:'numeric', day:'numeric' })
+    modes: activeModes
   };
-  scores.push(entry);
-  scores.sort((a, b) => b.score - a.score);
-  if (scores.length > 20) scores.length = 20;
-  latestEntryIdx = scores.indexOf(entry);
-  saveScores(scores);
-  return latestEntryIdx;
+
+  console.log("Inserting score:", JSON.stringify(entry));
+  const { data, error } = await sbClient
+    .from("Scores")
+    .insert([entry])
+    .select();
+
+  if (error) {
+    console.error("Insert failed:", JSON.stringify(error));
+  } else {
+    console.log("Insert success:", JSON.stringify(data));
+  }
 }
 
-function getHighScore() {
-  const scores = loadScores();
+
+
+
+
+
+
+async function getHighScore() {
+  const scores = await loadScores();
   return scores.length > 0 ? scores[0].score : 0;
 }
 
 // ─── SCOREBOARD UI ───
-function renderScoreboard() {
-  const scores = loadScores();
+async function renderScoreboard() {
+  const scores = await loadScores();
   const list = document.getElementById('sbList');
   if (scores.length === 0) {
     list.innerHTML = '<div id="sbEmpty">NO SCORES YET<br>BE THE FIRST PILOT</div>';
@@ -703,7 +728,13 @@ function clearScoreboard() {
 }
 
 // ─── HIGH SCORE ───
-let highScore = getHighScore();
+let highScore = 0;
+
+async function initHighScore() {
+  highScore = await getHighScore();
+}
+
+initHighScore();
 
 // ─── MODES ───
 const modes = { hard: false, speed: false, reverse: false, night: false };
@@ -893,10 +924,10 @@ function update() {
   } else { shakeX = 0; shakeY = 0; }
 }
 
-function die() {
+async function die() {
   if (state !== 'playing') return;
   state = 'dead';
-  const prevHigh = getHighScore();
+  const prevHigh = await getHighScore();
   const isNewHigh = score > prevHigh;
   if (isNewHigh) highScore = score;
   else highScore = Math.max(highScore, prevHigh);
@@ -906,7 +937,7 @@ function die() {
   // Auto-save score immediately under the pilot name — no prompt needed
   if (score > 0) {
     const activeModes = Object.keys(modes).filter(m => modes[m]);
-    addScore(currentPilot || 'ANON', score, activeModes);
+    await addScore(currentPilot || 'ANON', score, activeModes);
   }
 }
 
