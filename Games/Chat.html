@@ -1,0 +1,290 @@
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: transparent; }
+#gameWrap { display: flex; flex-direction: column; align-items: center; padding: 1rem 0; font-family: var(--font-mono, monospace); }
+#canvas { border: 1.5px solid var(--color-border-primary, #000); border-radius: 4px; cursor: pointer; background: #fff; display: block; max-width: 100%; }
+#hud { display: flex; gap: 2rem; margin-bottom: 0.5rem; font-size: 13px; color: var(--color-text-secondary); }
+#hud span { font-weight: 500; color: var(--color-text-primary); }
+</style>
+
+<div id="gameWrap">
+  <div id="hud">
+    <div>score <span id="scoreEl">0</span></div>
+    <div>best <span id="bestEl">0</span></div>
+    <div>speed <span id="speedEl">1.0</span>x</div>
+  </div>
+  <canvas id="canvas" width="640" height="200"></canvas>
+  <p style="font-size:12px;color:var(--color-text-secondary);margin-top:0.5rem;">SPACE / ENTER or tap to jump — double jump available</p>
+</div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('scoreEl');
+const bestEl = document.getElementById('bestEl');
+const speedEl = document.getElementById('speedEl');
+
+function resize() {
+  const wrap = canvas.parentElement;
+  const w = Math.min(640, wrap.clientWidth - 8);
+  canvas.style.width = w + 'px';
+  canvas.style.height = (w * 200/640) + 'px';
+}
+resize();
+window.addEventListener('resize', resize);
+
+const W = 640, H = 200;
+const GROUND = 155;
+const PLAYER_X = 80;
+
+let player, obstacles, particles, perfectTexts, score, best, speed, frame, spawnTimer, shakeTimer, shakeX, shakeY, jumpCount, restartDelay, dead;
+
+best = 0;
+
+function init() {
+  dead = false;
+  player = { y: GROUND, vy: 0, w: 22, h: 22 };
+  obstacles = [];
+  particles = [];
+  perfectTexts = [];
+  score = 0;
+  speed = 1;
+  frame = 0;
+  spawnTimer = 0;
+  shakeTimer = 0; shakeX = 0; shakeY = 0;
+  jumpCount = 0;
+  restartDelay = 0;
+}
+init();
+
+function doJump() {
+  if (jumpCount < 2) {
+    player.vy = jumpCount === 0 ? -11 : -9;
+    jumpCount++;
+    spawnParticles(PLAYER_X + player.w/2, player.y + player.h, '#888', 5);
+  }
+}
+
+function handleInput() {
+  if (dead) {
+    if (restartDelay <= 0) init();
+    return;
+  }
+  doJump();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); handleInput(); }
+});
+canvas.addEventListener('click', handleInput);
+canvas.addEventListener('touchstart', e => { e.preventDefault(); handleInput(); }, {passive:false});
+
+function spawnObstacle() {
+  const types = ['short','tall','wide','gap'];
+  const pick = types[Math.floor(Math.random()*types.length)];
+  let h, w;
+  if (pick === 'short') { h = 20 + Math.random()*12; w = 14 + Math.random()*8; }
+  else if (pick === 'tall') { h = 45 + Math.random()*25; w = 16 + Math.random()*10; }
+  else if (pick === 'wide') { h = 18 + Math.random()*10; w = 40 + Math.random()*30; }
+  else { h = 28; w = 18; }
+  obstacles.push({ x: W+10, y: GROUND + 22 - h, w, h, type: pick });
+}
+
+function spawnParticles(x, y, color, n) {
+  for (let i = 0; i < n; i++) {
+    particles.push({ x, y, vx: (Math.random()-0.5)*4, vy: -Math.random()*4, life: 1, color });
+  }
+}
+
+function checkCollision() {
+  const px = PLAYER_X, py = player.y, pw = player.w, ph = player.h;
+  for (const o of obstacles) {
+    if (px + pw - 4 > o.x + 3 && px + 4 < o.x + o.w - 3 && py + ph - 4 > o.y + 3 && py + 4 < o.y + o.h - 3) return true;
+  }
+  return false;
+}
+
+function checkPerfect() {
+  for (const o of obstacles) {
+    const px = PLAYER_X, py = player.y, pw = player.w, ph = player.h;
+    const hgap = py + ph - o.y;
+    if (o.x > px + pw - 2 && o.x < px + pw + 6 && hgap >= 0 && hgap <= 8 && !o.perfect) {
+      o.perfect = true;
+      score += 5;
+      spawnParticles(px + pw/2, py, '#f59e0b', 8);
+      perfectTexts.push({ x: px + pw/2, y: py - 10, life: 1.2, text: '+5 perfect!' });
+    }
+  }
+}
+
+function update() {
+  frame++;
+
+  if (dead) {
+    if (shakeTimer > 0) {
+      shakeTimer--;
+      shakeX = (Math.random()-0.5)*6*(shakeTimer/18);
+      shakeY = (Math.random()-0.5)*4*(shakeTimer/18);
+    } else { shakeX = 0; shakeY = 0; }
+    for (const p of particles) { p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life -= 0.06; }
+    particles = particles.filter(p => p.life > 0);
+    if (restartDelay > 0) restartDelay--;
+    return;
+  }
+
+  score++;
+  speed = 1 + Math.min(frame / 3000, 2.5);
+
+  player.vy += 0.55;
+  player.y += player.vy;
+  if (player.y >= GROUND) { player.y = GROUND; player.vy = 0; jumpCount = 0; }
+
+  spawnTimer++;
+  const si = Math.max(38, 90 - frame/8);
+  if (spawnTimer > si) { spawnTimer = 0; spawnObstacle(); }
+
+  for (const o of obstacles) o.x -= 3.5 * speed;
+  obstacles = obstacles.filter(o => o.x > -100);
+
+  for (const p of particles) { p.x += p.vx; p.y += p.vy; p.vy += 0.15; p.life -= 0.06; }
+  particles = particles.filter(p => p.life > 0);
+
+  perfectTexts = perfectTexts.filter(t => t.life > 0);
+  perfectTexts.forEach(t => { t.y -= 0.8; t.life -= 0.03; });
+
+  checkPerfect();
+
+  if (checkCollision()) {
+    dead = true;
+    if (score > best) best = score;
+    shakeTimer = 18;
+    spawnParticles(PLAYER_X + player.w/2, player.y + player.h/2, '#e24b4a', 18);
+    restartDelay = 15;
+  }
+
+  if (shakeTimer > 0) {
+    shakeTimer--;
+    shakeX = (Math.random()-0.5)*6*(shakeTimer/18);
+    shakeY = (Math.random()-0.5)*4*(shakeTimer/18);
+  } else { shakeX = 0; shakeY = 0; }
+}
+
+function drawGround() {
+  ctx.fillStyle = '#111';
+  ctx.fillRect(0, GROUND + 22, W, 2);
+  for (let i = 0; i < 8; i++) {
+    const x = ((frame * 1.5 * speed) % 90) * -1 + i * 90;
+    ctx.fillStyle = '#ddd';
+    ctx.fillRect(x, GROUND + 24, 50, 1);
+  }
+}
+
+function drawPlayer() {
+  const blink = dead && Math.floor(frame/4) % 2 === 0;
+  if (!blink) {
+    ctx.fillStyle = '#111';
+    ctx.fillRect(PLAYER_X, player.y, player.w, player.h);
+    ctx.fillStyle = '#fff';
+    const eyeX = PLAYER_X + player.w - 7, eyeY = player.y + 6;
+    ctx.fillRect(eyeX, eyeY, 4, 4);
+    ctx.fillStyle = '#111';
+    ctx.fillRect(eyeX + 1, eyeY + 1, 2, 2);
+    if (player.y < GROUND - 1) {
+      ctx.fillStyle = '#444';
+      ctx.fillRect(PLAYER_X + 2, player.y + player.h, 5, 4);
+      ctx.fillRect(PLAYER_X + player.w - 7, player.y + player.h, 5, 4);
+    }
+  }
+}
+
+function drawObstacles() {
+  for (const o of obstacles) {
+    ctx.fillStyle = '#111';
+    ctx.fillRect(o.x, o.y, o.w, o.h);
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(o.x + 2, o.y + 2, 3, 3);
+  }
+}
+
+function drawParticles() {
+  for (const p of particles) {
+    ctx.globalAlpha = Math.max(0, p.life);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x - 2, p.y - 2, 4, 4);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawPerfectTexts() {
+  for (const t of perfectTexts) {
+    ctx.globalAlpha = Math.min(1, t.life);
+    ctx.fillStyle = '#b45309';
+    ctx.font = '500 11px ' + (getComputedStyle(document.body).getPropertyValue('--font-mono') || 'monospace');
+    ctx.fillText(t.text, t.x - 28, t.y);
+  }
+  ctx.globalAlpha = 1;
+}
+
+function drawOverlay() {
+  if (!dead) return;
+  ctx.fillStyle = 'rgba(0,0,0,0.06)';
+  ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = '#111';
+  ctx.font = '500 18px ' + (getComputedStyle(document.body).getPropertyValue('--font-mono') || 'monospace');
+  ctx.textAlign = 'center';
+  ctx.fillText('you scored ' + Math.floor(score/6), W/2, H/2 - 14);
+  ctx.font = '12px ' + (getComputedStyle(document.body).getPropertyValue('--font-mono') || 'monospace');
+  ctx.fillStyle = '#888';
+  ctx.fillText(restartDelay > 0 ? '...' : 'space / enter or tap to retry', W/2, H/2 + 10);
+  if (score >= best && score > 0) {
+    ctx.fillStyle = '#b45309';
+    ctx.font = '500 11px ' + (getComputedStyle(document.body).getPropertyValue('--font-mono') || 'monospace');
+    ctx.fillText('new best!', W/2, H/2 + 28);
+  }
+  ctx.textAlign = 'left';
+}
+
+function drawHUD() {
+  if (dead) return;
+  ctx.fillStyle = '#bbb';
+  ctx.font = '11px ' + (getComputedStyle(document.body).getPropertyValue('--font-mono') || 'monospace');
+  ctx.fillText('score ' + Math.floor(score/6), 8, 18);
+  ctx.fillText('best ' + Math.floor(best/6), 8, 32);
+}
+
+function drawSpeedBar() {
+  if (dead) return;
+  const barW = 60;
+  const pct = Math.min((speed - 1) / 2.5, 1);
+  ctx.fillStyle = '#eee';
+  ctx.fillRect(W - barW - 8, 8, barW, 5);
+  ctx.fillStyle = pct > 0.7 ? '#e24b4a' : pct > 0.4 ? '#f59e0b' : '#111';
+  ctx.fillRect(W - barW - 8, 8, barW * pct, 5);
+  ctx.fillStyle = '#bbb';
+  ctx.font = '10px ' + (getComputedStyle(document.body).getPropertyValue('--font-mono') || 'monospace');
+  ctx.fillText('speed', W - barW - 8, 26);
+}
+
+function render() {
+  ctx.save();
+  ctx.translate(shakeX, shakeY);
+  ctx.clearRect(-10, -10, W+20, H+20);
+  drawGround();
+  drawObstacles();
+  drawPlayer();
+  drawParticles();
+  drawPerfectTexts();
+  drawHUD();
+  drawSpeedBar();
+  drawOverlay();
+  ctx.restore();
+
+  scoreEl.textContent = Math.floor(score/6);
+  bestEl.textContent = Math.floor(best/6);
+  speedEl.textContent = speed.toFixed(1);
+}
+
+function loop() { update(); render(); requestAnimationFrame(loop); }
+loop();
+</script>
