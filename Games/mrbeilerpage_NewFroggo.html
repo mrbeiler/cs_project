@@ -838,6 +838,11 @@ function updatePlayerPixels(instant) {
 }
 
 // ─── INPUT ─────────────────────────────────────────
+let pendingStart = null;
+function safeStartGame() {
+  if (pendingStart) { clearTimeout(pendingStart); pendingStart = null; }
+  startGame();
+}
 const keys = {};
 document.addEventListener('keydown', e => {
   // Toggle grid with G key (works any time)
@@ -854,14 +859,14 @@ document.addEventListener('keydown', e => {
     // Don't trigger if typing in the username field
     if (document.activeElement && document.activeElement.id === 'username-input') return;
     e.preventDefault();
-    // In timed mode on the death screen, W/ArrowUp get a 0.75s delay so an
+    // In timed mode on the death screen, W/ArrowUp get a short delay so an
     // accidental last-hop doesn't instantly restart the game
     const needsDelay = deathVisible && gameMode === 'timed' &&
       (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp');
     if (needsDelay) {
-      setTimeout(startGame, 750);
+      pendingStart = setTimeout(() => { pendingStart = null; startGame(); }, 500);
     } else {
-      startGame();
+      safeStartGame();
     }
     return;
   }
@@ -1431,8 +1436,8 @@ function startGame() {
   animFrame = requestAnimationFrame(loop);
 }
 
-document.getElementById('start-btn').addEventListener('click', e => { e.currentTarget.blur(); startGame(); });
-document.getElementById('retry-btn').addEventListener('click', e => { e.currentTarget.blur(); startGame(); });
+document.getElementById('start-btn').addEventListener('click', e => { e.currentTarget.blur(); safeStartGame(); });
+document.getElementById('retry-btn').addEventListener('click', e => { e.currentTarget.blur(); safeStartGame(); });
 
 // Update mode description label
 document.querySelectorAll('input[name="game-mode"]').forEach(radio => {
@@ -1455,7 +1460,7 @@ document.addEventListener('keydown', e => {
 
 // Allow pressing Enter in username field to start
 document.getElementById('username-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') startGame();
+  if (e.key === 'Enter') safeStartGame();
 });
 </script>
 </body>
