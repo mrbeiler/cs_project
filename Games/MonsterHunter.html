@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avaloria: The Lost Realm</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at top, #263b4d, #0c1218 70%);
+    color: #f2f5f8;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+input {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+#game {
+    width: min(1150px, 96%);
+    margin: 18px auto;
+}
+
+.shell {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.header {
+    background: #18222c;
+    border: 1px solid #3b4a58;
+    border-radius: 15px;
+    padding: 14px 17px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.logo {
+    font-size: 25px;
+    font-weight: 800;
+    letter-spacing: 1px;
+}
+
+.location {
+    margin-top: 4px;
+    color: #9cabb8;
+    font-size: 14px;
+}
+
+.stats {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+
+.stat {
+    background: #222e39;
+    border: 1px solid #3a4855;
+    border-radius: 9px;
+    padding: 8px 11px;
+    font-size: 13px;
+}
+
+.resources {
+    background: #111920;
+    border: 1px solid #303e4a;
+    border-radius: 11px;
+    padding: 9px 12px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    color: #b8c4ce;
+    font-size: 13px;
+}
+
+.resources b {
+    color: #f1f5f7;
+}
+
+.screen {
+    background: #18222c;
+    border: 1px solid #3b4a58;
+    border-radius: 15px;
+    padding: 20px;
+    min-height: 600px;
+}
+
+h1,
+h2,
+h3 {
+    margin-top: 0;
+}
+
+p {
+    line-height: 1.55;
+}
+
+.muted {
+    color: #9eabb7;
+}
+
+.description {
+    color: #bdc8d1;
+    line-height: 1.6;
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-top: 17px;
+}
+
+button {
+    min-height: 44px;
+    padding: 10px 14px;
+    color: white;
+    background: #293742;
+    border: 1px solid #4b5a66;
+    border-radius: 9px;
+    transition: .15s;
+}
+
+button:hover:not(:disabled) {
+    background: #364956;
+    transform: translateY(-1px);
+}
+
+button:disabled {
+    opacity: .42;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.primary {
+    background: #456f99;
+    border-color: #6b98c0;
+}
+
+.primary:hover:not(:disabled) {
+    background: #5485b2;
+}
+
+.good {
+    background: #356548;
+    border-color: #57916d;
+}
+
+.danger {
+    background: #6a3d3d;
+    border-color: #955b5b;
+}
+
+.tutorial {
+    background: #202d38;
+    border: 1px solid #6587a3;
+    border-radius: 11px;
+    padding: 13px;
+    margin-bottom: 17px;
+}
+
+.tutorial-title {
+    font-weight: 800;
+    margin-bottom: 5px;
+}
+
+.tutorial-text {
+    color: #c7d1da;
+    line-height: 1.5;
+}
+
+.story {
+    background: #111920;
+    border-left: 4px solid #6a8ba7;
+    border-radius: 8px;
+    padding: 14px;
+    margin-top: 17px;
+    color: #c7d1da;
+}
+
+.story.boss {
+    border-left-color: #a96060;
+}
+
+.cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+}
+
+.card {
+    background: #202b35;
+    border: 1px solid #394854;
+    border-radius: 12px;
+    padding: 15px;
+}
+
+.card-icon {
+    font-size: 37px;
+    margin-bottom: 7px;
+}
+
+.center {
+    text-align: center;
+    padding: 45px 10px;
+}
+
+.big-icon {
+    font-size: 82px;
+}
+
+/* MAP */
+
+.map {
+    margin-top: 16px;
+    padding: 14px;
+    border-radius: 14px;
+    border: 1px solid #52616d;
+    background:
+        linear-gradient(
+            to bottom,
+            #8ebbd0 0%,
+            #b7d2d7 49%,
+            #6d9258 49%,
+            #567448 100%
+        );
+}
+
+.map-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 135px);
+    gap: 10px;
+    max-width: 850px;
+    margin: auto;
+}
+
+.map-place {
+    border: 2px solid #465761;
+    border-radius: 13px;
+    background: rgba(24, 33, 42, .94);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    text-align: center;
+}
+
+.map-place span {
+    font-size: 30px;
+}
+
+.map-place small {
+    color: #aab7c2;
+}
+
+.map-place.current {
+    border-color: #82aed1;
+    box-shadow: inset 0 0 0 1px #82aed1;
+}
+
+.map-place.locked {
+    opacity: .48;
+}
+
+.map-forest {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.map-ruins {
+    grid-column: 2;
+    grid-row: 2;
+}
+
+.map-mines {
+    grid-column: 3;
+    grid-row: 2;
+}
+
+.map-fields {
+    grid-column: 1;
+    grid-row: 3;
+}
+
+.map-town {
+    grid-column: 2;
+    grid-row: 3;
+}
+
+.map-peak {
+    grid-column: 2;
+    grid-row: 1;
+}
+
+.map-info {
+    margin-top: 13px;
+    padding: 15px;
+    background: #202a34;
+    border: 1px solid #3b4a56;
+    border-radius: 12px;
+}
+
+/* SHOP */
+
+.shop-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.tabs {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+}
+
+.tab.active {
+    background: #456f99;
+    border-color: #6d9bc5;
+}
+
+.shop-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+    gap: 12px;
+    margin-top: 17px;
+}
+
+.shop-card {
+    background: #202a34;
+    border: 1px solid #394854;
+    border-radius: 12px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+}
+
+.shop-card.equipped {
+    border-color: #719bc0;
+    box-shadow: inset 0 0 0 1px #719bc0;
+}
+
+.shop-icon {
+    font-size: 43px;
+}
+
+.shop-cost {
+    background: #121a21;
+    border-radius: 8px;
+    padding: 9px;
+    margin-top: 9px;
+    color: #bac6cf;
+    font-size: 13px;
+}
+
+.shop-card .actions {
+    margin-top: auto;
+}
+
+/* HEALING */
+
+.heal-box {
+    max-width: 700px;
+    margin: 20px auto;
+    background: #202b35;
+    border: 1px solid #3b4955;
+    border-radius: 13px;
+    padding: 18px;
+}
+
+.heal-display {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+input[type="range"] {
+    width: 100%;
+    margin: 20px 0;
+}
+
+/* COMBAT */
+
+.arena {
+    position: relative;
+    height: 370px;
+    overflow: hidden;
+    border: 1px solid #53616d;
+    border-radius: 14px;
+    background:
+        linear-gradient(
+            to bottom,
+            #8ebbd0 0%,
+            #b8d2d8 55%,
+            #6e9159 55%,
+            #577548 100%
+        );
+}
+
+.cloud {
+    position: absolute;
+    top: 45px;
+    left: 12%;
+    width: 100px;
+    height: 30px;
+    border-radius: 30px;
+    background: rgba(255,255,255,.52);
+}
+
+.cloud.two {
+    left: 72%;
+    top: 72px;
+    transform: scale(.7);
+}
+
+/* PLAYER */
+
+.player {
+    position: absolute;
+    bottom: 55px;
+    left: 16%;
+    width: 78px;
+    height: 125px;
+    z-index: 5;
+}
+
+.player-head {
+    position: absolute;
+    width: 42px;
+    height: 42px;
+    background: #e5b08b;
+    border-radius: 50%;
+    left: 18px;
+    top: 0;
+    border: 3px solid #27313a;
+}
+
+.player-body {
+    position: absolute;
+    width: 55px;
+    height: 58px;
+    background: #5a7895;
+    border-radius: 15px 15px 8px 8px;
+    left: 11px;
+    top: 36px;
+    border: 3px solid #27313a;
+}
+
+.player-leg {
+    position: absolute;
+    width: 15px;
+    height: 38px;
+    background: #343e47;
+    bottom: 0;
+    border-radius: 7px;
+}
+
+.player-leg.left {
+    left: 18px;
+}
+
+.player-leg.right {
+    left: 45px;
+}
+
+.player-sword {
+    position: absolute;
+    width: 9px;
+    height: 73px;
+    background: #d5e1e7;
+    right: -10px;
+    top: 37px;
+    transform: rotate(-36deg);
+    border-radius: 6px;
+    border: 2px solid #6a7780;
+}
+
+.player-sword::after {
+    content: "";
+    position: absolute;
+    width: 28px;
+    height: 7px;
+    background: #8b6848;
+    left: -9px;
+    bottom: 0;
+    border-radius: 4px;
+}
+
+/* MONSTER */
+
+.monster {
+    position: absolute;
+    right: 14%;
+    bottom: 50px;
+    width: 145px;
+    height: 145px;
+    z-index: 5;
+}
+
+.monster-body {
+    position: absolute;
+    left: 24px;
+    top: 27px;
+    width: 100px;
+    height: 105px;
+    border-radius: 45% 45% 42% 42%;
+    border: 4px solid #26313a;
+}
+
+.monster-eye {
+    position: absolute;
+    width: 17px;
+    height: 22px;
+    background: white;
+    border: 3px solid #20282e;
+    border-radius: 50%;
+    z-index: 3;
+    top: 52px;
+}
+
+.monster-eye::after {
+    content: "";
+    position: absolute;
+    width: 6px;
+    height: 9px;
+    background: #15191d;
+    border-radius: 50%;
+    left: 3px;
+    top: 4px;
+}
+
+.monster-eye.left {
+    left: 52px;
+}
+
+.monster-eye.right {
+    left: 77px;
+}
+
+.monster-mouth {
+    position: absolute;
+    left: 59px;
+    top: 82px;
+    width: 36px;
+    height: 17px;
+    border-bottom: 4px solid #20282e;
+    border-radius: 50%;
+    z-index: 4;
+}
+
+.horn {
+    position: absolute;
+    width: 28px;
+    height: 55px;
+    background: #4a555e;
+    border: 4px solid #26313a;
+    border-radius: 60% 60% 20% 20%;
+    top: 0;
+    z-index: 1;
+}
+
+.horn.left {
+    left: 22px;
+    transform: rotate(-25deg);
+}
+
+.horn.right {
+    right: 22px;
+    transform: rotate(25deg);
+}
+
+/* SLIME */
+
+.monster.slime .monster-body {
+    background: #4da869;
+    border-radius: 48% 48% 35% 35%;
+}
+
+.monster.slime .horn,
+.monster.slime .monster-mouth {
+    display: none;
+}
+
+/* WOLF */
+
+.monster.wolf .monster-body {
+    background: #7c8389;
+    border-radius: 48% 48% 35% 35%;
+}
+
+.monster.wolf .horn {
+    background: #646a70;
+    width: 25px;
+    height: 35px;
+}
+
+.monster.wolf .monster-mouth {
+    border-bottom: 0;
+    border-top: 4px solid #20282e;
+}
+
+/* GOBLIN */
+
+.monster.goblin .monster-body {
+    background: #5f994f;
+}
+
+.monster.goblin .horn {
+    background: #4b7e40;
+    height: 45px;
+}
+
+/* ORC */
+
+.monster.orc .monster-body {
+    background: #6f775e;
+    transform: scale(1.12);
+}
+
+.monster.orc .horn {
+    background: #46483b;
+    height: 65px;
+}
+
+.monster.orc .monster-mouth::before,
+.monster.orc .monster-mouth::after {
+    content: "";
+    position: absolute;
+    width: 6px;
+    height: 12px;
+    background: white;
+    top: 3px;
+}
+
+.monster.orc .monster-mouth::before {
+    left: 7px;
+}
+
+.monster.orc .monster-mouth::after {
+    right: 7px;
+}
+
+/* YETI */
+
+.monster.yeti .monster-body {
+    background: #d4dce2;
+}
+
+.monster.yeti .horn {
+    background: #aebac2;
+    height: 34px;
+}
+
+.monster.yeti .monster-eye {
+    background: #e1effa;
+}
+
+/* GUARDIAN */
+
+.monster.guardian .monster-body {
+    background:
+        linear-gradient(
+            145deg,
+            #777c80,
+            #474d52
+        );
+    border-radius: 30%;
+}
+
+.monster.guardian .horn {
+    background: #686e72;
+}
+
+.monster.guardian .monster-mouth {
+    border-bottom: 0;
+    border-top: 4px solid #182027;
+}
+
+/* DRAGON */
+
+.monster.dragon {
+    transform: scale(1.15);
+}
+
+.monster.dragon .monster-body {
+    background:
+        linear-gradient(
+            145deg,
+            #a74445,
+            #5d232e
+        );
+    border-radius: 45% 55% 35% 45%;
+}
+
+.monster.dragon .horn {
+    background: #d9c0a2;
+    height: 62px;
+}
+
+.monster.dragon .wing {
+    position: absolute;
+    width: 72px;
+    height: 85px;
+    top: 37px;
+    background: #6d2c36;
+    border: 4px solid #26313a;
+    z-index: 0;
+}
+
+.monster.dragon .wing.left {
+    left: -7px;
+    transform: skewY(25deg);
+}
+
+.monster.dragon .wing.right {
+    right: -7px;
+    transform: skewY(-25deg);
+}
+
+.monster.dragon .tail {
+    position: absolute;
+    width: 70px;
+    height: 18px;
+    background: #6d2c36;
+    border: 4px solid #26313a;
+    bottom: 17px;
+    right: -45px;
+    border-radius: 40%;
+    transform: rotate(18deg);
+}
+
+/* COMBAT ANIMATIONS */
+
+.player.attack {
+    animation: playerAttack .5s ease;
+}
+
+.monster.hit {
+    animation: monsterHit .35s ease;
+}
+
+.slash {
+    position: absolute;
+    z-index: 8;
+    right: 29%;
+    bottom: 135px;
+    font-size: 80px;
+    opacity: 0;
+}
+
+.slash.show {
+    animation: slash .38s ease;
+}
+
+.damage-number {
+    position: absolute;
+    z-index: 9;
+    right: 19%;
+    bottom: 185px;
+    font-size: 31px;
+    font-weight: 900;
+    opacity: 0;
+}
+
+.damage-number.show {
+    animation: damageUp .7s ease;
+}
+
+@keyframes playerAttack {
+    0% {
+        transform: translateX(0) rotate(0);
+    }
+
+    45% {
+        transform: translateX(155px) rotate(-10deg);
+    }
+
+    100% {
+        transform: translateX(0) rotate(0);
+    }
+}
+
+@keyframes monsterHit {
+    0%, 100% {
+        transform: translateX(0);
+    }
+
+    25% {
+        transform: translateX(16px) rotate(5deg);
+    }
+
+    50% {
+        transform: translateX(-13px) rotate(-5deg);
+    }
+
+    75% {
+        transform: translateX(7px);
+    }
+}
+
+@keyframes slash {
+    0% {
+        opacity: 0;
+        transform: rotate(-45deg) scale(.4);
+    }
+
+    35% {
+        opacity: 1;
+        transform: rotate(10deg) scale(1.1);
+    }
+
+    100% {
+        opacity: 0;
+        transform: rotate(38deg) scale(1.3);
+    }
+}
+
+@keyframes damageUp {
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    25% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateY(-48px);
+    }
+}
+
+.battle-bars {
+    display: grid;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.bar-label {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    color: #bac5ce;
+    font-size: 13px;
+}
+
+.bar {
+    height: 15px;
+    background: #202b33;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.fill {
+    height: 100%;
+    transition: width .25s;
+}
+
+.hp-fill {
+    background: #5ea36b;
+}
+
+.enemy-fill {
+    background: #c56565;
+}
+
+.battle-log {
+    margin-top: 13px;
+    padding: 11px;
+    min-height: 45px;
+    background: #10171d;
+    border: 1px solid #303e49;
+    border-radius: 8px;
+    color: #c5d0d8;
+}
+
+/* SELLING */
+
+.sell-note {
+    margin-top: 12px;
+    color: #aebac4;
+}
+
+.sell-disabled {
+    color: #a96a6a;
+    font-size: 13px;
+}
+
+/* DEATH / END */
+
+.big-end {
+    font-size: 88px;
+}
+
+.ending-title {
+    font-size: 34px;
+}
+
+@media (max-width: 750px) {
+
+    #game {
+        width: 97%;
+    }
+
+    .screen {
+        padding: 14px;
+    }
+
+    .map-grid {
+        grid-template-rows: repeat(3, 115px);
+        gap: 7px;
+    }
+
+    .map-place {
+        border-radius: 9px;
+        padding: 7px;
+        font-size: 12px;
+    }
+
+    .map-place span {
+        font-size: 24px;
+    }
+
+    .player {
+        left: 6%;
+        transform: scale(.8);
+        transform-origin: bottom left;
+    }
+
+    .monster {
+        right: 5%;
+        transform: scale(.8);
+        transform-origin: bottom right;
+    }
+
+    .monster.dragon {
+        transform: scale(.9);
+        transform-origin: bottom right;
+    }
+
+    @keyframes playerAttack {
+        0% {
+            transform: scale(.8) translateX(0);
+        }
+
+        45% {
+            transform: scale(.8) translateX(90px);
+        }
+
+        100% {
+            transform: scale(.8) translateX(0);
+        }
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div id="game"></div>
+
+<script>
