@@ -62,6 +62,34 @@
             display: block;
         }
 
+        .game-card2 {
+            position: relative;
+            display: inline-block;
+            margin: 20px;
+            transition: 0.5s;
+            border: rgb(165, 165, 255) 2px solid;
+            box-shadow: rgb(165, 165, 255) 0 0 10px;
+            width: 250px;
+            height: 200px;
+            transition: transform 0.3s ease;
+        }
+
+        /* Expand entire card on hover */
+        .game-card2:hover {
+            transform: scale(1.07);
+        }
+
+        /* Game Images */
+        .game-card2 img {
+            margin: 0;
+            border-radius: 15px;
+            border: 3px solid blue;
+            width: 250px;
+            height: 200px;
+            display: block;
+            object-fit: cover;
+        }
+
         /* Tooltip */
         .tooltip-text {
             visibility: hidden;
@@ -84,6 +112,11 @@
         }
 
         .game-card:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .game-card2:hover .tooltip-text {
             visibility: visible;
             opacity: 1;
         }
@@ -116,6 +149,10 @@
             opacity: 1;
         }
 
+        .game-card2:hover .play-button {
+            opacity: 1;
+        }
+
         /* Slight brighten on hover */
         .play-button:hover {
             background-color: rgba(0, 0, 0, 0.8);
@@ -125,6 +162,14 @@
 <body>
 
     <h1>Git Games</h1>
+
+    <a href="Games/PT%20V2/Pacific_Theater_v3_7.html">
+        <div class="game-card2">
+            <img src="Images/PT Icon.png" alt="Pacific Theater">
+            <span class="tooltip-text">Pacific Theater</span>
+            <div class="play-button">▶</div>
+        </div>
+    </a>
 
     <a href="Games/space_mining_v2.html">
         <div class="game-card">
@@ -225,14 +270,6 @@
     <a href="Games/Cookie clicker/cookiehome.html">
         <div class="game-card">
             <img src="Images/cookie clicker.png" alt="Cookie Clicker">
-            <span class="tooltip-text">Cookie Clicker</span>
-            <div class="play-button">▶</div>
-        </div>
-    </a>
-
-    <a href="Games/Cookie_Clicker2.html">
-        <div class="game-card">
-            <img src="Images/cookie clicker 2.png" alt="Cookie Clicker">
             <span class="tooltip-text">Cookie Clicker</span>
             <div class="play-button">▶</div>
         </div>

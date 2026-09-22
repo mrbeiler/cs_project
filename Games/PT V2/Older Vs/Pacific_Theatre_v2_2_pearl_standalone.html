@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pearl Harbor — Graving Dock Port Menu</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --font-sans:'Oswald','Arial Narrow',system-ui,sans-serif;
+    --font-mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
+    --panel-0:#0a1216;
+    --panel-1:#101d24;
+    --border-soft:#22383f;
+    --brass:#CFC3A8;
+    --brass-bright:#EDE6D6;
+    --brass-dim:#8E8B63;
+    --ivory:#EDE6D6;
+    --ivory-dim:#9A917E;
+    --ivory-faint:#6E6759;
+    --radius:10px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;min-height:100%;background:#0a1216;color:var(--ivory);font-family:var(--font-sans)}
+  body{padding:14px 12px 20px;display:flex;flex-direction:column;align-items:center}
+  .app{width:100%;max-width:1180px;display:flex;flex-direction:column;gap:12px}
+  .top-nav{display:flex;align-items:center;gap:10px;padding:8px 12px;background:rgba(10,18,22,0.94);border:1px solid #22383f;border-radius:8px}
+  .top-nav .title{flex:1;text-align:center;font-size:13px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ivory-faint)}
+  .back-btn{font-family:inherit;font-size:12px;letter-spacing:.04em;text-transform:uppercase;background:#182a32;color:#93a8ae;border:1px solid #22383f;border-radius:4px;padding:8px 14px;cursor:pointer}
+  .back-btn:hover{border-color:#3c5966;color:#ece6d8}
+  .money-badge{display:inline-flex;align-items:center;gap:6px;background:#182a32;border:1px solid #22383f;border-radius:6px;padding:8px 14px;font-family:var(--font-mono);font-size:13px;color:#e8ca92}
+  .money-badge .lbl{font-family:var(--font-sans);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:#5c7278}
+  /* Pearl harbour port */
+  .ph{position:relative;min-height:648px;border-radius:12px;overflow:hidden;border:1px solid #3E4A44;font-family:var(--font-sans);color:#EDE6D6}
+  .ph svg.bgm{position:absolute;inset:0;width:100%;height:100%}
+  .pnl{background:rgba(22,26,22,.9);border:1px solid #514B3E;border-radius:10px}
+  .eng{font-family:var(--font-mono);font-size:11px;letter-spacing:.09em;color:#9A917E}
+  .win{background:rgba(12,14,12,.72);border:1px solid #4A453A;border-radius:5px;padding:6px 9px}
+  .ph button{font-family:inherit;color:#EDE6D6;background:rgba(51,47,39,.9);border:1px solid #4A453A;border-radius:5px;cursor:pointer;transition:background .14s,border-color .14s,color .14s,transform .07s}
+  .ph button:hover{background:#413B31;border-color:#7E7663}
+  .ph button:active{transform:translateY(1px) scale(.99)}
+  .ph button:disabled{opacity:.45;cursor:default}
+  .cl{padding:4px 8px;font-size:12px;background:transparent!important;color:#9A917E!important}
+  .cl[aria-pressed="true"]{color:#EDE6D6!important;border-color:#CFC3A8!important;background:rgba(51,47,39,.9)!important}
+  .sg{flex:1;height:10px;border-radius:1px;background:#2C2F2A;transition:background .18s ease-out}
+  .pip{width:9px;height:9px;border-radius:2px;background:#2C2F2A;border:0.5px solid #4A453A;transition:background .25s,border-color .25s}
+  .pip.on{background:#CFC3A8;border-color:#CFC3A8}
+  .hull-pearl{transform-box:fill-box;transform-origin:center;transition:transform .7s cubic-bezier(.22,1,.36,1)}
+  .fade{animation:fd .3s ease-out both}@keyframes fd{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:no-preference){
+    .cr1{animation:cr 16s ease-in-out infinite}.cr2{animation:cr 21s ease-in-out infinite reverse}
+    @keyframes cr{0%,100%{transform:translateY(0)}50%{transform:translateY(200px)}}
+    .lmp{animation:bl 2.6s ease-in-out infinite}@keyframes bl{0%,100%{opacity:1}50%{opacity:.22}}
+  }
+  .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+  /* battlegroup overlay inside ph */
+  .bg-panel{position:absolute;inset:12px;top:58px;background:rgba(22,26,22,.94);border:1px solid #514B3E;border-radius:10px;padding:14px;overflow:auto;display:none;z-index:5}
+  .bg-panel.open{display:block}
+  .fleet-chip{display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(12,14,12,.72);border:1px solid #4A453A;border-radius:6px;margin-bottom:6px}
+  .fleet-chip.guide{border-color:#CFC3A8}
+  .fleet-chip img{width:18px;height:36px;object-fit:contain;image-rendering:pixelated;filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))}
+  .chip-actions{margin-left:auto;display:flex;gap:4px}
+  .chip-actions button{padding:4px 6px;font-size:10px}
+  .seg-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+  .seg-btn{flex:1 1 90px;padding:8px 10px;font-size:12px;color:#9A917E;background:rgba(12,14,12,.72);border:1px solid #4A453A;border-radius:6px;cursor:pointer}
+  .seg-btn.active{border-color:#CFC3A8;color:#EDE6D6;background:rgba(51,47,39,.9)}
+  @media(max-width:760px){.ph{min-height:980px}.ph .pnl[style*="width:314px"]{width:100%!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top-nav" id="portTopTab">
+    <button class="back-btn" id="btnPortBack" type="button">◄ Back</button>
+    <span class="title">Dry Dock · Pearl Harbor</span>
+    <div class="money-badge"><span class="lbl">Funds</span><span id="portMoney">$2.50B</span></div>
+  </div>
+
+  <h2 class="sr-only">A drydock interface set over a stylised overhead map of Pearl Harbor, with hull ratings, refit slots and specifications on a panel to the left and the graving dock basin on the right.</h2>
+  <div class="ph" id="portPearl">
+    <!-- Harbour background -->
+    <svg class="bgm" viewBox="0 0 680 648" preserveAspectRatio="xMidYMid slice" role="img"><title>Pearl Harbor, plan view</title><desc>Stylised overhead map of the harbour: lochs, Ford Island, the mooring quays of Battleship Row, and the navy yard graving docks.</desc>
+      <rect width="680" height="648" fill="#14424C"/>
+      <path d="M0 0 H300 L288 44 L214 96 L120 128 L36 176 L0 214 Z" fill="#3E4E2E"/><path d="M0 0 H300 L288 44 L214 96 L120 128 L36 176 L0 214 Z" fill="none" stroke="#2C7382" stroke-width="7" opacity=".5"/>
+      <path d="M424 0 H680 V128 L612 116 L520 74 L452 34 Z" fill="#3E4E2E"/><path d="M424 0 H680 V128 L612 116 L520 74 L452 34 Z" fill="none" stroke="#2C7382" stroke-width="7" opacity=".5"/>
+      <path d="M0 648 V498 L64 470 L166 452 L286 466 L330 500 L340 560 L318 648 Z" fill="#44532F"/><path d="M0 648 V498 L64 470 L166 452 L286 466 L330 500 L340 560 L318 648 Z" fill="none" stroke="#2C7382" stroke-width="7" opacity=".5"/>
+      <path d="M356 648 V392 L410 348 L520 330 L620 344 L680 330 V648 Z" fill="#4A4A38"/><path d="M356 648 V392 L410 348 L520 330 L620 344 L680 330 V648 Z" fill="none" stroke="#2C7382" stroke-width="7" opacity=".5"/>
+      <path d="M336 96 L556 84 L630 118 L640 176 L570 214 L400 224 L338 190 L326 138 Z" fill="#48592F"/><path d="M336 96 L556 84 L630 118 L640 176 L570 214 L400 224 L338 190 L326 138 Z" fill="none" stroke="#2C7382" stroke-width="7" opacity=".5"/>
+      <path d="M352 150 L618 138" stroke="#6B6B4A" stroke-width="9" opacity=".7"/><path d="M352 150 L618 138" stroke="#8E8B63" stroke-width="1" stroke-dasharray="9 11" opacity=".7"/>
+      <g fill="#5D5A46"><rect x="392" y="228" width="10" height="26" rx="2"/><rect x="440" y="230" width="10" height="26" rx="2"/><rect x="488" y="230" width="10" height="26" rx="2"/><rect x="536" y="228" width="10" height="26" rx="2"/></g>
+      <g fill="#2F332C" stroke="#7E7663" stroke-width="0.8"><rect x="360" y="246" width="26" height="9" rx="4"/><rect x="408" y="250" width="26" height="9" rx="4"/><rect x="456" y="250" width="26" height="9" rx="4"/><rect x="504" y="248" width="26" height="9" rx="4"/><rect x="552" y="246" width="26" height="9" rx="4"/></g>
+      <rect x="404" y="358" width="212" height="272" rx="6" fill="#3A3A2E"/>
+      <rect x="420" y="370" width="180" height="250" fill="#123C46"/>
+      <line x1="510" y1="378" x2="510" y2="608" stroke="#1E5A66" stroke-width="1" stroke-dasharray="6 8"/>
+      <g fill="#8E8B63"><circle cx="414" cy="404" r="2.6"/><circle cx="414" cy="474" r="2.6"/><circle cx="414" cy="544" r="2.6"/><circle cx="606" cy="404" r="2.6"/><circle cx="606" cy="474" r="2.6"/><circle cx="606" cy="544" r="2.6"/></g>
+      <g class="hull-pearl" id="hullBasin"><path d="M510 390 C517 406 521 418 521 432 L521 476 C521 490 517 498 510 500 C503 498 499 490 499 476 L499 432 C499 418 503 406 510 390 Z" fill="#CFC3A8" fill-opacity=".14" stroke="#CFC3A8" stroke-width="1.3" stroke-dasharray="5 4"/></g>
+      <rect x="420" y="612" width="180" height="10" fill="#8E7A4E"/>
+      <g class="cr1"><rect x="398" y="368" width="20" height="14" rx="2" fill="#5A5442" stroke="#CFC3A8" stroke-width="0.8"/><line x1="418" y1="375" x2="452" y2="375" stroke="#CFC3A8" stroke-width="1.1" opacity=".8"/></g>
+      <g class="cr2"><rect x="602" y="368" width="20" height="14" rx="2" fill="#5A5442" stroke="#CFC3A8" stroke-width="0.8"/><line x1="602" y1="375" x2="568" y2="375" stroke="#CFC3A8" stroke-width="1.1" opacity=".8"/></g>
+      <g stroke="#EDE6D6" stroke-width="1.4" fill="none" opacity=".85"><path d="M398 344 h-14 v14"/><path d="M622 344 h14 v14"/><path d="M398 644 h-14 v-14"/><path d="M622 644 h14 v-14"/></g>
+      <text x="486" y="176" text-anchor="middle" fill="#D8D2B4" font-size="11" font-family="ui-monospace,monospace" letter-spacing="2" opacity=".8">ford island</text>
+      <text x="358" y="288" fill="#BFD8DC" font-size="11" font-family="ui-monospace,monospace" letter-spacing="1.5" opacity=".75">battleship row</text>
+      <text x="376" y="406" fill="#BFD8DC" font-size="11" font-family="ui-monospace,monospace" letter-spacing="1.5" opacity=".6" transform="rotate(-90 376 406)">navy yard</text>
+      <text x="666" y="640" text-anchor="end" fill="#BFD8DC" font-size="11" font-family="ui-monospace,monospace" letter-spacing="2" opacity=".55">pearl harbor · oahu</text>
+    </svg>
+
+    <div style="position:relative;padding:12px">
+      <div class="pnl" style="display:flex;align-items:center;gap:10px;padding:8px 12px;margin-bottom:10px">
+        <span style="font-size:17px;color:#CFC3A8">⚓</span>
+        <span style="font-size:14px">Graving dock no. 4</span>
+        <span class="win eng" style="margin-left:auto">steel <b id="m1" style="color:#EDE6D6;font-weight:500">0</b></span>
+        <span class="win eng">hours <b id="m2" style="color:#EDE6D6;font-weight:500">0</b></span>
+        <span class="win eng">funds <b id="mMoney2" style="color:#EDE6D6;font-weight:500">$0</b></span>
+      </div>
+
+      <div class="pnl" style="width:314px;padding:10px 12px">
+        <div id="rail" style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:9px"></div>
+        <div style="display:flex;align-items:center;gap:7px">
+          <button aria-label="Previous hull" id="btnPrev" style="width:26px;height:26px;border-radius:50%;border-color:#7E7663;display:flex;align-items:center;justify-content:center;padding:0">‹</button>
+          <div id="head" class="win" style="flex:1;min-width:0;padding:4px 9px">
+            <div id="nm" style="font-size:15px;font-weight:500">—</div>
+            <div id="rl" class="eng">—</div>
+          </div>
+          <button aria-label="Next hull" id="btnNext" style="width:26px;height:26px;border-radius:50%;border-color:#7E7663;display:flex;align-items:center;justify-content:center;padding:0">›</button>
+        </div>
+        <div class="eng" style="margin:11px 0 5px">ratings</div>
+        <div id="ladders"></div>
+        <div class="eng" style="margin:11px 0 4px">refit slots</div>
+        <div id="upg"></div>
+        <div id="specs" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px;margin-top:10px"></div>
+        <div style="display:flex;align-items:center;gap:8px;margin:11px 0 5px"><span class="eng">refit progress</span><span class="eng" id="rfv" style="margin-left:auto;color:#EDE6D6">0%</span></div>
+        <div style="position:relative;height:13px;border:1px solid #4A453A;border-radius:7px;background:rgba(12,14,12,.72);padding:2px">
+          <i id="rfb" style="display:block;height:7px;width:0;background:#CFC3A8;border-radius:4px;transition:width .8s cubic-bezier(.22,1,.36,1)"></i>
+          <i id="rfn" style="position:absolute;top:-3px;left:0;width:2px;height:17px;background:#EDE6D6;transition:left .8s cubic-bezier(.34,1.4,.55,1)"></i>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+          <button id="btnEngage" style="flex:1;height:32px;font-size:12px;border-color:#8FA85E;color:#CFE0B0">Engage yard</button>
+          <button id="btnFlood" style="flex:1;height:32px;font-size:12px">Flood dock</button>
+          <button id="btnBGroup" style="height:32px;font-size:12px;padding:0 10px">Battlegroup ↘</button>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <button id="btnSetSail" style="flex:1;height:34px;font-size:13px;letter-spacing:.04em;text-transform:uppercase;background:#20404a;border-color:#7E7663;color:#EDE6D6">Set Sail →</button>
+          <button id="btnClearFleet" style="height:34px;font-size:12px" class="back-btn">Clear</button>
+        </div>
+        <div id="fleetSummary" class="eng" style="margin-top:6px;min-height:14px"></div>
+      </div>
+
+      <div style="position:absolute;top:66px;right:12px;display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+        <div class="pnl eng" style="padding:5px 9px;display:flex;align-items:center;gap:6px"><span class="lmp" style="width:6px;height:6px;border-radius:50%;background:#8FA85E;display:inline-block"></span><span id="berth">berth 01</span></div>
+        <div class="pnl eng" style="padding:5px 9px">dock <b id="dl" style="color:#EDE6D6;font-weight:500">—</b></div>
+        <div class="pnl eng" style="padding:5px 9px">clearance <b id="dc" style="color:#EDE6D6;font-weight:500">—</b></div>
+        <div class="pnl eng" id="shipStatus" style="padding:5px 9px;display:none"></div>
+      </div>
+    </div>
+
+    <!-- Battlegroup overlay -->
+    <div class="bg-panel" id="bgPanel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span class="eng" style="font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#CFC3A8">Battlegroup</span>
+        <button id="btnCloseBG" style="padding:6px 10px">✕ Close</button>
+      </div>
+      <div id="fleetList"></div>
+      <div class="eng" style="margin-top:10px">Formation</div>
+      <div class="seg-row" id="formationList"></div>
+      <div class="eng" style="margin-top:10px">Spacing</div>
+      <div class="seg-row" id="spacingList"></div>
+      <div style="display:flex;gap:6px;margin-top:10px">
+        <button id="btnSetSail2" style="flex:1;height:32px">Set Sail →</button>
+        <button id="btnClearFleet2" style="height:32px">Clear Group</button>
+      </div>
+      <div class="eng" style="margin-top:14px">Motor pool — land battles</div>
+      <div id="tankPicker" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---- Ship database (mirrors SHIP_CLASSES grouping, 6 types × 3 hulls) ----
+const D=[
+{n:"Destroyer",L:140,B:20,dl:"118 m",dc:"3.2 m",s:[
+ {id:"fletcher",n:"Fletcher",v:"united states navy",st:[44,52,42,88,56],sp:["2,100 t","36.5 kn","5 × 5 in","329"],r:41, len:376, beam:46.6, cost:0},
+ {id:"yugumo",n:"Yugumo",v:"imperial japanese navy",st:[38,48,38,92,32],sp:["2,077 t","35.5 kn","6 × 12.7 cm","228"],r:28, len:388, beam:41, cost:6400000},
+ {id:"tribal",n:"Tribal",v:"royal navy",st:[40,58,48,84,62],sp:["2,020 t","36 kn","8 × 4.7 in","259"],r:35, len:377, beam:52.8, cost:5800000}]},
+{n:"Light cruiser",L:166,B:26,dl:"187 m",dc:"4.6 m",s:[
+ {id:"cleveland",n:"Cleveland",v:"united states navy",st:[58,72,68,72,66],sp:["11,750 t","32.5 kn","12 × 6 in","1,255"],r:62, len:610, beam:81.1, cost:25000000},
+ {id:"belfast",n:"Belfast",v:"royal navy",st:[56,64,58,72,74],sp:["11,550 t","32.5 kn","12 × 6 in","781"],r:64, len:613, beam:83.4, cost:8500000},
+ {id:"baltimore",n:"Baltimore",v:"united states navy",st:[62,74,64,68,60],sp:["14,500 t","33 kn","9 × 8 in","1,142"],r:58, len:673, beam:95.2, cost:38000000}]},
+{n:"Heavy cruiser",L:176,B:30,dl:"203 m",dc:"5.1 m",s:[
+ {id:"takao",n:"Takao",v:"imperial japanese navy",st:[60,80,48,74,60],sp:["15,490 t","34.2 kn","10 × 20.3 cm","773"],r:52, len:668, beam:80.9, cost:30000000},
+ {id:"hipper",n:"Admiral Hipper",v:"kriegsmarine",st:[64,76,52,70,44],sp:["16,170 t","32 kn","8 × 20.3 cm","1,600"],r:55, len:665, beam:94.5, cost:32000000},
+ {id:"balt2",n:"Baltimore",v:"united states navy",st:[58,74,86,68,64],sp:["14,500 t","33 kn","9 × 8 in","1,142"],r:48, len:673, beam:95.2, cost:38000000}]},
+{n:"Battleship",L:196,B:38,dl:"271 m",dc:"6.8 m",s:[
+ {id:"iowa",n:"Iowa",v:"united states navy",st:[88,94,92,66,72],sp:["57,540 t","33 kn","9 × 16 in","2,788"],r:72, len:887, beam:125.9, cost:100000000},
+ {id:"bismarck",n:"Bismarck",v:"kriegsmarine",st:[86,88,64,58,50],sp:["50,300 t","30 kn","8 × 38 cm","2,065"],r:69, len:823, beam:118, cost:79000000},
+ {id:"yamato",n:"Yamato",v:"imperial japanese navy",st:[96,100,70,48,54],sp:["72,800 t","27 kn","9 × 46 cm","2,767"],r:82, len:862, beam:106, cost:75000000}]},
+{n:"Fleet carrier",L:204,B:42,dl:"288 m",dc:"7.4 m",s:[
+ {id:"essex",n:"Essex",v:"united states navy",st:[52,30,88,66,96],sp:["36,380 t","33 kn","90 aircraft","2,600"],r:55, len:872, beam:150, cost:70000000},
+ {id:"shokaku",n:"Shōkaku",v:"imperial japanese navy",st:[48,34,42,62,84],sp:["32,105 t","34 kn","84 aircraft","1,660"],r:58, len:844, beam:124, cost:55000000},
+ {id:"illustrious",n:"Illustrious",v:"royal navy",st:[64,26,70,58,62],sp:["28,600 t","30.5 kn","36 aircraft","1,229"],r:48, len:743, beam:121, cost:35000000}]},
+{n:"Submarine",L:110,B:14,dl:"96 m",dc:"2.4 m",s:[
+ {id:"gato",n:"Gato",v:"united states navy",st:[28,42,10,34,44],sp:["2,410 t","20.3 kn","10 tubes","60"],r:47, len:311, beam:36, cost:2650000},
+ {id:"type7c",n:"Type VIIC",v:"kriegsmarine",st:[26,38,8,30,28],sp:["871 t","17.7 kn","5 tubes","44"],r:42, len:220, beam:25, cost:1700000},
+ {id:"i400",n:"I-400",v:"imperial japanese navy",st:[32,44,14,32,70],sp:["6,670 t","18.7 kn","8 tubes","144"],r:38, len:400, beam:54, cost:8000000}]}
+];
+const LB=["armour","firepower","anti-air","speed","detection"],CO=["#6E9BB0","#C87F4A","#C8A94A","#7FB093","#9A86B0"],SK=["displacement","speed","battery","complement"],SEG=11;
+const UP=[{n:"Armour belt",k:0,c:420000},{n:"Gunnery director",k:1,c:310000},{n:"Anti-air battery",k:2,c:260000},{n:"Boiler refit",k:3,c:380000},{n:"Torpedo shop",k:4,c:320000},{n:"Air group",k:5,c:450000}];
+let ci=0,si=0,money=2500000000,lv={},owned={},fleet=[];
+const FORMATIONS=[{k:'line',n:'Line ahead'},{k:'abreast',n:'Line abreast'},{k:'echelon',n:'Echelon'},{k:'wedge',n:'Wedge'},{k:'screen',n:'Screen'}];
+let formation='line', spacing=1;
+let pendingHull=null;
+
+// init owned - fletcher free
+D.forEach(g=>g.s.forEach(s=> owned[s.id]= (s.cost===0)));
+fleet=[D[0].s[0]];
+
+const rail=document.getElementById('rail');
+D.forEach((c,i)=>{const b=document.createElement('button');b.className='cl';b.textContent=c.n;b.setAttribute('aria-pressed',i===0);b.onclick=()=>{ci=i;si=0;draw()};rail.appendChild(b)});
+document.getElementById('ladders').innerHTML=LB.map((l,i)=>
+ '<div style="display:flex;align-items:center;gap:8px;margin:'+(i?'7px':'0')+' 0 0">'
+ +'<span class="eng" style="width:64px">'+l+'</span>'
+ +'<span style="flex:1;display:flex;gap:2px">'+Array.from({length:SEG},(_,j)=>'<i class="sg" data-r="'+i+'" data-j="'+j+'" style="transition-delay:'+j*24+'ms"></i>').join('')+'</span>'
+ +'<span class="eng" id="lv'+i+'" style="width:20px;text-align:right;color:#EDE6D6">0</span></div>').join('');
+function key(){return ci+'-'+si}
+function lvls(){const k=key();if(!lv[k]){const s=D[ci].s[si];lv[k]=UP.map(u=>Math.min(3,Math.floor(s.st[u.k]/28)))}return lv[k]}
+function fmtMoney(n){const v=Math.round(n);if(v>=1e9) return '$'+(v/1e9).toFixed(2)+'B';if(v>=1e6) return '$'+(v/1e6).toFixed(2)+'M';if(v>=1e4) return '$'+(v/1e3).toFixed(1)+'K';return '$'+v}
+function count(el,to,dur,fmt){const f=parseFloat(el.dataset.v||0)||0,t0=performance.now();(function t(n){const p=Math.min(1,(n-t0)/dur),e=1-Math.pow(1-p,3),v=Math.round(f+(to-f)*e);el.textContent=fmt?v.toLocaleString():v;if(p<1)requestAnimationFrame(t);else el.dataset.v=to})(t0)}
+function fit(i){
+  const a=lvls(); if(a[i]>=3) return;
+  const cost=UP[i].c; if(money<cost) return;
+  a[i]++; money-=cost; updateMoney(); upg(); drawProgress();
+}
+function upg(){
+  const a=lvls();
+  document.getElementById('upg').innerHTML=UP.map((u,i)=>{
+    const locked = D[ci].s[si].cost>0 && !owned[D[ci].s[si].id] && i===4;
+    return '<div style="display:flex;align-items:center;gap:7px;padding:5px 0'+(i?';border-top:1px solid #333A33':'')+'">'
+    +'<span style="font-size:15px;color:'+(a[i]?'#CFC3A8':'#6E6759')+'">'+ (i===0?'🛡':i===1?'◉':i===2?'✈':i===3?'♨':i===4?'⟡':'✈') +'</span>'
+    +'<span style="font-size:12px;flex:1">'+u.n+'</span>'
+    +'<span style="display:flex;gap:3px">'+[0,1,2].map(p=>'<i class="pip'+(p<a[i]?' on':'')+'" style="transition-delay:'+p*70+'ms"></i>').join('')+'</span>'
+    +'<button onclick="fit('+i+')" style="font-size:11px;padding:3px 7px;font-family:var(--font-mono)'+(a[i]>=3?';color:#8FA85E;border-color:#4A5B3A':'')+'">'+(a[i]>=3?'fitted':fmtMoney(u.c))+'</button></div>';
+  }).join('');
+}
+function updateMoney(){
+  document.getElementById('portMoney').textContent=fmtMoney(money);
+  document.getElementById('mMoney2').textContent=fmtMoney(money);
+}
+function drawProgress(){
+  const s=D[ci].s[si]; const v=lvls().reduce((a,b)=>a+b,0);
+  const pct=Math.round(v/ (UP.length*3) *100);
+  document.getElementById('rfv').textContent=pct+'%';
+  document.getElementById('rfb').style.width=pct+'%';
+  document.getElementById('rfn').style.left='calc('+pct+'% - 1px)';
+}
+function draw(){
+ const c=D[ci],s=c.s[si];
+ rail.querySelectorAll('.cl').forEach((b,i)=>b.setAttribute('aria-pressed',i===ci));
+ document.getElementById('berth').textContent='berth '+String(ci*3+si+1).padStart(2,'0');
+ document.getElementById('nm').textContent=s.n+' class';
+ document.getElementById('rl').textContent=c.n+' · '+s.v;
+ document.getElementById('dl').textContent=c.dl;
+ document.getElementById('dc').textContent=c.dc;
+ const isOwned=owned[s.id];
+ const status=document.getElementById('shipStatus');
+ if(isOwned){
+   status.style.display='none';
+ } else {
+   status.style.display=''; status.textContent='🔒 Locked — '+fmtMoney(s.cost)+' to commission';
+   status.style.color='#E8C06A';
+ }
+ const h=document.getElementById('head');h.classList.remove('fade');void h.offsetWidth;h.classList.add('fade');
+ document.getElementById('specs').innerHTML=SK.map((k,i)=>
+  '<div class="win"><div class="eng" style="margin-bottom:2px">'+k+'</div><div style="font-size:12px">'+s.sp[i]+'</div></div>').join('');
+ document.querySelectorAll('#ladders .sg').forEach(el=>{
+  const r=+el.dataset.r,lit=Math.round(s.st[r]/100*SEG);el.style.background=(+el.dataset.j<lit)?CO[r]:'#2C2F2A'});
+ s.st.forEach((v,i)=>count(document.getElementById('lv'+i),Math.round(v),500));
+ const sy=c.L/110,sx=c.B/22,ty=(222-c.L)/2;
+ const hull=document.getElementById('hullBasin');
+ if(hull){
+   // scale hull to reflect real length/beam vs dock size (mockup dock 1001×138 ft)
+   const sx2=s.len? s.len/550 : sx, sy2=s.len? s.len/360 : sy;
+   const ty2=s.len? (222 - s.len/3)/2 : ty;
+   hull.style.transform='translate(0,'+ty2.toFixed(1)+'px) scale('+sx2.toFixed(3)+','+sy2.toFixed(3)+')';
+   hull.querySelector('path').setAttribute('stroke', isOwned ? '#CFC3A8' : '#6E6759');
+   hull.querySelector('path').setAttribute('fill-opacity', isOwned ? '.14' : '.06');
+ }
+ drawProgress();
+ // steel/hours as funds/time proxy
+ const steel=4200+ci*1900+si*260;
+ count(document.getElementById('m1'),steel,500,1);
+ count(document.getElementById('m2'),180+ci*95+si*30,500,1);
+ upg();
+ updateFleetSummary();
+ renderFleet();
+}
+
+// Battlegroup logic
+function updateFleetSummary(){
+  const el=document.getElementById('fleetSummary');
+  if(!el) return;
+  if(fleet.length===0) el.textContent='No ships selected';
+  else el.textContent=fleet.length+' ship'+(fleet.length>1?'s':'')+' · '+fleet.map(s=>s.n).join(', ') + ' · ' + FORMATIONS.find(f=>f.k===formation).n;
+  document.getElementById('portFleetCount')?.replaceChildren(document.createTextNode(fleet.length+' ship'+(fleet.length>1?'s':'')));
+}
+function renderFleet(){
+  const list=document.getElementById('fleetList'); if(!list) return;
+  list.innerHTML='';
+  fleet.forEach((s,idx)=>{
+    const div=document.createElement('div'); div.className='fleet-chip'+(idx===0?' guide':'');
+    div.innerHTML='<span style="font-size:10px;color:#9A917E;width:18px">'+(idx+1)+'</span><span style="flex:1">'+s.n+' · '+s.v+'</span><span class="eng">'+(idx===0?'★ Guide':'')+'</span>';
+    const act=document.createElement('div'); act.className='chip-actions';
+    const rm=document.createElement('button'); rm.textContent='✕'; rm.title='Remove'; rm.disabled=(idx===0);
+    rm.onclick=()=>{ if(idx!==0){ fleet.splice(idx,1); draw(); }};
+    const up=document.createElement('button'); up.textContent='‹'; up.disabled=(idx<=1);
+    up.onclick=()=>{ if(idx>1){ const t=fleet[idx]; fleet[idx]=fleet[idx-1]; fleet[idx-1]=t; draw(); }};
+    const dn=document.createElement('button'); dn.textContent='›'; dn.disabled=(idx>=fleet.length-1||idx===0);
+    dn.onclick=()=>{ const t=fleet[idx]; fleet[idx]=fleet[idx+1]; fleet[idx+1]=t; draw(); };
+    act.append(rm,up,dn); div.appendChild(act); list.appendChild(div);
+  });
+  // formations
+  const fl=document.getElementById('formationList'); if(fl){
+    fl.innerHTML='';
+    FORMATIONS.forEach(f=>{
+      const b=document.createElement('button'); b.className='seg-btn'+(formation===f.k?' active':''); b.textContent=f.n;
+      b.onclick=()=>{ formation=f.k; renderFleet(); updateFleetSummary(); };
+      fl.appendChild(b);
+    });
+  }
+  const sl=document.getElementById('spacingList'); if(sl){
+    sl.innerHTML='';
+    [{m:0.7,n:'Close'},{m:1,n:'Standard'},{m:1.45,n:'Wide'}].forEach(o=>{
+      const b=document.createElement('button'); b.className='seg-btn'+(spacing===o.m?' active':''); b.innerHTML=o.n+'<br><small style="font-size:9px;color:#6E6759">'+o.m+'×</small>';
+      b.onclick=()=>{ spacing=o.m; renderFleet(); };
+      sl.appendChild(b);
+    });
+  }
+  // tank picker dummy
+  const tp=document.getElementById('tankPicker'); if(tp && !tp.dataset.done){
+    ['M4 Sherman','Type 97 Chi-Ha','M3 Stuart','Type 1 Chi-He'].forEach((n,i)=>{
+      const b=document.createElement('button'); b.textContent=n; b.className='cl'; b.style.padding='6px 10px';
+      if(i===0) b.setAttribute('aria-pressed','true');
+      b.onclick=()=>{ tp.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed','false')); b.setAttribute('aria-pressed','true'); };
+      tp.appendChild(b);
+    }); tp.dataset.done='1';
+  }
+}
+document.getElementById('btnPrev').onclick=()=>{ si=(si-1+D[ci].s.length)%D[ci].s.length; draw(); };
+document.getElementById('btnNext').onclick=()=>{ si=(si+1)%D[ci].s.length; draw(); };
+document.getElementById('btnEngage').onclick=()=>{
+  const s=D[ci].s[si];
+  if(!owned[s.id]){
+    if(money>=s.cost){ money-=s.cost; owned[s.id]=true; fleet.push(s); updateMoney(); draw(); }
+  } else {
+    if(!fleet.find(x=>x.id===s.id) && fleet.length<6){ fleet.push(s); draw(); }
+  }
+};
+document.getElementById('btnFlood').onclick=()=>{
+  // flood animation: hull fades
+  const h=document.getElementById('hullBasin'); h.style.opacity=.3; setTimeout(()=>h.style.opacity=1,900);
+};
+document.getElementById('btnBGroup').onclick=()=> document.getElementById('bgPanel').classList.add('open');
+document.getElementById('btnCloseBG').onclick=()=> document.getElementById('bgPanel').classList.remove('open');
+document.getElementById('btnSetSail').onclick=()=> alert('Set sail with '+fleet.length+' ship(s): '+fleet.map(s=>s.n).join(', '));
+document.getElementById('btnSetSail2').onclick=()=>{ document.getElementById('bgPanel').classList.remove('open'); document.getElementById('btnSetSail').click(); };
+document.getElementById('btnClearFleet').onclick=()=>{ fleet=fleet.slice(0,1); draw(); };
+document.getElementById('btnClearFleet2').onclick=()=>{ fleet=fleet.slice(0,1); draw(); };
+document.getElementById('btnPortBack').onclick=()=>{ if(history.length>1) history.back(); else location.href='#'; };
+
+updateMoney(); draw();
+</script>
+</body>
+</html>
