@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -996,3 +997,2760 @@ input[type="range"] {
 <div id="game"></div>
 
 <script>
+"use strict";
+
+const state = {
+    level: 1,
+    xp: 0,
+    gold: 60,
+
+    baseHp: 60,
+    hp: 60,
+
+    location: "ArdenVille",
+    selectedPlace: "Green Fields",
+
+    equippedWeapon: 0,
+    equippedArmor: 0,
+
+    ownedWeapons: [0],
+    ownedArmor: [0],
+
+    weaponUpgrades: [0, 0, 0, 0, 0],
+    armorUpgrades: [0, 0, 0, 0, 0],
+
+    resources: {
+        wood: 0,
+        iron: 0,
+        leather: 0,
+        crystal: 0,
+        scale: 0
+    },
+
+    enemy: null,
+    enemyHP: 0,
+
+    battleBusy: false,
+    defending: false,
+    potions: 2,
+
+    tutorialDone: false,
+    shopTab: "weapons",
+    gameWon: false
+};
+
+const weapons = [
+    {
+        name: "Rusty Sword",
+        icon: "🗡️",
+        attack: 7,
+        price: 0,
+        materials: {}
+    },
+    {
+        name: "Iron Sword",
+        icon: "⚔️",
+        attack: 13,
+        price: 90,
+        materials: {
+            iron: 8,
+            wood: 4
+        }
+    },
+    {
+        name: "Steel Sword",
+        icon: "🔪",
+        attack: 19,
+        price: 170,
+        materials: {
+            iron: 16,
+            wood: 6
+        }
+    },
+    {
+        name: "Crystal Blade",
+        icon: "💎",
+        attack: 28,
+        price: 300,
+        materials: {
+            crystal: 12,
+            iron: 20
+        }
+    },
+    {
+        name: "Dragon Slayer",
+        icon: "🐉",
+        attack: 42,
+        price: 600,
+        materials: {
+            scale: 7,
+            crystal: 15
+        }
+    }
+];
+
+const armor = [
+    {
+        name: "Traveler Clothes",
+        icon: "🥋",
+        hp: 0,
+        price: 0,
+        materials: {}
+    },
+    {
+        name: "Leather Armor",
+        icon: "🧥",
+        hp: 22,
+        price: 75,
+        materials: {
+            leather: 8
+        }
+    },
+    {
+        name: "Iron Armor",
+        icon: "🛡️",
+        hp: 50,
+        price: 150,
+        materials: {
+            iron: 14,
+            leather: 6
+        }
+    },
+    {
+        name: "Crystal Armor",
+        icon: "🔷",
+        hp: 90,
+        price: 300,
+        materials: {
+            crystal: 12,
+            iron: 12
+        }
+    },
+    {
+        name: "Dragon Scale Armor",
+        icon: "🐲",
+        hp: 145,
+        price: 600,
+        materials: {
+            scale: 8,
+            crystal: 14
+        }
+    }
+];
+
+const areas = {
+    ArdenVille: {
+        icon: "🏘️",
+        level: 1,
+        description:
+            "Your safe home. Heal, buy equipment, sell unwanted gear, and prepare for your next journey."
+    },
+
+    "Green Fields": {
+        icon: "🌾",
+        level: 1,
+        description:
+            "A beginner-friendly area containing weak monsters and basic resources."
+    },
+
+    "Dark Forest": {
+        icon: "🌲",
+        level: 2,
+        description:
+            "A dangerous forest filled with wolves, goblins, and orcs."
+    },
+
+    "Old Mines": {
+        icon: "⛏️",
+        level: 3,
+        description:
+            "Abandoned mines with valuable iron and crystal deposits."
+    },
+
+    "Ancient Ruins": {
+        icon: "🏚️",
+        level: 4,
+        description:
+            "Old ruins guarded by powerful creatures and ancient magic."
+    },
+
+    "Dragon Peak": {
+        icon: "🏔️",
+        level: 6,
+        description:
+            "The source of Avaloria's corruption. The Ancient Dragon waits at the summit."
+    }
+};
+
+const enemies = {
+    Slime: {
+        name: "Training Slime",
+        type: "slime",
+        hp: 26,
+        attack: 4,
+        gold: [8, 14],
+        xp: 12,
+        loot: {
+            wood: [1, 3]
+        }
+    },
+
+    Wolf: {
+        name: "Young Wolf",
+        type: "wolf",
+        hp: 40,
+        attack: 6,
+        gold: [11, 18],
+        xp: 18,
+        loot: {
+            leather: [2, 4],
+            wood: [0, 1]
+        }
+    },
+
+    Goblin: {
+        name: "Goblin Raider",
+        type: "goblin",
+        hp: 58,
+        attack: 9,
+        gold: [16, 25],
+        xp: 25,
+        loot: {
+            iron: [1, 3],
+            wood: [1, 2]
+        }
+    },
+
+    Orc: {
+        name: "Orc Brute",
+        type: "orc",
+        hp: 86,
+        attack: 13,
+        gold: [24, 36],
+        xp: 37,
+        loot: {
+            iron: [2, 4],
+            leather: [1, 3]
+        }
+    },
+
+    Yeti: {
+        name: "Frost Yeti",
+        type: "yeti",
+        hp: 125,
+        attack: 17,
+        gold: [35, 48],
+        xp: 55,
+        loot: {
+            crystal: [1, 3],
+            leather: [1, 3]
+        }
+    },
+
+    Guardian: {
+        name: "Stone Guardian",
+        type: "guardian",
+        hp: 175,
+        attack: 21,
+        gold: [50, 72],
+        xp: 75,
+        loot: {
+            iron: [3, 5],
+            crystal: [1, 3]
+        }
+    },
+
+    Dragon: {
+        name: "Ancient Dragon",
+        type: "dragon",
+        hp: 350,
+        attack: 29,
+        gold: [120, 170],
+        xp: 200,
+        loot: {
+            scale: [3, 5],
+            crystal: [2, 4]
+        }
+    }
+};
+
+const enemyPools = {
+    "Green Fields": ["Slime", "Slime", "Wolf"],
+    "Dark Forest": ["Wolf", "Goblin", "Goblin", "Orc"],
+    "Old Mines": ["Goblin", "Orc", "Guardian"],
+    "Ancient Ruins": ["Orc", "Yeti", "Guardian"],
+    "Dragon Peak": ["Yeti", "Yeti"]
+};
+
+const game = document.getElementById("game");
+
+function random(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function weaponAttack() {
+    const item = weapons[state.equippedWeapon];
+    return item.attack + state.weaponUpgrades[state.equippedWeapon] * 2;
+}
+
+function maxHP() {
+    const item = armor[state.equippedArmor];
+    return state.baseHp + item.hp +
+        state.armorUpgrades[state.equippedArmor] * 10;
+}
+
+function hasMaterials(materials) {
+    return Object.entries(materials).every(
+        ([name, amount]) =>
+            state.resources[name] >= amount
+    );
+}
+
+function spendMaterials(materials) {
+    for (const [name, amount] of Object.entries(materials)) {
+        state.resources[name] -= amount;
+    }
+}
+
+function materialText(materials) {
+    const parts = Object.entries(materials);
+
+    if (!parts.length) {
+        return "None";
+    }
+
+    return parts
+        .map(([name, amount]) => `${amount} ${name}`)
+        .join(" • ");
+}
+
+function resourcesHTML() {
+    return `
+        <span>🪵 <b>${state.resources.wood}</b></span>
+        <span>⛓️ <b>${state.resources.iron}</b></span>
+        <span>🧵 <b>${state.resources.leather}</b></span>
+        <span>💎 <b>${state.resources.crystal}</b></span>
+        <span>🐉 <b>${state.resources.scale}</b></span>
+    `;
+}
+
+function headerHTML() {
+    return `
+        <div class="header">
+
+            <div>
+                <div class="logo">
+                    ⚔️ AVALORIA
+                </div>
+
+                <div class="location">
+                    ${areas[state.location].icon}
+                    ${state.location}
+                </div>
+            </div>
+
+            <div class="stats">
+
+                <div class="stat">
+                    ❤️ ${state.hp}/${maxHP()}
+                </div>
+
+                <div class="stat">
+                    ⚔️ ${weaponAttack()}
+                </div>
+
+                <div class="stat">
+                    ⭐ Lv ${state.level}
+                </div>
+
+                <div class="stat">
+                    ✨ ${state.xp} XP
+                </div>
+
+                <div class="stat">
+                    🪙 ${state.gold}
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="resources">
+            <b>Resources:</b>
+            ${resourcesHTML()}
+            <span>⚔️ ${weapons[state.equippedWeapon].name}</span>
+            <span>🛡️ ${armor[state.equippedArmor].name}</span>
+        </div>
+    `;
+}
+
+function render(content) {
+    game.innerHTML = `
+        <div class="shell">
+            ${headerHTML()}
+            <main class="screen">
+                ${content}
+            </main>
+        </div>
+    `;
+}
+
+function tutorial(title, text) {
+    if (state.tutorialDone) {
+        return "";
+    }
+
+    return `
+        <div class="tutorial">
+
+            <div class="tutorial-title">
+                📖 Tutorial: ${title}
+            </div>
+
+            <div class="tutorial-text">
+                ${text}
+            </div>
+
+        </div>
+    `;
+}
+
+
+/* =========================================================
+   TOWN
+========================================================= */
+
+function town() {
+    state.location = "ArdenVille";
+
+    render(`
+
+        ${tutorial(
+            "ArdenVille",
+            `
+                This is your safe town.
+                You can <b>heal</b>, visit the
+                <b>shop</b>, sell equipment you don't need,
+                and travel through the map.
+            `
+        )}
+
+        <h2>🏘️ ArdenVille</h2>
+
+        <p class="description">
+            The village is completely safe.
+            Nothing can attack you here.
+        </p>
+
+        <div class="cards">
+
+            <div class="card">
+
+                <div class="card-icon">
+                    ❤️
+                </div>
+
+                <h3>Village Healer</h3>
+
+                <p class="description">
+                    Pay for exactly as much healing
+                    as you need.
+                    The more health you restore,
+                    the more it costs.
+                </p>
+
+                <button
+                    class="good"
+                    data-action="healMenu"
+                >
+                    Visit Healer
+                </button>
+
+            </div>
+
+
+            <div class="card">
+
+                <div class="card-icon">
+                    ⚒️
+                </div>
+
+                <h3>Blacksmith Shop</h3>
+
+                <p class="description">
+                    Buy equipment, upgrade weapons
+                    separately from armor, and sell
+                    gear you no longer need.
+                </p>
+
+                <button
+                    class="primary"
+                    data-action="shop"
+                >
+                    Enter Shop
+                </button>
+
+            </div>
+
+
+            <div class="card">
+
+                <div class="card-icon">
+                    🗺️
+                </div>
+
+                <h3>World Map</h3>
+
+                <p class="description">
+                    Travel to different areas,
+                    hunt monsters, and collect materials.
+                </p>
+
+                <button data-action="map">
+                    Open Map
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="story">
+
+            🧑 <b>Village Elder:</b>
+
+            “The fireball came from Dragon Peak.
+            Something is corrupting Avaloria.
+            Gather materials, improve your gear,
+            and find the source.”
+
+        </div>
+    `);
+}
+
+
+/* =========================================================
+   HEALING
+========================================================= */
+
+function healMenu() {
+    const missing = Math.max(0, maxHP() - state.hp);
+
+    if (missing <= 0) {
+        render(`
+            <div class="center">
+
+                <div class="big-icon">❤️</div>
+
+                <h2>You are already at full health.</h2>
+
+                <p class="description">
+                    There is nothing for the healer to do.
+                </p>
+
+                <div class="actions" style="justify-content:center">
+                    <button
+                        class="primary"
+                        data-action="town"
+                    >
+                        🏘️ Back to Town
+                    </button>
+                </div>
+
+            </div>
+        `);
+        return;
+    }
+
+    render(`
+
+        <h2>❤️ Village Healer</h2>
+
+        <p class="description">
+            Choose exactly how much health you want restored.
+            Healing costs <b>1 gold for every 2 HP</b>.
+        </p>
+
+        <div class="heal-box">
+
+            <div class="heal-display">
+                <span>
+                    Missing HP:
+                    <b id="missingHP">${missing}</b>
+                </span>
+
+                <span>
+                    Healing:
+                    <b id="healAmount">1</b>
+                </span>
+
+                <span>
+                    Cost:
+                    <b id="healCost">1</b> 🪙
+                </span>
+            </div>
+
+            <input
+                id="healSlider"
+                type="range"
+                min="1"
+                max="${missing}"
+                value="1"
+            >
+
+            <div class="muted">
+                Current HP:
+                ${state.hp}/${maxHP()}
+                &nbsp; • &nbsp;
+                Gold:
+                ${state.gold}
+            </div>
+
+            <div class="actions">
+
+                <button
+                    class="primary"
+                    id="healConfirm"
+                    data-action="healConfirm"
+                >
+                    ❤️ Heal
+                </button>
+
+                <button data-action="town">
+                    Back
+                </button>
+
+            </div>
+
+        </div>
+    `);
+
+    const slider = document.getElementById("healSlider");
+    const amount = document.getElementById("healAmount");
+    const cost = document.getElementById("healCost");
+    const confirm = document.getElementById("healConfirm");
+
+    function updateHealing() {
+        const hp = Number(slider.value);
+
+        const price = Math.ceil(hp / 2);
+
+        amount.textContent = hp;
+        cost.textContent = price;
+
+        confirm.disabled = state.gold < price;
+    }
+
+    slider.addEventListener("input", updateHealing);
+
+    updateHealing();
+}
+
+function confirmHealing() {
+    const slider = document.getElementById("healSlider");
+
+    if (!slider) {
+        return;
+    }
+
+    const hp = Number(slider.value);
+    const cost = Math.ceil(hp / 2);
+
+    if (cost > state.gold) {
+        return;
+    }
+
+    const actual = Math.min(
+        hp,
+        maxHP() - state.hp
+    );
+
+    state.gold -= Math.ceil(actual / 2);
+    state.hp += actual;
+
+    healMenu();
+}
+
+
+/* =========================================================
+   MAP
+========================================================= */
+
+function map() {
+    const selected = areas[state.selectedPlace];
+
+    const locations = [
+        ["Dark Forest", "map-forest"],
+        ["Ancient Ruins", "map-ruins"],
+        ["Old Mines", "map-mines"],
+        ["Green Fields", "map-fields"],
+        ["ArdenVille", "map-town"],
+        ["Dragon Peak", "map-peak"]
+    ];
+
+    let buttons = "";
+
+    for (const [name, className] of locations) {
+
+        const area = areas[name];
+
+        const locked =
+            state.level < area.level;
+
+        const current =
+            state.location === name;
+
+        buttons += `
+            <button
+                class="map-place ${className}
+                    ${locked ? "locked" : ""}
+                    ${current ? "current" : ""}"
+                data-action="selectMap"
+                data-place="${name}"
+                ${locked ? "disabled" : ""}
+            >
+
+                <span>
+                    ${area.icon}
+                </span>
+
+                <b>
+                    ${name}
+                </b>
+
+                <small>
+                    ${
+                        locked
+                        ? `🔒 Level ${area.level}`
+                        : current
+                        ? "📍 You are here"
+                        : "Travel"
+                    }
+                </small>
+
+            </button>
+        `;
+    }
+
+    const samePlace =
+        state.selectedPlace === state.location;
+
+    render(`
+
+        ${tutorial(
+            "The World Map",
+            `
+                Click a location to select it.
+                Then press <b>Travel Here</b>.
+                New locations unlock when you reach
+                the required level.
+            `
+        )}
+
+        <h2>🗺️ World Map</h2>
+
+        <p class="description">
+            Stronger areas have stronger enemies,
+            but they also contain better resources.
+        </p>
+
+        <div class="map">
+
+            <div class="map-grid">
+                ${buttons}
+            </div>
+
+        </div>
+
+        <div class="map-info">
+
+            <h3>
+                ${selected.icon}
+                ${state.selectedPlace}
+            </h3>
+
+            <p class="description">
+                ${selected.description}
+            </p>
+
+            <p>
+                Required Level:
+                <b>${selected.level}</b>
+            </p>
+
+            <div class="actions">
+
+                ${
+                    !samePlace
+                    ? `
+                        <button
+                            class="primary"
+                            data-action="travel"
+                        >
+                            🚶 Travel Here
+                        </button>
+                    `
+                    : ""
+                }
+
+                ${
+                    samePlace &&
+                    state.location !== "ArdenVille"
+                    ? `
+                        <button
+                            class="primary"
+                            data-action="explore"
+                        >
+                            🔎 Explore Area
+                        </button>
+                    `
+                    : ""
+                }
+
+                <button data-action="town">
+                    🏘️ ArdenVille
+                </button>
+
+            </div>
+
+        </div>
+    `);
+}
+
+
+/* =========================================================
+   SHOP
+========================================================= */
+
+function shop(tab = state.shopTab) {
+    state.shopTab = tab;
+
+    if (tab === "sell") {
+        sellingShop();
+        return;
+    }
+
+    const list =
+        tab === "weapons"
+        ? weapons
+        : armor;
+
+    const owned =
+        tab === "weapons"
+        ? state.ownedWeapons
+        : state.ownedArmor;
+
+    const equipped =
+        tab === "weapons"
+        ? state.equippedWeapon
+        : state.equippedArmor;
+
+    const upgrades =
+        tab === "weapons"
+        ? state.weaponUpgrades
+        : state.armorUpgrades;
+
+    let cards = "";
+
+    list.forEach((item, index) => {
+
+        const isOwned =
+            owned.includes(index);
+
+        const isEquipped =
+            equipped === index;
+
+        const previousOwned =
+            index === 0 ||
+            owned.includes(index - 1);
+
+        const currentValue =
+            tab === "weapons"
+            ? item.attack +
+              upgrades[index] * 2
+            : item.hp +
+              upgrades[index] * 10;
+
+        const canBuy =
+            isOwned ||
+            (
+                previousOwned &&
+                state.gold >= item.price &&
+                hasMaterials(item.materials)
+            );
+
+        let buyText = "";
+
+        if (isEquipped) {
+            buyText = "✅ Equipped";
+        } else if (isOwned) {
+            buyText = "Equip";
+        } else if (!previousOwned) {
+            buyText = "🔒 Buy Previous Tier";
+        } else {
+            buyText = `Buy 🪙 ${item.price}`;
+        }
+
+        let upgradeHTML = "";
+
+        if (isOwned && isEquipped) {
+
+            const level =
+                upgrades[index];
+
+            if (level < 5) {
+
+                const upgradePrice =
+                    35 + level * 25;
+
+                const upgradeMaterials = {
+                    iron: level + 1
+                };
+
+                if (tab === "armor") {
+                    upgradeMaterials.leather =
+                        level === 0 ? 1 : 0;
+                }
+
+                const canUpgrade =
+                    state.gold >= upgradePrice &&
+                    hasMaterials(upgradeMaterials);
+
+                upgradeHTML = `
+                    <button
+                        class="primary"
+                        data-action="upgradeGear"
+                        data-tab="${tab}"
+                        data-index="${index}"
+                        ${canUpgrade ? "" : "disabled"}
+                    >
+                        ${
+                            tab === "weapons"
+                            ? "⚔️ Upgrade Weapon"
+                            : "🛡️ Upgrade Armor"
+                        }
+
+                        <br>
+
+                        <small>
+                            🪙 ${upgradePrice}
+                            •
+                            ${materialText(upgradeMaterials)}
+                        </small>
+                    </button>
+                `;
+            } else {
+
+                upgradeHTML = `
+                    <button disabled>
+                        ⭐ Fully Upgraded
+                    </button>
+                `;
+            }
+        }
+
+        cards += `
+
+            <div class="shop-card ${isEquipped ? "equipped" : ""}">
+
+                <div class="shop-icon">
+                    ${item.icon}
+                </div>
+
+                <h3>
+                    ${item.name}
+                </h3>
+
+                <p class="muted">
+
+                    ${
+                        tab === "weapons"
+                        ? `Attack: <b>${currentValue}</b>`
+                        : `Bonus HP: <b>+${currentValue}</b>`
+                    }
+
+                    <br>
+
+                    Upgrade:
+                    <b>${upgrades[index]}/5</b>
+
+                </p>
+
+                ${
+                    !isOwned && index > 0
+                    ? `
+                        <div class="shop-cost">
+                            🪙 ${item.price}
+                            <br><br>
+                            ${materialText(item.materials)}
+                        </div>
+                    `
+                    : ""
+                }
+
+                <div class="actions">
+
+                    <button
+                        data-action="buyEquip"
+                        data-tab="${tab}"
+                        data-index="${index}"
+                        ${canBuy ? "" : "disabled"}
+                    >
+                        ${buyText}
+                    </button>
+
+                    ${upgradeHTML}
+
+                </div>
+
+            </div>
+        `;
+    });
+
+    render(`
+
+        ${tutorial(
+            "The Blacksmith Shop",
+            `
+                <b>Weapons</b> increase your attack.
+                <b>Armor</b> increases your maximum HP.
+                They have separate upgrade paths.
+                Monsters provide the materials you need.
+            `
+        )}
+
+        <div class="shop-header">
+
+            <div>
+                <h2>⚒️ Blacksmith Shop</h2>
+                <p class="muted">
+                    Buy, equip, and upgrade your gear.
+                </p>
+            </div>
+
+            <div class="tabs">
+
+                <button
+                    class="tab ${tab === "weapons" ? "active" : ""}"
+                    data-action="shopWeapons"
+                >
+                    ⚔️ Weapons
+                </button>
+
+                <button
+                    class="tab ${tab === "armor" ? "active" : ""}"
+                    data-action="shopArmor"
+                >
+                    🛡️ Armor
+                </button>
+
+                <button
+                    class="tab ${tab === "sell" ? "active" : ""}"
+                    data-action="shopSell"
+                >
+                    🪙 Sell
+                </button>
+
+            </div>
+
+        </div>
+
+        <div class="shop-grid">
+            ${cards}
+        </div>
+
+        <div class="actions">
+
+            <button data-action="town">
+                🏘️ Back to Town
+            </button>
+
+            <button data-action="map">
+                🗺️ Map
+            </button>
+
+        </div>
+
+    `);
+}
+
+
+/* =========================================================
+   SELLING
+========================================================= */
+
+function sellingShop() {
+
+    let cards = "";
+
+    for (const [index, item] of weapons.entries()) {
+
+        if (
+            !state.ownedWeapons.includes(index) ||
+            state.equippedWeapon === index
+        ) {
+            continue;
+        }
+
+        const upgrades =
+            state.weaponUpgrades[index];
+
+        const baseSell =
+            Math.floor(item.price * 0.55);
+
+        const upgradeSell =
+            upgrades * 15;
+
+        const value =
+            baseSell + upgradeSell;
+
+        cards += `
+            <div class="shop-card">
+
+                <div class="shop-icon">
+                    ${item.icon}
+                </div>
+
+                <h3>
+                    ${item.name}
+                </h3>
+
+                <p class="muted">
+                    Attack:
+                    ${item.attack + upgrades * 2}
+                    <br>
+                    Upgrade level:
+                    ${upgrades}/5
+                </p>
+
+                <div class="shop-cost">
+                    Sell for
+                    <b>🪙 ${value}</b>
+                </div>
+
+                <div class="actions">
+
+                    <button
+                        class="good"
+                        data-action="sellGear"
+                        data-type="weapon"
+                        data-index="${index}"
+                    >
+                        🪙 Sell Weapon
+                    </button>
+
+                </div>
+            </div>
+        `;
+    }
+
+
+    for (const [index, item] of armor.entries()) {
+
+        if (
+            !state.ownedArmor.includes(index) ||
+            state.equippedArmor === index
+        ) {
+            continue;
+        }
+
+        const upgrades =
+            state.armorUpgrades[index];
+
+        const baseSell =
+            Math.floor(item.price * 0.55);
+
+        const upgradeSell =
+            upgrades * 15;
+
+        const value =
+            baseSell + upgradeSell;
+
+        cards += `
+            <div class="shop-card">
+
+                <div class="shop-icon">
+                    ${item.icon}
+                </div>
+
+                <h3>
+                    ${item.name}
+                </h3>
+
+                <p class="muted">
+                    Bonus HP:
+                    ${item.hp + upgrades * 10}
+                    <br>
+                    Upgrade level:
+                    ${upgrades}/5
+                </p>
+
+                <div class="shop-cost">
+                    Sell for
+                    <b>🪙 ${value}</b>
+                </div>
+
+                <div class="actions">
+
+                    <button
+                        class="good"
+                        data-action="sellGear"
+                        data-type="armor"
+                        data-index="${index}"
+                    >
+                        🪙 Sell Armor
+                    </button>
+
+                </div>
+            </div>
+        `;
+    }
+
+
+    if (!cards) {
+        cards = `
+            <div class="card">
+
+                <div class="card-icon">
+                    📦
+                </div>
+
+                <h3>
+                    Nothing to Sell
+                </h3>
+
+                <p class="description">
+                    You only have your equipped gear.
+                    Buy another item first if you want
+                    something to sell later.
+                </p>
+
+            </div>
+        `;
+    }
+
+
+    render(`
+
+        <div class="shop-header">
+
+            <div>
+                <h2>🪙 Sell Equipment</h2>
+
+                <p class="muted">
+                    You cannot sell the equipment
+                    you are currently wearing.
+                </p>
+            </div>
+
+            <div class="tabs">
+
+                <button
+                    data-action="shopWeapons"
+                >
+                    ⚔️ Weapons
+                </button>
+
+                <button
+                    data-action="shopArmor"
+                >
+                    🛡️ Armor
+                </button>
+
+                <button
+                    class="tab active"
+                    data-action="shopSell"
+                >
+                    🪙 Sell
+                </button>
+
+            </div>
+
+        </div>
+
+        <p class="sell-note">
+            💡 Selling gives you back about 55% of the
+            original gold value, plus a little extra
+            for upgrades.
+        </p>
+
+        <div class="shop-grid">
+            ${cards}
+        </div>
+
+        <div class="actions">
+
+            <button data-action="town">
+                🏘️ Back to Town
+            </button>
+
+        </div>
+    `);
+}
+
+
+/* =========================================================
+   BUY / EQUIP
+========================================================= */
+
+function buyEquip(index, tab) {
+
+    const list =
+        tab === "weapons"
+        ? weapons
+        : armor;
+
+    const owned =
+        tab === "weapons"
+        ? state.ownedWeapons
+        : state.ownedArmor;
+
+    const item = list[index];
+
+    if (owned.includes(index)) {
+
+        if (tab === "weapons") {
+            state.equippedWeapon = index;
+        } else {
+            state.equippedArmor = index;
+            state.hp = Math.min(
+                state.hp,
+                maxHP()
+            );
+        }
+
+        shop(tab);
+        return;
+    }
+
+    if (
+        index > 0 &&
+        !owned.includes(index - 1)
+    ) {
+        return;
+    }
+
+    if (state.gold < item.price) {
+        return;
+    }
+
+    if (!hasMaterials(item.materials)) {
+        return;
+    }
+
+    state.gold -= item.price;
+
+    spendMaterials(item.materials);
+
+    owned.push(index);
+
+    if (tab === "weapons") {
+        state.equippedWeapon = index;
+    } else {
+        state.equippedArmor = index;
+        state.hp = maxHP();
+    }
+
+    shop(tab);
+}
+
+
+/* =========================================================
+   UPGRADE
+========================================================= */
+
+function upgradeGear(index, tab) {
+
+    const upgrades =
+        tab === "weapons"
+        ? state.weaponUpgrades
+        : state.armorUpgrades;
+
+    const equipped =
+        tab === "weapons"
+        ? state.equippedWeapon
+        : state.equippedArmor;
+
+    if (index !== equipped) {
+        return;
+    }
+
+    if (upgrades[index] >= 5) {
+        return;
+    }
+
+    const level =
+        upgrades[index];
+
+    const goldCost =
+        35 + level * 25;
+
+    const materials = {
+        iron: level + 1
+    };
+
+    if (tab === "armor" && level === 0) {
+        materials.leather = 1;
+    }
+
+    if (
+        state.gold < goldCost ||
+        !hasMaterials(materials)
+    ) {
+        return;
+    }
+
+    state.gold -= goldCost;
+
+    spendMaterials(materials);
+
+    upgrades[index]++;
+
+    if (tab === "armor") {
+        state.hp = Math.min(
+            maxHP(),
+            state.hp + 10
+        );
+    }
+
+    shop(tab);
+}
+
+
+/* =========================================================
+   SELL
+========================================================= */
+
+function sellGear(type, index) {
+
+    if (type === "weapon") {
+
+        if (
+            state.equippedWeapon === index ||
+            !state.ownedWeapons.includes(index)
+        ) {
+            return;
+        }
+
+        const upgrades =
+            state.weaponUpgrades[index];
+
+        const value =
+            Math.floor(
+                weapons[index].price * 0.55
+            ) + upgrades * 15;
+
+        state.gold += value;
+
+        state.ownedWeapons =
+            state.ownedWeapons.filter(
+                item => item !== index
+            );
+
+        state.weaponUpgrades[index] = 0;
+
+        shop("sell");
+
+        return;
+    }
+
+    if (type === "armor") {
+
+        if (
+            state.equippedArmor === index ||
+            !state.ownedArmor.includes(index)
+        ) {
+            return;
+        }
+
+        const upgrades =
+            state.armorUpgrades[index];
+
+        const value =
+            Math.floor(
+                armor[index].price * 0.55
+            ) + upgrades * 15;
+
+        state.gold += value;
+
+        state.ownedArmor =
+            state.ownedArmor.filter(
+                item => item !== index
+            );
+
+        state.armorUpgrades[index] = 0;
+
+        shop("sell");
+    }
+}
+
+
+/* =========================================================
+   LEVELING
+========================================================= */
+
+function levelUpCheck() {
+
+    let leveled = false;
+
+    while (
+        state.xp >=
+        state.level * 45
+    ) {
+
+        state.xp -= state.level * 45;
+
+        state.level++;
+
+        state.baseHp += 12;
+
+        state.hp = maxHP();
+
+        leveled = true;
+    }
+
+    return leveled;
+}
+/* =========================================================
+   ENEMY VISUALS
+========================================================= */
+
+function enemyHTML(enemy) {
+
+    const wings =
+        enemy.type === "dragon"
+        ? `
+            <div class="wing left"></div>
+            <div class="wing right"></div>
+            <div class="tail"></div>
+        `
+        : "";
+
+    return `
+        <div
+            class="monster ${enemy.type}"
+            id="monster"
+        >
+
+            ${wings}
+
+            <div class="horn left"></div>
+            <div class="horn right"></div>
+
+            <div class="monster-body"></div>
+
+            <div class="monster-eye left"></div>
+            <div class="monster-eye right"></div>
+
+            <div class="monster-mouth"></div>
+
+        </div>
+    `;
+}
+
+
+/* =========================================================
+   EXPLORE
+========================================================= */
+
+function explore() {
+
+    if (
+        state.location === "ArdenVille"
+    ) {
+        map();
+        return;
+    }
+
+    const pool =
+        enemyPools[state.location];
+
+    if (!pool) {
+        return;
+    }
+
+    const enemyKey =
+        pool[
+            Math.floor(
+                Math.random() * pool.length
+            )
+        ];
+
+    startCombat(enemyKey);
+}
+
+
+/* =========================================================
+   COMBAT
+========================================================= */
+
+function startCombat(enemyKey) {
+
+    const enemy =
+        enemies[enemyKey];
+
+    state.enemy = enemyKey;
+    state.enemyHP = enemy.hp;
+    state.battleBusy = false;
+    state.defending = false;
+    state.potions = 2;
+
+    render(`
+
+        ${tutorial(
+            "Combat",
+            `
+                <b>Attack</b> damages the enemy.
+                <b>Defend</b> halves the next hit.
+                <b>Heal</b> restores 30 HP.
+                <b>Run</b> has an 80% chance to work.
+                After your turn, the monster attacks.
+            `
+        )}
+
+        <h2>
+            ${enemy.name}
+        </h2>
+
+        <div class="arena">
+
+            <div class="cloud"></div>
+            <div class="cloud two"></div>
+
+            <div class="player" id="player">
+
+                <div class="player-head"></div>
+
+                <div class="player-body"></div>
+
+                <div class="player-leg left"></div>
+                <div class="player-leg right"></div>
+
+                <div class="player-sword"></div>
+
+            </div>
+
+            <div
+                class="slash"
+                id="slash"
+            >
+                ⚔️
+            </div>
+
+            <div
+                class="damage-number"
+                id="damageNumber"
+            >
+            </div>
+
+            ${enemyHTML(enemy)}
+
+        </div>
+
+
+        <div class="battle-bars">
+
+            <div>
+
+                <div class="bar-label">
+                    <span>YOU</span>
+                    <span id="playerBarText"></span>
+                </div>
+
+                <div class="bar">
+                    <div
+                        class="fill hp-fill"
+                        id="playerBar"
+                    ></div>
+                </div>
+
+            </div>
+
+
+            <div>
+
+                <div class="bar-label">
+                    <span>${enemy.name}</span>
+                    <span id="enemyBarText"></span>
+                </div>
+
+                <div class="bar">
+                    <div
+                        class="fill enemy-fill"
+                        id="enemyBar"
+                    ></div>
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="actions">
+
+            <button
+                class="primary"
+                id="attack"
+                data-action="attack"
+            >
+                ⚔️ Attack
+            </button>
+
+            <button
+                id="defend"
+                data-action="defend"
+            >
+                🛡️ Defend
+            </button>
+
+            <button
+                id="healBattle"
+                data-action="healBattle"
+            >
+                ❤️ Heal (2)
+            </button>
+
+            <button
+                class="danger"
+                id="run"
+                data-action="run"
+                ${state.enemy === "Dragon" ? "disabled" : ""}
+            >
+                🏃 Run
+            </button>
+
+        </div>
+
+
+        <div
+            class="battle-log"
+            id="battleLog"
+        >
+            Your turn.
+        </div>
+    `);
+
+    updateBattle();
+}
+
+
+/* =========================================================
+   BATTLE UI
+========================================================= */
+
+function updateBattle() {
+
+    const enemy =
+        enemies[state.enemy];
+
+    if (!enemy) {
+        return;
+    }
+
+    const playerBar =
+        document.getElementById("playerBar");
+
+    const enemyBar =
+        document.getElementById("enemyBar");
+
+    const playerText =
+        document.getElementById("playerBarText");
+
+    const enemyText =
+        document.getElementById("enemyBarText");
+
+    if (playerBar) {
+        playerBar.style.width =
+            `${Math.max(
+                0,
+                state.hp / maxHP() * 100
+            )}%`;
+    }
+
+    if (enemyBar) {
+        enemyBar.style.width =
+            `${Math.max(
+                0,
+                state.enemyHP / enemy.hp * 100
+            )}%`;
+    }
+
+    if (playerText) {
+        playerText.textContent =
+            `${Math.max(0, state.hp)}/${maxHP()}`;
+    }
+
+    if (enemyText) {
+        enemyText.textContent =
+            `${Math.max(0, state.enemyHP)}/${enemy.hp}`;
+    }
+
+    const healButton =
+        document.getElementById("healBattle");
+
+    if (healButton) {
+
+        healButton.textContent =
+            `❤️ Heal (${state.potions})`;
+
+        healButton.disabled =
+            state.battleBusy ||
+            state.potions <= 0;
+    }
+}
+
+function battleButtons(disabled) {
+
+    ["attack", "defend", "healBattle", "run"]
+        .forEach(id => {
+
+            const button =
+                document.getElementById(id);
+
+            if (button) {
+                button.disabled = disabled;
+            }
+        });
+
+    const heal =
+        document.getElementById("healBattle");
+
+    if (heal) {
+        heal.disabled =
+            disabled ||
+            state.potions <= 0;
+    }
+
+    if (state.enemy === "Dragon") {
+
+        const run =
+            document.getElementById("run");
+
+        if (run) {
+            run.disabled = true;
+        }
+    }
+}
+
+
+/* =========================================================
+   ATTACK
+========================================================= */
+
+function playerAttack() {
+
+    if (state.battleBusy) {
+        return;
+    }
+
+    state.battleBusy = true;
+
+    battleButtons(true);
+
+    const player =
+        document.getElementById("player");
+
+    const monster =
+        document.getElementById("monster");
+
+    const slash =
+        document.getElementById("slash");
+
+    const damageNumber =
+        document.getElementById("damageNumber");
+
+    const damage =
+        Math.max(
+            1,
+            weaponAttack() +
+            random(-2, 3)
+        );
+
+    player.classList.remove("attack");
+    void player.offsetWidth;
+    player.classList.add("attack");
+
+
+    setTimeout(() => {
+
+        state.enemyHP =
+            Math.max(
+                0,
+                state.enemyHP - damage
+            );
+
+
+        slash.classList.remove("show");
+        void slash.offsetWidth;
+        slash.classList.add("show");
+
+
+        damageNumber.textContent =
+            `-${damage}`;
+
+        damageNumber.classList.remove("show");
+        void damageNumber.offsetWidth;
+        damageNumber.classList.add("show");
+
+
+        monster.classList.remove("hit");
+        void monster.offsetWidth;
+        monster.classList.add("hit");
+
+
+        updateBattle();
+
+
+        if (state.enemyHP <= 0) {
+
+            setTimeout(
+                victory,
+                500
+            );
+
+            return;
+        }
+
+
+        setTimeout(
+            enemyTurn,
+            500
+        );
+
+    }, 280);
+}
+
+
+/* =========================================================
+   DEFEND
+========================================================= */
+
+function playerDefend() {
+
+    if (state.battleBusy) {
+        return;
+    }
+
+    state.battleBusy = true;
+    state.defending = true;
+
+    battleButtons(true);
+
+    const log =
+        document.getElementById("battleLog");
+
+    log.textContent =
+        "You raise your guard. The next attack will be reduced.";
+
+    setTimeout(
+        enemyTurn,
+        350
+    );
+}
+
+
+/* =========================================================
+   HEAL IN BATTLE
+========================================================= */
+
+function playerHealBattle() {
+
+    if (
+        state.battleBusy ||
+        state.potions <= 0
+    ) {
+        return;
+    }
+
+    if (state.hp >= maxHP()) {
+
+        const log =
+            document.getElementById("battleLog");
+
+        log.textContent =
+            "Your health is already full.";
+
+        return;
+    }
+
+    state.battleBusy = true;
+    battleButtons(true);
+
+    state.potions--;
+
+    const amount =
+        Math.min(
+            30,
+            maxHP() - state.hp
+        );
+
+    state.hp += amount;
+
+    updateBattle();
+
+    const log =
+        document.getElementById("battleLog");
+
+    log.textContent =
+        `You restored ${amount} HP.`;
+
+    setTimeout(
+        enemyTurn,
+        400
+    );
+}
+
+
+/* =========================================================
+   ENEMY TURN
+========================================================= */
+
+function enemyTurn() {
+
+    if (
+        !state.enemy ||
+        state.enemyHP <= 0
+    ) {
+        return;
+    }
+
+    const enemy =
+        enemies[state.enemy];
+
+    let damage =
+        enemy.attack +
+        random(-1, 2);
+
+    if (state.defending) {
+
+        damage =
+            Math.floor(damage / 2);
+
+        state.defending = false;
+    }
+
+    damage =
+        Math.max(1, damage);
+
+    state.hp =
+        Math.max(
+            0,
+            state.hp - damage
+        );
+
+    updateBattle();
+
+    const log =
+        document.getElementById("battleLog");
+
+    if (log) {
+        log.textContent =
+            `${enemy.name} attacked you for ${damage} damage.`;
+    }
+
+
+    if (state.hp <= 0) {
+
+        setTimeout(
+            playerDeath,
+            450
+        );
+
+        return;
+    }
+
+
+    state.battleBusy = false;
+
+    battleButtons(false);
+}
+
+
+/* =========================================================
+   RUN
+========================================================= */
+
+function runAway() {
+
+    if (
+        state.battleBusy ||
+        state.enemy === "Dragon"
+    ) {
+        return;
+    }
+
+    state.battleBusy = true;
+    battleButtons(true);
+
+    if (Math.random() < .8) {
+
+        state.enemy = null;
+        state.enemyHP = 0;
+
+        area();
+
+        return;
+    }
+
+    const log =
+        document.getElementById("battleLog");
+
+    log.textContent =
+        "You failed to escape!";
+
+    setTimeout(
+        enemyTurn,
+        350
+    );
+}
+
+
+/* =========================================================
+   VICTORY
+========================================================= */
+
+function victory() {
+
+    const enemy =
+        enemies[state.enemy];
+
+    const enemyName =
+        enemy.name;
+
+
+    const gold =
+        random(
+            enemy.gold[0],
+            enemy.gold[1]
+        );
+
+    state.gold += gold;
+    state.xp += enemy.xp;
+
+
+    const loot = {};
+
+    for (
+        const [resource, range]
+        of Object.entries(enemy.loot)
+    ) {
+
+        const amount =
+            random(
+                range[0],
+                range[1]
+            );
+
+        if (amount > 0) {
+            state.resources[resource] += amount;
+            loot[resource] = amount;
+        }
+    }
+
+
+    const leveled =
+        levelUpCheck();
+
+
+    const wasDragon =
+        state.enemy === "Dragon" &&
+        state.location === "Dragon Peak";
+
+
+    state.enemy = null;
+    state.enemyHP = 0;
+    state.battleBusy = false;
+
+
+    if (wasDragon) {
+
+        ending();
+        return;
+    }
+
+
+    const lootText =
+        Object.entries(loot)
+            .map(
+                ([name, amount]) =>
+                    `${amount} ${name}`
+            )
+            .join(" • ");
+
+
+    render(`
+
+        <div class="center">
+
+            <div class="big-icon">
+                🏆
+            </div>
+
+            <h2>
+                Victory!
+            </h2>
+
+            <p class="description">
+                You defeated
+                <b>${enemyName}</b>.
+            </p>
+
+            <div class="cards">
+
+                <div class="card">
+                    🪙<br>
+                    <b>+${gold} Gold</b>
+                </div>
+
+                <div class="card">
+                    ✨<br>
+                    <b>+${enemy.xp} XP</b>
+                </div>
+
+                <div class="card">
+                    🧱<br>
+                    <b>${lootText || "No resources"}</b>
+                </div>
+
+            </div>
+
+            ${
+                leveled
+                ? `
+                    <div class="story">
+
+                        ⭐ <b>LEVEL UP!</b>
+
+                        <br><br>
+
+                        You reached
+                        <b>Level ${state.level}</b>.
+
+                        <br>
+
+                        Your base HP increased.
+
+                    </div>
+                `
+                : ""
+            }
+
+            <div class="actions"
+                 style="justify-content:center">
+
+                <button
+                    class="primary"
+                    data-action="area"
+                >
+                    🔎 Return to Area
+                </button>
+
+                <button data-action="shop">
+                    ⚒️ Shop
+                </button>
+
+                <button data-action="map">
+                    🗺️ Map
+                </button>
+
+            </div>
+
+        </div>
+    `);
+}
+
+
+/* =========================================================
+   LEVEL UP
+========================================================= */
+
+function levelUpCheck() {
+
+    let leveled = false;
+
+    while (
+        state.xp >=
+        state.level * 45
+    ) {
+
+        state.xp -=
+            state.level * 45;
+
+        state.level++;
+
+        state.baseHp += 12;
+
+        state.hp = maxHP();
+
+        leveled = true;
+    }
+
+    return leveled;
+}
+
+
+/* =========================================================
+   DEATH
+========================================================= */
+
+function playerDeath() {
+
+    const lost =
+        Math.floor(
+            state.gold * .20
+        );
+
+    state.gold -= lost;
+
+    state.location =
+        "ArdenVille";
+
+    state.hp =
+        Math.max(
+            1,
+            Math.floor(
+                maxHP() * .5
+            )
+        );
+
+    state.enemy = null;
+    state.enemyHP = 0;
+    state.battleBusy = false;
+
+    render(`
+
+        <div class="center">
+
+            <div class="big-end">
+                💀
+            </div>
+
+            <h2 class="ending-title">
+                You Were Defeated
+            </h2>
+
+            <p class="description">
+                A traveler found you and
+                carried you back to ArdenVille.
+            </p>
+
+            <div class="story">
+
+                You lost
+                <b>${lost} gold</b>.
+
+                <br><br>
+
+                You kept your:
+
+                <br><br>
+
+                ⚔️ Weapons<br>
+                🛡️ Armor<br>
+                ⬆️ Gear upgrades<br>
+                ⭐ Level<br>
+                ✨ XP<br>
+                🧱 Resources
+
+                <br><br>
+
+                You wake up in town with
+                <b>${state.hp} HP</b>.
+
+            </div>
+
+            <div class="actions"
+                 style="justify-content:center">
+
+                <button
+                    class="primary"
+                    data-action="town"
+                >
+                    🏘️ Return to Town
+                </button>
+
+            </div>
+
+        </div>
+    `);
+}
+
+
+/* =========================================================
+   FINAL BOSS / ENDING
+========================================================= */
+
+function challengeDragon() {
+
+    if (
+        state.location !== "Dragon Peak" ||
+        state.level < 6
+    ) {
+        return;
+    }
+
+    startCombat("Dragon");
+}
+
+function ending() {
+
+    state.gameWon = true;
+
+    render(`
+
+        <div class="center">
+
+            <div class="big-end">
+                🐉✨
+            </div>
+
+            <h1 class="ending-title">
+                THE END OF AVALORIA
+            </h1>
+
+            <p class="description">
+                The Ancient Dragon falls.
+            </p>
+
+            <div class="story">
+
+                <b>🌄 The realm is saved.</b>
+
+                <br><br>
+
+                The corruption surrounding
+                Dragon Peak disappears.
+
+                <br><br>
+
+                The forests begin to heal.
+                The ancient ruins glow again.
+                The people of ArdenVille finally
+                see a clear sky.
+
+                <br><br>
+
+                You entered Avaloria as a stranger.
+
+                <br><br>
+
+                You leave it as the hero
+                who saved the realm.
+
+            </div>
+
+            <div class="cards">
+
+                <div class="card">
+                    🏆<br>
+                    Dragon Defeated
+                </div>
+
+                <div class="card">
+                    ⭐<br>
+                    Level ${state.level}
+                </div>
+
+                <div class="card">
+                    ⚔️<br>
+                    Attack ${weaponAttack()}
+                </div>
+
+                <div class="card">
+                    🪙<br>
+                    ${state.gold} Gold
+                </div>
+
+            </div>
+
+            <div class="actions"
+                 style="justify-content:center">
+
+                <button
+                    class="primary"
+                    data-action="restart"
+                >
+                    🔄 Play Again
+                </button>
+
+            </div>
+
+        </div>
+    `);
+}
+
+
+/* =========================================================
+   AREA SCREEN
+========================================================= */
+
+function area() {
+
+    const data =
+        areas[state.location];
+
+    const boss =
+        state.location === "Dragon Peak" &&
+        state.level >= 6;
+
+    render(`
+
+        <h2>
+            ${data.icon}
+            ${state.location}
+        </h2>
+
+        <p class="description">
+            ${data.description}
+        </p>
+
+        ${
+            boss
+            ? `
+                <div class="story boss">
+
+                    🐉 <b>The Ancient Dragon is here.</b>
+
+                    <br><br>
+
+                    Make sure your weapon and armor
+                    are upgraded before fighting it.
+
+                </div>
+            `
+            : ""
+        }
+
+        <div class="actions">
+
+            <button
+                class="primary"
+                data-action="explore"
+            >
+                🔎 Explore
+            </button>
+
+            ${
+                boss
+                ? `
+                    <button
+                        class="danger"
+                        data-action="dragon"
+                    >
+                        🐉 Fight Dragon
+                    </button>
+                `
+                : ""
+            }
+
+            <button data-action="map">
+                🗺️ Map
+            </button>
+
+            <button data-action="town">
+                🏘️ Town
+            </button>
+
+        </div>
+
+        <div class="story">
+
+            💡 <b>Tip:</b>
+
+            Stronger areas give better loot.
+            Bring those materials back to the
+            blacksmith and turn them into better gear.
+
+        </div>
+    `);
+}
+
+
+/* =========================================================
+   BUTTON HANDLER
+========================================================= */
+
+game.addEventListener("click", event => {
+
+    const button =
+        event.target.closest("[data-action]");
+
+    if (!button) {
+        return;
+    }
+
+    const action =
+        button.dataset.action;
+
+    switch (action) {
+
+        case "town":
+            town();
+            break;
+
+        case "map":
+            map();
+            break;
+
+        case "shop":
+            shop();
+            break;
+
+        case "shopWeapons":
+            shop("weapons");
+            break;
+
+        case "shopArmor":
+            shop("armor");
+            break;
+
+        case "shopSell":
+            shop("sell");
+            break;
+
+        case "healMenu":
+            healMenu();
+            break;
+
+        case "healConfirm":
+            confirmHealing();
+            break;
+
+        case "selectMap":
+            state.selectedPlace =
+                button.dataset.place;
+            map();
+            break;
+
+        case "travel": {
+
+            const target =
+                state.selectedPlace;
+
+            if (
+                !areas[target] ||
+                state.level <
+                areas[target].level
+            ) {
+                return;
+            }
+
+            state.location = target;
+
+            if (target === "ArdenVille") {
+                town();
+            } else {
+                area();
+            }
+
+            break;
+        }
+
+        case "explore":
+            explore();
+            break;
+
+        case "buyEquip":
+            buyEquip(
+                Number(button.dataset.index),
+                button.dataset.tab
+            );
+            break;
+
+        case "upgradeGear":
+            upgradeGear(
+                Number(button.dataset.index),
+                button.dataset.tab
+            );
+            break;
+
+        case "sellGear":
+            sellGear(
+                button.dataset.type,
+                Number(button.dataset.index)
+            );
+            break;
+
+        case "attack":
+            playerAttack();
+            break;
+
+        case "defend":
+            playerDefend();
+            break;
+
+        case "healBattle":
+            playerHealBattle();
+            break;
+
+        case "run":
+            runAway();
+            break;
+
+        case "area":
+            area();
+            break;
+
+        case "dragon":
+            challengeDragon();
+            break;
+
+        case "restart":
+            location.reload();
+            break;
+    }
+});
+
+
+/* =========================================================
+   START
+========================================================= */
+
+render(`
+
+    <div class="center">
+
+        <div class="big-icon">
+            🌄
+        </div>
+
+        <h1>
+            Avaloria: The Lost Realm
+        </h1>
+
+        <p class="description">
+            You awaken in a strange land after
+            witnessing a massive fireball.
+        </p>
+
+        <div class="story">
+
+            🧑 <b>Stranger:</b>
+
+            <br><br>
+
+            “Welcome to Avaloria.
+            If you want answers,
+            you're going to need to survive first.”
+
+        </div>
+
+        <div class="actions"
+             style="justify-content:center">
+
+            <button
+                class="primary"
+                data-action="town"
+            >
+                ▶ Begin Adventure
+            </button>
+
+        </div>
+
+    </div>
+`);
+</script>
+
+</body>
+</html>
+```
