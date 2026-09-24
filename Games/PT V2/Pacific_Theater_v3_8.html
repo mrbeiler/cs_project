@@ -761,7 +761,7 @@ svg#map text{user-select:none;-webkit-user-select:none}
 #map .unit-bg.all{fill:#ffffff;stroke:#7ab4dd}
 #map .unit-bg.neu{fill:#5a4d2a;stroke:#d8c98a}
 #map .unit.selected .unit-bg{stroke:#ffce5c;stroke-width:3.2}
-#map .unit-icon{pointer-events:none}
+#map .unit-icon{pointer-events:none;transform-box:fill-box;transform-origin:center;}
 #map .unit-badge{font-family:'Oswald',system-ui,sans-serif;font-size:9px;font-weight:600;fill:#04141d;paint-order:stroke;stroke:#ffce5c;stroke-width:2.8;stroke-linejoin:round}
 #map .unit-label{font-family:'Oswald',system-ui,sans-serif;font-size:10px;letter-spacing:.02em;fill:#eef5f9;paint-order:stroke;stroke:#04141d;stroke-width:3;stroke-linejoin:round;pointer-events:none}
 #map .unit-count{font-family:ui-monospace,Consolas,monospace;font-size:9px;fill:#ffce5c;paint-order:stroke;stroke:#04141d;stroke-width:2.5;pointer-events:none}
@@ -779,7 +779,13 @@ svg#map text{user-select:none;-webkit-user-select:none}
 #map .unit.mine.selected .unit-bg{stroke:#ffce5c;stroke-width:3.4}
 #map .unit.sailing .unit-bg{stroke:#fff3d0;stroke-width:3.6}
 #map .unit.sailing{filter:drop-shadow(0 3px 6px rgba(0,0,0,.6))}
-#map .move-wake{pointer-events:none}
+#map .move-wake{pointer-events:none;transform-box:fill-box;transform-origin:center;}
+#map .move-silhouette{pointer-events:none;}
+#map .move-silhouette-icon{transform-box:fill-box;transform-origin:center;filter:drop-shadow(0 1px 2.5px rgba(0,0,0,.7));}
+#map .arrive-ring{pointer-events:none;fill:none;stroke:#ffce5c;stroke-width:2.4;transform-box:fill-box;transform-origin:center;}
+@keyframes wakeFade{0%{opacity:.55;transform:scale(.5)}55%{opacity:.4}100%{opacity:0;transform:scale(2.1)}}
+@keyframes dustPuff{0%{opacity:.5;transform:scale(.5) translateY(0)}100%{opacity:0;transform:scale(1.6) translateY(-3px)}}
+@keyframes arrivePulse{0%{opacity:.85;transform:scale(.3)}100%{opacity:0;transform:scale(2.4)}}
 #map .unit.spent{opacity:.6}
 #map .unit-pip{fill:#04141d;stroke:#ffce5c;stroke-width:1.2}
 #map .unit-pip.on{fill:#ffce5c}
@@ -796,8 +802,6 @@ svg#map text{user-select:none;-webkit-user-select:none}
 #map .order-arrow.mov{stroke:#ffce5c}
 @keyframes orderMarch{to{stroke-dashoffset:-16}}
 /* --- Player order FX: moving ghost + fight clash (added for instant feedback) --- */
-#map .move-ghost{pointer-events:none}
-#map .move-ghost circle{filter:drop-shadow(0 1px 3px rgba(0,0,0,.6))}
 #map .move-path{fill:none;stroke:#ffce5c;stroke-width:2.4;stroke-dasharray:8 6;opacity:.9;stroke-linecap:round;animation:orderMarch .5s linear infinite}
 #map .fight-ring{fill:none;stroke:#ff7a5c;stroke-width:3;opacity:.95;pointer-events:none}
 #map .fight-ring.r2{stroke:#ffce5c;stroke-width:2}
@@ -806,7 +810,7 @@ svg#map text{user-select:none;-webkit-user-select:none}
 #map .fight-label{font-family:'Oswald',system-ui,sans-serif;font-size:22px;font-weight:700;fill:#ff8a70;paint-order:stroke;stroke:#04141d;stroke-width:4;stroke-linejoin:round;pointer-events:none;text-anchor:middle}
 @keyframes fightPulse{0%{transform:scale(.35);opacity:.95}100%{transform:scale(1.6);opacity:0}}
 @keyframes fightBlink{0%,100%{opacity:1}50%{opacity:.25}}
-@media (prefers-reduced-motion:reduce){#map .order-arrow,#map .move-path{animation:none}}
+@media (prefers-reduced-motion:reduce){#map .order-arrow,#map .move-path,#map .move-wake{animation:none}}
 @media (prefers-reduced-motion:reduce){#map .order-arrow{animation:none}}
 #selBox .facItem.off{opacity:.55}
 #selBox .facGlyph.off{fill:#7fa2b5}
@@ -4267,7 +4271,7 @@ svg#map text{user-select:none;-webkit-user-select:none}
     var dist = 2600 + (hash % 1200);
     var x = Math.cos(ang)*850 + (hash%2?800:-800);
     var y = Math.sin(ang)*600 - 2000 - (hash%400);
-    if(Math.hypot(x,y) < 1700){ x += 1800; y -= 800; }
+    if(Math.sqrt((x)*(x)+(y)*(y)) < 1700){ x += 1800; y -= 800; }
     var baseRadius = 820 + (name.length % 5)*140 + (hash % 350);
     var n = 13 + (hash % 5);
     var pts=[], inner=[];
@@ -4282,11 +4286,11 @@ svg#map text{user-select:none;-webkit-user-select:none}
   function isInsideIsland(wx,wy){
     if(!state.battleIsland) return false;
     var dx=wx-state.battleIsland.x, dy=wy-state.battleIsland.y;
-    return Math.hypot(dx,dy) < state.battleIsland.radius*0.62;
+    return Math.sqrt((dx)*(dx)+(dy)*(dy)) < state.battleIsland.radius*0.62;
   }
   function isOnBeach(wx,wy){
     if(!state.battleIsland) return false;
-    var d=Math.hypot(wx-state.battleIsland.x, wy-state.battleIsland.y);
+    var d=Math.sqrt((wx-state.battleIsland.x)*(wx-state.battleIsland.x)+(wy-state.battleIsland.y)*(wy-state.battleIsland.y));
     return d >= state.battleIsland.radius*0.58 && d < state.battleIsland.radius*0.98;
   }
   function drawBattleIsland(){
@@ -4363,7 +4367,7 @@ svg#map text{user-select:none;-webkit-user-select:none}
     if(!state.battleIsland) return;
     var isl=state.battleIsland;
     var dx=obj.x-isl.x, dy=obj.y-isl.y;
-    var d=Math.hypot(dx,dy);
+    var d=Math.sqrt((dx)*(dx)+(dy)*(dy));
     var minDist=isl.radius*0.62 + (obj.def? obj.def.beamFt*0.6*1 : 24);
     if(d < minDist && d>0.1){
       var push = (minDist - d);
@@ -4495,7 +4499,7 @@ svg#map text{user-select:none;-webkit-user-select:none}
   var FIRE_MIN_P = 0.03;
   function gunHitChance(shooterDispMult, boreFt, sx, sy, tx, ty, tgtDef, tgtHeading){
     var dx = tx-sx, dy = ty-sy;
-    var distPx = Math.max(1, Math.hypot(dx,dy));
+    var distPx = Math.max(1, Math.sqrt((dx)*(dx)+(dy)*(dy)));
     var distFt = distPx/scale;
     var bore = boreFt||0.42;
     var calF = clamp(Math.pow(0.42/bore, 0.25), 0.75, 1.25);
@@ -4768,7 +4772,7 @@ svg#map text{user-select:none;-webkit-user-select:none}
           // deflection across it, both growing with range. Every barrel rolls
           // its own, so salvos land as a pattern, not a single hole.
           var aimDx = targetX-origin.x, aimDy = targetY-origin.y;
-          var aimDist = Math.max(1, Math.hypot(aimDx,aimDy));
+          var aimDist = Math.max(1, Math.sqrt((aimDx)*(aimDx)+(aimDy)*(aimDy)));
           var aimDirX = aimDx/aimDist, aimDirY = aimDy/aimDist;
           var aimDistFt = aimDist/scale;
           var calF = clamp(Math.pow(0.42/bore, 0.25), 0.75, 1.25);
@@ -4778,7 +4782,7 @@ svg#map text{user-select:none;-webkit-user-select:none}
           var ix = targetX + aimDirX*rErr - aimDirY*lErr;
           var iy = targetY + aimDirY*rErr + aimDirX*lErr;
           var fDx = ix-origin.x, fDy = iy-origin.y;
-          var fDist = Math.max(1, Math.hypot(fDx,fDy));
+          var fDist = Math.max(1, Math.sqrt((fDx)*(fDx)+(fDy)*(fDy)));
           var worldAng = Math.atan2(fDy,fDx);
           // Scale damage by caliber squared (bore effect on projectile mass/energy)
           var caliberDamageMult = (bore/0.42) * (bore/0.42); // normalized to 5-inch gun
@@ -4872,7 +4876,7 @@ svg#map text{user-select:none;-webkit-user-select:none}
   function currentAimWorldDist(maxRange){
     var minRange = Math.max(cssW,cssH) * 0.1;
     if (state.aimScreenX===null) return maxRange;
-    var screenDist = Math.hypot(state.aimScreenX-playerScreenX, state.aimScreenY-playerScreenY);
+    var screenDist = Math.sqrt((state.aimScreenX-playerScreenX)*(state.aimScreenX-playerScreenX)+(state.aimScreenY-playerScreenY)*(state.aimScreenY-playerScreenY));
     var worldDist = screenDist / camZoom;
     return clamp(worldDist, minRange, maxRange);
   }
@@ -4909,7 +4913,7 @@ svg#map text{user-select:none;-webkit-user-select:none}
   function resize(){
     var rect = viewport.getBoundingClientRect();
     cssW = rect.width; cssH = rect.height;
-    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     canvas.width = Math.round(cssW * dpr);
     canvas.height = Math.round(cssH * dpr);
     ctx.setTransform(dpr,0,0,dpr,0,0);
@@ -5112,7 +5116,7 @@ svg#map text{user-select:none;-webkit-user-select:none}
     // Fixed world spacing and drift: the swell marches with the sea, and its
     // bands only ever cover the view — never rescale with the camera.
     var sp = 1500;
-    var diag = Math.hypot(cssW, cssH)/Math.max(1e-6, camZoom);
+    var diag = Math.sqrt((cssW)*(cssW)+(cssH)*(cssH))/Math.max(1e-6, camZoom);
     var lineLen = diag*1.25;
     var nb = Math.max(2, Math.ceil((diag*0.5 + sp)/sp));
     // Stride whole bands when zoomed far out (same world anchor, fewer strokes).
@@ -6486,7 +6490,7 @@ var cx, cy, heading, dist;
     // that ship right on top of — or beyond — the player's position.
     var maxSlotMag = 0.01;
     for (var si=0; si<slots.length; si++){
-      maxSlotMag = Math.max(maxSlotMag, Math.hypot(slots[si].along, slots[si].across));
+      maxSlotMag = Math.max(maxSlotMag, Math.sqrt((slots[si].along)*(slots[si].along)+(slots[si].across)*(slots[si].across)));
     }
 var spacing = Math.max(60, maxLenFt*scale*2.3);
     spacing = Math.min(spacing, (dist*0.4)/maxSlotMag);
@@ -6523,7 +6527,7 @@ var spacing = Math.max(60, maxLenFt*scale*2.3);
         // or hard against the coastline radially out into open water.
         var _isl0 = state.battleIsland;
         var _mdx = sx-_isl0.x, _mdy = sy-_isl0.y;
-        var _md = Math.hypot(_mdx,_mdy);
+        var _md = Math.sqrt((_mdx)*(_mdx)+(_mdy)*(_mdy));
         var _mdNeed = _isl0.radius*1.22 + hull.lengthFt*scale*0.5;
         if(_md > 0.001 && _md < _mdNeed){
           sx = _isl0.x + _mdx/_md*_mdNeed;
@@ -6590,7 +6594,7 @@ var spacing = Math.max(60, maxLenFt*scale*2.3);
   function briefMissionIntel(formation){
     if (!formation) return;
     var dx = formation.x-state.worldX, dy = formation.y-state.worldY;
-    var trueDist = Math.max(1, Math.hypot(dx,dy));
+    var trueDist = Math.max(1, Math.sqrt((dx)*(dx)+(dy)*(dy)));
     var trueBrg = Math.atan2(dx, -dy);
     var brgE = trueBrg + (Math.random()-0.5)*(16*Math.PI/180);
     var distE = trueDist*(0.85 + Math.random()*0.30);
@@ -6668,7 +6672,7 @@ var SHIP_AVOID_MARGIN_FT = 45;
     var ax=0, ay=0, worst=0;
     function shipPush(px, py, oLen){
       var dx = en.x-px, dy = en.y-py;
-      var d = Math.hypot(dx,dy);
+      var d = Math.sqrt((dx)*(dx)+(dy)*(dy));
       if (d<1) { dx=1; dy=0; d=1; }
       var safeDist = Math.max(selfLen,oLen)*0.65 + SHIP_AVOID_MARGIN_FT*scale;
       if (d < safeDist){
@@ -6697,7 +6701,7 @@ var SHIP_AVOID_MARGIN_FT = 45;
       }
     }
     if (worst<=0) return null;
-    if (Math.hypot(ax,ay) < 0.0001){
+    if (Math.sqrt((ax)*(ax)+(ay)*(ay)) < 0.0001){
       // Pushes from surrounding ships cancelled out exactly — break the tie
       // by ducking off to the current starboard side.
       return { heading: en.heading + Math.PI/2, urgency: worst };
@@ -6724,14 +6728,14 @@ var SHIP_AVOID_MARGIN_FT = 45;
       var p = state.projectiles[i];
       if (p.type!=='torpedo' || p.owner!==ownerFilter) continue;
       var rx = en.x-p.x, ry = en.y-p.y;
-      var dist = Math.hypot(rx,ry);
+      var dist = Math.sqrt((rx)*(rx)+(ry)*(ry));
       if (dist > detectRangePx) continue;
       var speed2 = p.vx*p.vx + p.vy*p.vy;
       if (speed2 < 1) continue;
       var tca = (rx*p.vx + ry*p.vy) / speed2;
       if (tca < 0 || tca > TORPEDO_EVADE_LOOKAHEAD) continue;
       var closestX = p.x + p.vx*tca, closestY = p.y + p.vy*tca;
-      var missDist = Math.hypot(en.x-closestX, en.y-closestY);
+      var missDist = Math.sqrt((en.x-closestX)*(en.x-closestX)+(en.y-closestY)*(en.y-closestY));
       if (missDist < dangerRadiusPx && tca < bestTime){ bestTime = tca; best = p; }
     }
     return best;
@@ -6755,7 +6759,7 @@ var SHIP_AVOID_MARGIN_FT = 45;
     for (var i=0;i<obstacles.length;i++){
       var o = obstacles[i];
       var dx = x-o.x, dy = y-o.y;
-      var d = Math.hypot(dx,dy);
+      var d = Math.sqrt((dx)*(dx)+(dy)*(dy));
       if (d < 1) return 1;
       var safeDist = Math.max(selfLen, o.len)*0.65 + SHIP_AVOID_MARGIN_FT*scale*1.6;
       if (d < safeDist) worst = Math.max(worst, clamp(1 - d/safeDist, 0, 1));
@@ -6764,7 +6768,7 @@ var SHIP_AVOID_MARGIN_FT = 45;
       if (rv2 > 1){
         var tca = clamp(-(dx*rvx+dy*rvy)/rv2, 0, 4);
         if (tca > 0.05){
-          var pd = Math.hypot(dx+rvx*tca, dy+rvy*tca);
+          var pd = Math.sqrt((dx+rvx*tca)*(dx+rvx*tca)+(dy+rvy*tca)*(dy+rvy*tca));
           if (pd < safeDist) worst = Math.max(worst, clamp(1 - pd/safeDist, 0, 1)*(1 - tca/5));
         }
       }
@@ -6805,7 +6809,7 @@ var SHIP_AVOID_MARGIN_FT = 45;
     var t = denom > 0 ? ((px-ax)*abx + (py-ay)*aby)/denom : 0;
     if (t < 0.02) return Infinity; // astern of the muzzle doesn't count
     t = Math.min(t, 1);
-    return Math.hypot(px-(ax+abx*t), py-(ay+aby*t));
+    return Math.sqrt((px-(ax+abx*t))*(px-(ax+abx*t))+(py-(ay+aby*t))*(py-(ay+aby*t)));
   }
 // Whether the straight segment (x,y)->(endX,endY) passes within coreMult of
   // the island centre — the preventer behind "ships attack the island": any gun
@@ -6830,7 +6834,7 @@ var SHIP_AVOID_MARGIN_FT = 45;
     if(!state.battleIsland) return null;
     var isl = state.battleIsland;
     var dx = x-isl.x, dy = y-isl.y;
-    var d = Math.hypot(dx,dy);
+    var d = Math.sqrt((dx)*(dx)+(dy)*(dy));
     var clearR = isl.radius*0.82 + 60*scale;
     if(d <= clearR) return null; // already inside the sea-room ring: the collision model owns this
     var fx = x + Math.sin(heading)*24000, fy = y - Math.cos(heading)*24000;
@@ -6845,7 +6849,7 @@ var SHIP_AVOID_MARGIN_FT = 45;
     // fire until the sea room clears keeps every battery off the island.
     if(!skipIsland && segmentTouchesIsland(x, y, aimX, aimY, 0.70)) return true;
     var dx = aimX-x, dy = aimY-y;
-    var d = Math.hypot(dx,dy);
+    var d = Math.sqrt((dx)*(dx)+(dy)*(dy));
     if (d < 1) return false;
     // Range error lands shells long of the aim as well as on it.
     var past = d*0.06 + 120*scale;
@@ -6988,7 +6992,7 @@ var SHIP_AVOID_MARGIN_FT = 45;
         var capB = hullCapsule(B.x, B.y, B.heading, B.lengthFt, B.beamFt);
         var cp = closestPtSegSeg(capA.x0,capA.y0,capA.x1,capA.y1, capB.x0,capB.y0,capB.x1,capB.y1);
         var dx = cp.c2x-cp.c1x, dy = cp.c2y-cp.c1y;
-        var dist = Math.hypot(dx,dy);
+        var dist = Math.sqrt((dx)*(dx)+(dy)*(dy));
         if (dist<1){ dx=1; dy=0; dist=1; }
         var minDist = capA.radius+capB.radius;
         // Give ships in company an extra fender margin so the shove starts
@@ -7051,7 +7055,7 @@ var SHIP_AVOID_MARGIN_FT = 45;
       var fTgt = nearestPlayerTarget(f.x, f.y);
       if (!f.spotted){
         var dx = fTgt.x-f.x, dy = fTgt.y-f.y;
-        var dist = Math.hypot(dx,dy);
+        var dist = Math.sqrt((dx)*(dx)+(dy)*(dy));
         var detectRange = sightRangePx(f.maxLenFt, fTgt.def.lengthFt);
         if (dist < detectRange){
           f.spotted = true;
@@ -7080,7 +7084,7 @@ var SHIP_AVOID_MARGIN_FT = 45;
           // the escorted heavy ship(s) a steady anchor to keep station on while
           // engaged, rather than the whole group breaking off the moment it's spotted.
           var dx2 = fTgt.x-f.x, dy2 = fTgt.y-f.y;
-          var dist2 = Math.hypot(dx2,dy2);
+          var dist2 = Math.sqrt((dx2)*(dx2)+(dy2)*(dy2));
           var standoff = sightRangePx(f.maxLenFt, fTgt.def.lengthFt)*0.75;
           var targetHeading;
           if (dist2 > standoff*1.15) targetHeading = headingTo(f.x,f.y,fTgt.x,fTgt.y);
@@ -7174,7 +7178,7 @@ var SHIP_AVOID_MARGIN_FT = 45;
     var maxR = 0, maxLenPx = 0;
     for (var i=0;i<state.group.length;i++){
       var sl = slots[state.group[i].slotIdx] || lead;
-      maxR = Math.max(maxR, Math.hypot(sl.along-lead.along, sl.across-lead.across)*state.formationSpacing);
+      maxR = Math.max(maxR, Math.sqrt((sl.along-lead.along)*(sl.along-lead.along)+(sl.across-lead.across)*(sl.across-lead.across))*state.formationSpacing);
       maxLenPx = Math.max(maxLenPx, state.group[i].def.lengthFt*scale);
     }
     var need = (Math.min(cssW,cssH)*0.44) / Math.max(1, maxR + maxLenPx*0.7);
@@ -7290,7 +7294,7 @@ var SHIP_AVOID_MARGIN_FT = 45;
       var cost = 0;
       for (var k=0;k<movers.length;k++){
         var w = formationSlotWorld(p[k], formationKey);
-        cost += Math.hypot(w.x-movers[k].x, w.y-movers[k].y);
+        cost += Math.sqrt((w.x-movers[k].x)*(w.x-movers[k].x)+(w.y-movers[k].y)*(w.y-movers[k].y));
       }
       return cost;
     }
@@ -7473,7 +7477,7 @@ var diveT = isCtl ? state.diveT : m.diveT;
     var list = playerSideTargets();
     var best = null, bestD = Infinity;
     for (var i=0;i<list.length;i++){
-      var d = Math.hypot(list[i].x-x, list[i].y-y);
+      var d = Math.sqrt((list[i].x-x)*(list[i].x-x)+(list[i].y-y)*(list[i].y-y));
       if (d < bestD){ bestD = d; best = list[i]; }
     }
 // Nothing targetable left (all sunk, or the boat is submerged) — fall back
@@ -7619,7 +7623,7 @@ var diveT = isCtl ? state.diveT : m.diveT;
         desiredSpeed = Math.min(m.speedKn, topSpeed);
       } else {
         var stn = memberStation(m);
-        toDist = Math.hypot(stn.x-m.x, stn.y-m.y);
+        toDist = Math.sqrt((stn.x-m.x)*(stn.x-m.x)+(stn.y-m.y)*(stn.y-m.y));
         // Chase a smoothed station, not the raw slot: when the flagship
         // turns, the true slot swings hard across the water, and steering at
         // it directly is what throws ships into wild corrections. The smoothed
@@ -7629,7 +7633,7 @@ var diveT = isCtl ? state.diveT : m.diveT;
         var sk = 1-Math.exp(-dt*0.55);
         m.stnX = lerp(m.stnX, stn.x, sk);
         m.stnY = lerp(m.stnY, stn.y, sk);
-        var chaseDist = Math.hypot(m.stnX-m.x, m.stnY-m.y);
+        var chaseDist = Math.sqrt((m.stnX-m.x)*(m.stnX-m.x)+(m.stnY-m.y)*(m.stnY-m.y));
         var deadBand = state.formationSpacing*0.45;
         if (chaseDist > deadBand){
           desired = headingTo(m.x, m.y, m.stnX, m.stnY);
@@ -7802,10 +7806,10 @@ if (m.def.isSubmarine){
       if (tgt){
         // Lay off ahead of the target so shells and the target meet, and aim
         // at exactly that lead point — never past it.
-        tDist = Math.hypot(tgt.x-m.x, tgt.y-m.y);
+        tDist = Math.sqrt((tgt.x-m.x)*(tgt.x-m.x)+(tgt.y-m.y)*(tgt.y-m.y));
         var lead = leadPoint(m.x, m.y, {x:tgt.x, y:tgt.y, heading:tgt.heading, speedKn:tgt.speedKn}, shellSpeed, 0);
         targetAngle = Math.atan2(lead.y-m.y, lead.x-m.x);
-        leadDist = Math.hypot(lead.x-m.x, lead.y-m.y);
+        leadDist = Math.sqrt((lead.x-m.x)*(lead.x-m.x)+(lead.y-m.y)*(lead.y-m.y));
         mainLeadX = lead.x; mainLeadY = lead.y;
       }
 var trainRate = TURRET_TRAIN_RATE*m.stats.trainRateMul;
@@ -7829,7 +7833,7 @@ var trainRate = TURRET_TRAIN_RATE*m.stats.trainRateMul;
           gunHitChance(mDisp, m.def.secondaryGunBoreFt, m.x, m.y, tgt.x, tgt.y, tgt.ref.def, tgt.heading) >= FIRE_MIN_P &&
           !fireLaneBlocked(m.x, m.y, secLead.x, secLead.y, 'player', m);
         var secAngle = secLead ? Math.atan2(secLead.y-m.y, secLead.x-m.x) : targetAngle;
-        var secDist = secLead ? Math.min(Math.hypot(secLead.x-m.x, secLead.y-m.y), secMax) : secMax;
+        var secDist = secLead ? Math.min(Math.sqrt((secLead.x-m.x)*(secLead.x-m.x)+(secLead.y-m.y)*(secLead.y-m.y)), secMax) : secMax;
         updateGunTurrets(m.def, m.secTurrets, m.x, m.y, m.heading, tgt?secAngle:m.heading-Math.PI/2, secWant, dt, 'player',
                          m.def.secondaryGunReload*m.stats.gunReloadMul, m.def.secondaryGunDamage, secSpeed,
                          secDist, trainRate, m.def.secondaryGuns, m.def.secondaryGunBoxFt,
@@ -7849,7 +7853,7 @@ var trainRate = TURRET_TRAIN_RATE*m.stats.trainRateMul;
             gunHitChance(mDisp, m.def.aaGunBoreFt, m.x, m.y, tgt.x, tgt.y, tgt.ref.def, tgt.heading) >= FIRE_MIN_P &&
             !fireLaneBlocked(m.x, m.y, aaLead.x, aaLead.y, 'player', m, true);
           var aaAngle = aaLead ? Math.atan2(aaLead.y-m.y, aaLead.x-m.x) : targetAngle;
-          var aaDist = aaLead ? Math.min(Math.hypot(aaLead.x-m.x, aaLead.y-m.y), aaMax) : aaMax;
+          var aaDist = aaLead ? Math.min(Math.sqrt((aaLead.x-m.x)*(aaLead.x-m.x)+(aaLead.y-m.y)*(aaLead.y-m.y)), aaMax) : aaMax;
           updateGunTurrets(m.def, m.aaTurrets, m.x, m.y, m.heading, tgt?aaAngle:m.heading-Math.PI/2, aaWant, dt, 'player',
                            m.def.aaGunReload*m.stats.gunReloadMul, m.def.aaGunDamage, aaSpeed, aaDist,
                            trainRate*1.6, m.def.aaGuns, m.def.aaGunBoxFt, m.def.aaGunMountType, m.def.aaGunBoreFt, m.def.aaGunPenetrationIn,
@@ -7878,7 +7882,7 @@ var trainRate = TURRET_TRAIN_RATE*m.stats.trainRateMul;
     var ownVy = -Math.cos(m.heading)*m.speedKn*1.68781*scale;
     function consider(ox, oy, oLen, oVx, oVy, friendly){
       var dx = m.x-ox, dy = m.y-oy;
-      var d = Math.hypot(dx,dy);
+      var d = Math.sqrt((dx)*(dx)+(dy)*(dy));
       if (d<1){ dx=1; dy=0; d=1; }
       // Friendlies get a wider berth than enemies: there is no reason to ever
       // shave the guide or a consort the way you might shave an enemy.
@@ -7894,7 +7898,7 @@ var trainRate = TURRET_TRAIN_RATE*m.stats.trainRateMul;
         var tca = clamp(-(dx*rvx+dy*rvy)/rv2, 0, 4);
         if (tca > 0.05){
           var px = dx+rvx*tca, py = dy+rvy*tca;
-          var pd = Math.hypot(px,py);
+          var pd = Math.sqrt((px)*(px)+(py)*(py));
           if (pd < safeDist){
             // The sooner the closest approach, the harder the push.
             urgency = Math.max(urgency, clamp(1 - pd/safeDist, 0, 1)*(1 - tca/5));
@@ -7922,7 +7926,7 @@ var trainRate = TURRET_TRAIN_RATE*m.stats.trainRateMul;
       consider(isCtl?state.worldX:o.x, isCtl?state.worldY:o.y, o.def.lengthFt*scale, ovx, ovy, true);
     }
     if (worst<=0) return null;
-    if (Math.hypot(ax,ay) < 0.0001) return { heading: m.heading + Math.PI/2, urgency: worst, prox: prox };
+    if (Math.sqrt((ax)*(ax)+(ay)*(ay)) < 0.0001) return { heading: m.heading + Math.PI/2, urgency: worst, prox: prox };
     return { heading: Math.atan2(ax,-ay), urgency: worst, prox: prox };
   }
 
@@ -7933,7 +7937,7 @@ var trainRate = TURRET_TRAIN_RATE*m.stats.trainRateMul;
       var en = state.enemies[i];
       if (en.sinking) continue;
       if ((en.diveT||0) >= SUB_HIDDEN_THRESHOLD) continue;
-      var d = Math.hypot(en.x-m.x, en.y-m.y);
+      var d = Math.sqrt((en.x-m.x)*(en.x-m.x)+(en.y-m.y)*(en.y-m.y));
       var see = sightRangePx(m.def.lengthFt, en.def.lengthFt);
       if (d > Math.min(maxRange, see*1.15)) continue;
       if (d < bestD){ bestD = d; best = en; }
@@ -7951,7 +7955,7 @@ var trainRate = TURRET_TRAIN_RATE*m.stats.trainRateMul;
       var en = state.enemies[i];
       if (en.sinking) continue;
       if ((en.diveT||0) >= SUB_HIDDEN_THRESHOLD) continue;
-      var d = Math.hypot(en.x-m.x, en.y-m.y);
+      var d = Math.sqrt((en.x-m.x)*(en.x-m.x)+(en.y-m.y)*(en.y-m.y));
       var see = sightRangePx(m.def.lengthFt, en.def.lengthFt);
       if (d > Math.min(maxRange, see*1.15)) continue;
       if (gunHitChance(mult, m.def.gunBoreFt, m.x, m.y, en.x, en.y, en.def, en.heading) < FIRE_MIN_P) continue;
@@ -7965,7 +7969,7 @@ var trainRate = TURRET_TRAIN_RATE*m.stats.trainRateMul;
     var hull = m.def;
     if (!hull.torpedoMounts || !hull.torpedoMounts.length || !m.torpMounts.length) return;
     var torpMax = torpedoEffectiveRange(hull.torpedoRangeMult||1);
-    var dist = tgt ? Math.hypot(tgt.x-m.x, tgt.y-m.y) : Infinity;
+    var dist = tgt ? Math.sqrt((tgt.x-m.x)*(tgt.x-m.x)+(tgt.y-m.y)*(tgt.y-m.y)) : Infinity;
     var rangeFrac = torpMax>0 ? dist/torpMax : 9;
     // Same middle band the enemy flotillas work to: close enough to connect,
     // far enough for the fish to arm and spread.
@@ -8417,7 +8421,7 @@ var speedFrac = clamp(Math.abs(m.speedKn)/m.def.topSpeedKts, 0, 1);
       var pX = pTgt.x, pY = pTgt.y;
       var eRange = sightRangePx(en.def.lengthFt, pTgt.def.lengthFt);
       var dx = pX-en.x, dy = pY-en.y;
-      var dist = Math.hypot(dx,dy);
+      var dist = Math.sqrt((dx)*(dx)+(dy)*(dy));
       // Where this ship holds the range is set by her weapons, not her lookouts:
       // gunnery is only effective out to the battery's practical range, so a ship
       // that manoeuvred on sighting range alone would sit outside her own gun
@@ -8446,7 +8450,7 @@ var blindInFormation = !!(en.formation && !en.formation.spotted);
         var rightX = Math.cos(f.heading), rightY = Math.sin(f.heading);
         var targetX = f.x + fwdX*(en.slot.along*f.spacing) + rightX*(en.slot.across*f.spacing);
         var targetY = f.y + fwdY*(en.slot.along*f.spacing) + rightY*(en.slot.across*f.spacing);
-        var toDist = Math.hypot(targetX-en.x, targetY-en.y);
+        var toDist = Math.sqrt((targetX-en.x)*(targetX-en.x)+(targetY-en.y)*(targetY-en.y));
         var baseSpeed = f.speedKn*floodMult;
         if (toDist > f.spacing*0.3){
           desired = headingTo(en.x,en.y,targetX,targetY);
@@ -8572,7 +8576,7 @@ var avoid = shipAvoidanceVector(en);
         var dcNear = false;
         for (var _dci=0; _dci<state.depthCharges.length; _dci++){
           var _dc = state.depthCharges[_dci];
-          if (Math.hypot(_dc.x-en.x, _dc.y-en.y) < 1400*scale){ dcNear = true; break; }
+          if (Math.sqrt((_dc.x-en.x)*(_dc.x-en.x)+(_dc.y-en.y)*(_dc.y-en.y)) < 1400*scale){ dcNear = true; break; }
         }
         // Nearest hunter: any player ship close aboard that carries charges.
         var hunterClose = 0, hunterX = 0, hunterY = 0;
@@ -8580,7 +8584,7 @@ var avoid = shipAvoidanceVector(en);
         for (var _hi=0; _hi<_plist.length; _hi++){
           var _pt = _plist[_hi];
           if (!depthChargeFit(_pt.def)) continue;
-          var _hd = Math.hypot(_pt.x-en.x, _pt.y-en.y);
+          var _hd = Math.sqrt((_pt.x-en.x)*(_pt.x-en.x)+(_pt.y-en.y)*(_pt.y-en.y));
           if (hunterClose===0 || _hd<hunterClose){ hunterClose=_hd; hunterX=_pt.x; hunterY=_pt.y; }
         }
         var hunterRun = hunterClose>0 && hunterClose < 2600*scale;
@@ -8767,7 +8771,7 @@ var avoid = shipAvoidanceVector(en);
       var shellSpeed = (en.tier.gunMuzzleVelFtS||2500) * scale;
       var mainLead = leadPoint(en.x, en.y, {x:pX, y:pY, heading:pTgt.heading, speedKn:pTgt.speedKn}, shellSpeed, 0);
       var targetAngle = Math.atan2(mainLead.y-en.y, mainLead.x-en.x);
-      var leadDist = Math.hypot(mainLead.x-en.x, mainLead.y-en.y);
+      var leadDist = Math.sqrt((mainLead.x-en.x)*(mainLead.x-en.x)+(mainLead.y-en.y)*(mainLead.y-en.y));
       // Same fire discipline as your consorts: hopeless shots — a destroyer's
       // whole battery dumped at a torpedo boat on the horizon — stay in the
       // magazines instead of announcing the ship for nothing. Gating on the
@@ -8787,7 +8791,7 @@ var avoid = shipAvoidanceVector(en);
           gunHitChance(ENEMY_DISP_MULT, en.def.secondaryGunBoreFt, en.x, en.y, pX, pY, pTgt.def, pTgt.heading) >= FIRE_MIN_P &&
           !fireLaneBlocked(en.x, en.y, secLead.x, secLead.y, 'enemy', en);
         var secAngle = Math.atan2(secLead.y-en.y, secLead.x-en.x);
-        var secMaxDist = Math.min(Math.hypot(secLead.x-en.x, secLead.y-en.y), secMaxRange);
+        var secMaxDist = Math.min(Math.sqrt((secLead.x-en.x)*(secLead.x-en.x)+(secLead.y-en.y)*(secLead.y-en.y)), secMaxRange);
         updateGunTurrets(en.def, en.secTurrets, en.x, en.y, en.heading, secAngle, secWantFire, dt, 'enemy', en.def.secondaryGunReload, en.def.secondaryGunDamage, secShellSpeed, secMaxDist, TURRET_TRAIN_RATE, en.def.secondaryGuns, en.def.secondaryGunBoxFt, en.def.secondaryGunMountType, en.def.secondaryGunBoreFt, en.def.secondaryGunPenetrationIn, en.def.sideLockedSecondary, undefined, undefined, en);
       }
       if (!enFlakBusy && en.def.aaGuns && en.def.aaGuns.length && en.aaTurrets && en.aaTurrets.length){
@@ -8798,7 +8802,7 @@ var avoid = shipAvoidanceVector(en);
           gunHitChance(ENEMY_DISP_MULT, en.def.aaGunBoreFt, en.x, en.y, pX, pY, pTgt.def, pTgt.heading) >= FIRE_MIN_P &&
           !fireLaneBlocked(en.x, en.y, aaLead.x, aaLead.y, 'enemy', en, true);
         var aaAngle = Math.atan2(aaLead.y-en.y, aaLead.x-en.x);
-        updateGunTurrets(en.def, en.aaTurrets, en.x, en.y, en.heading, aaAngle, aaWant, dt, 'enemy', en.def.aaGunReload, en.def.aaGunDamage, aaSpeed, Math.min(Math.hypot(aaLead.x-en.x, aaLead.y-en.y), aaRange), TURRET_TRAIN_RATE*1.6, en.def.aaGuns, en.def.aaGunBoxFt, en.def.aaGunMountType, en.def.aaGunBoreFt, en.def.aaGunPenetrationIn, undefined, undefined, undefined, en);
+        updateGunTurrets(en.def, en.aaTurrets, en.x, en.y, en.heading, aaAngle, aaWant, dt, 'enemy', en.def.aaGunReload, en.def.aaGunDamage, aaSpeed, Math.min(Math.sqrt((aaLead.x-en.x)*(aaLead.x-en.x)+(aaLead.y-en.y)*(aaLead.y-en.y)), aaRange), TURRET_TRAIN_RATE*1.6, en.def.aaGuns, en.def.aaGunBoxFt, en.def.aaGunMountType, en.def.aaGunBoreFt, en.def.aaGunPenetrationIn, undefined, undefined, undefined, en);
       }
       // Torpedoes get their own lead for torpedo speed — a shell-speed lead
       // would still trail a crossing target, and no lead at all misses astern.
@@ -8814,7 +8818,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
     for (var i=0;i<state.enemies.length;i++){
       var e = state.enemies[i];
       if (e.sinking) continue;
-      var d = Math.hypot(e.x-fromX, e.y-fromY);
+      var d = Math.sqrt((e.x-fromX)*(e.x-fromX)+(e.y-fromY)*(e.y-fromY));
       if (d<=maxRange && d<bestDist){ bestDist=d; best=e; }
     }
     return best;
@@ -9113,6 +9117,10 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
     }
   }
   function drawSparks(){
+    // Batched by fill bucket (color + alpha quantized to 0.05): one fillStyle
+    // set per bucket instead of per particle. Pixel output is unchanged to
+    // within half a percent of alpha.
+    var buckets = {}, order = [];
     for (var i=0;i<state.sparks.length;i++){
       var p = state.sparks[i];
       var sx = (p.x-camViewX)*camZoom + cssW/2, sy = (p.y-camViewY)*camZoom + cssH/2;
@@ -9122,8 +9130,22 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
       var r;
       if (p.kind==='smoke'){ r = p.size*(1+t*1.8)*camZoom; a *= 0.5; }
       else { r = Math.max(0.4,p.size*(1-t*0.4))*camZoom; }
-      ctx.fillStyle = 'rgba(' + p.col + ',' + Math.max(0,a).toFixed(2) + ')';
-      ctx.beginPath(); ctx.arc(sx,sy,r,0,Math.PI*2); ctx.fill();
+      var aq = Math.max(0,a);
+      aq = Math.round(aq*20)/20;
+      var key = p.col + '|' + aq.toFixed(2);
+      var bkt = buckets[key];
+      if (!bkt){ bkt = buckets[key] = {style:'rgba(' + p.col + ',' + aq.toFixed(2) + ')', pts:[]}; order.push(bkt); }
+      bkt.pts.push(sx, sy, r);
+    }
+    for (var k=0;k<order.length;k++){
+      var b = order[k];
+      ctx.fillStyle = b.style;
+      ctx.beginPath();
+      for (var j=0;j<b.pts.length;j+=3){
+        ctx.moveTo(b.pts[j]+b.pts[j+2], b.pts[j+1]);
+        ctx.arc(b.pts[j], b.pts[j+1], b.pts[j+2], 0, Math.PI*2);
+      }
+      ctx.fill();
     }
   }
 
@@ -9200,7 +9222,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
     var abx = bx-ax, aby = by-ay;
     var denom = abx*abx + aby*aby;
     var t = denom > 0 ? clamp(((px-ax)*abx + (py-ay)*aby)/denom, 0, 1) : 0;
-    return Math.hypot(px-(ax+abx*t), py-(ay+aby*t));
+    return Math.sqrt((px-(ax+abx*t))*(px-(ax+abx*t))+(py-(ay+aby*t))*(py-(ay+aby*t)));
   }
   function damagePlane(tgt, dmg, hx, hy){
     if (!tgt || tgt.dead) return;
@@ -9215,13 +9237,13 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
   // must then fly into something.
   function fireAirBullets(from, aimX, aimY, owner, damage, n, spreadFt, alt){
     var dx = aimX-from.x, dy = aimY-from.y;
-    var bl = Math.max(1, Math.hypot(dx,dy));
+    var bl = Math.max(1, Math.sqrt((dx)*(dx)+(dy)*(dy)));
     var nx = dx/bl, ny = dy/bl;
     var bSpd = AIR_BULLET_SPEED_FTS*scale;
     for (var i=0;i<n;i++){
       var e = (Math.random()-0.5)*(spreadFt||80)*scale;
       var tx = aimX - ny*e, ty = aimY + nx*e;
-      var bd = Math.max(1, Math.hypot(tx-from.x, ty-from.y));
+      var bd = Math.max(1, Math.sqrt((tx-from.x)*(tx-from.x)+(ty-from.y)*(ty-from.y)));
       state.projectiles.push({x:from.x, y:from.y,
         vx:(tx-from.x)/bd*bSpd, vy:(ty-from.y)/bd*bSpd,
         type:'bullet', owner:owner, damage:damage,
@@ -9233,7 +9255,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
   // shell, bigger burst: a 40mm throws fragments much further than a 20mm.
   function fireFlakShell(muzzle, bx, by, owner, shellSpd, damage, tgtAlt, boreFt, lethalFt){
     var dx = bx-muzzle.x, dy = by-muzzle.y;
-    var bd = Math.max(1, Math.hypot(dx,dy));
+    var bd = Math.max(1, Math.sqrt((dx)*(dx)+(dy)*(dy)));
     state.projectiles.push({x:muzzle.x, y:muzzle.y,
       vx:dx/bd*shellSpd, vy:dy/bd*shellSpd,
       type:'flak', owner:owner, damage:damage,
@@ -9243,7 +9265,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
   function updateProjectiles(dt){
     for (var i=state.projectiles.length-1; i>=0; i--){
       var p = state.projectiles[i];
-      var speed = Math.hypot(p.vx,p.vy);
+      var speed = Math.sqrt((p.vx)*(p.vx)+(p.vy)*(p.vy));
       p.x += p.vx*dt; p.y += p.vy*dt; p.traveled += speed*dt;
       var hit = false;
       // Hits read by calibre: a 16" rifle lands more than twice the fire and
@@ -9283,7 +9305,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
             var fo = state.aircraft[fk];
             if (fo.dead || fo.owner===p.owner) continue;
             if (Math.abs((fo.alt||0)-fAlt) > FLAK_ALT_TOL) continue;
-            var fdist = Math.hypot(fo.x-p.x, fo.y-p.y);
+            var fdist = Math.sqrt((fo.x-p.x)*(fo.x-p.x)+(fo.y-p.y)*(fo.y-p.y));
             if (fdist < lethalPx){
               damagePlane(fo, p.damage, fo.x, fo.y);
             } else if (fdist < lethalPx*3.5 && fo.phase!=='attack'){
@@ -9300,7 +9322,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
       }
       // Island terrain: shells and torpedoes strike land before they can hit ships behind it
       if(state.battleIsland && (p.type==='shell' || p.type==='torpedo')){
-        var _idist = Math.hypot(p.x - state.battleIsland.x, p.y - state.battleIsland.y);
+        var _idist = Math.sqrt((p.x - state.battleIsland.x)*(p.x - state.battleIsland.x)+(p.y - state.battleIsland.y)*(p.y - state.battleIsland.y));
         if(_idist < state.battleIsland.radius*0.62){
           // solid ground - puff of dirt/rock, no ship damage
           if(p.type==='torpedo'){
@@ -9329,7 +9351,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
           if (hidden){
             // no hull for a shell to strike — only the periscope is exposed
             var pPos = periscopeWorldPos(en);
-            hf = (shellZ <= 6 && Math.hypot(p.x-pPos.x, p.y-pPos.y) <= PERISCOPE_HIT_RADIUS_FT*scale) ? 0.5 : null;
+            hf = (shellZ <= 6 && Math.sqrt((p.x-pPos.x)*(p.x-pPos.x)+(p.y-pPos.y)*(p.y-pPos.y)) <= PERISCOPE_HIT_RADIUS_FT*scale) ? 0.5 : null;
           } else if (!isTorp && shellZ > shipHeightFt(en.def)){
             hf = null; // over — the arc carries her clean past this hull
           } else {
@@ -9375,7 +9397,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
           var ehf;
           if (eoHidden){
             var eoPos = periscopeWorldPos(eo);
-            ehf = (shellZ <= 6 && Math.hypot(p.x-eoPos.x, p.y-eoPos.y) <= PERISCOPE_HIT_RADIUS_FT*scale) ? 0.5 : null;
+            ehf = (shellZ <= 6 && Math.sqrt((p.x-eoPos.x)*(p.x-eoPos.x)+(p.y-eoPos.y)*(p.y-eoPos.y)) <= PERISCOPE_HIT_RADIUS_FT*scale) ? 0.5 : null;
           } else if (!isTorp && shellZ > shipHeightFt(eo.def)){
             ehf = null; // over
           } else {
@@ -9418,7 +9440,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
             var hfp;
             if (hiddenP){
               var pPosP = periscopeWorldPos({x:state.worldX, y:state.worldY, heading:state.headingDeg*Math.PI/180, def:ship});
-              hfp = (shellZ <= 6 && Math.hypot(p.x-pPosP.x, p.y-pPosP.y) <= PERISCOPE_HIT_RADIUS_FT*scale) ? 0.5 : null;
+              hfp = (shellZ <= 6 && Math.sqrt((p.x-pPosP.x)*(p.x-pPosP.x)+(p.y-pPosP.y)*(p.y-pPosP.y)) <= PERISCOPE_HIT_RADIUS_FT*scale) ? 0.5 : null;
             } else if (!isTorp && shellZ > shipHeightFt(ship)){
               hfp = null; // over
             } else {
@@ -9806,7 +9828,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
     // A boat at periscope depth is not on anybody's plot.
     if (en.tier && en.tier.key==='submarine' && (en.diveT||0) >= SUB_HIDDEN_THRESHOLD) return false;
     if (en.airSpotted > 0) return true;
-    var d = Math.hypot(en.x-state.worldX, en.y-state.worldY);
+    var d = Math.sqrt((en.x-state.worldX)*(en.x-state.worldX)+(en.y-state.worldY)*(en.y-state.worldY));
     return d < sightRangePx(currentShip().lengthFt, en.def.lengthFt);
   }
 
@@ -10080,7 +10102,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
   // breathes instead of twitching at every foot of error.
   function steerToStation(p, lead, stn, role){
     var sdx = stn.x-p.x, sdy = stn.y-p.y;
-    var sdist = Math.hypot(sdx, sdy);
+    var sdist = Math.sqrt((sdx)*(sdx)+(sdy)*(sdy));
     var dead = FORM_SETTLE_FT*scale;
     if (sdist <= dead){
       return {heading: lead.heading, speed: lead.speedKn, dist: sdist};
@@ -10164,7 +10186,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
       if (e === dead || e.sinking) continue;
       // No point retargeting onto a hull bombs and torpedoes cannot touch.
       if (e.tier && e.tier.key==='submarine' && (e.diveT||0) >= SUB_HIDDEN_THRESHOLD) continue;
-      var d = Math.hypot(e.x-dx, e.y-dy);
+      var d = Math.sqrt((e.x-dx)*(e.x-dx)+(e.y-dy)*(e.y-dy));
       if (d > SECONDARY_TARGET_RANGE_FT*scale) continue;
       var score = d;
       if (deadForm && e.formation === deadForm) score *= 0.35;
@@ -10452,7 +10474,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
   // the target, with the lead degrading as the aircrew's aim gets rushed.
   function leadPoint(fromX, fromY, ti, munitionSpeedPxS, errorFt){
     var dx = ti.x-fromX, dy = ti.y-fromY;
-    var dist = Math.hypot(dx,dy);
+    var dist = Math.sqrt((dx)*(dx)+(dy)*(dy));
     var t = munitionSpeedPxS>0 ? dist/munitionSpeedPxS : 0;
     var tgtSpd = ti.speedKn*1.68781*scale;
     var lx = ti.x + Math.sin(ti.heading)*tgtSpd*t;
@@ -10493,7 +10515,18 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
     }
     return n;
   }
+  // Bumped once per updateAircraft() pass; staleness below is in sim-frames.
+  var aiFrame = 0;
   function findAirTarget(p, rangeFt){
+    // Frame-sliced scan: the full sweep (plus engagedCount inside it) runs at
+    // most every 15 sim-frames per fighter (~0.25s at 1x). Between scans the
+    // last pick is reused after a validity check, so a kill still retargets
+    // within a quarter second.
+    var cached = p.tgtCache;
+    if (cached && (aiFrame - cached.frame) <= 15 && cached.range === rangeFt &&
+        (cached.pick === null || (!cached.pick.dead && state.aircraft.indexOf(cached.pick) !== -1))){
+      return cached.pick;
+    }
     // Fighters are vectored onto the bombers — the actual threat — first.
     // Only with no bomber or scout in reach do they turn on enemy fighters,
     // which keeps CAP from getting fixed in fighter-vs-fighter duels while a
@@ -10505,11 +10538,12 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
     for (var i=0;i<state.aircraft.length;i++){
       var o = state.aircraft[i];
       if (o.dead || o.owner===p.owner) continue;
-      var d = Math.hypot(o.x-p.x, o.y-p.y);
+      var d = Math.sqrt((o.x-p.x)*(o.x-p.x)+(o.y-p.y)*(o.y-p.y));
       if (d >= r) continue;
       var score = (o.role === 'fighter' ? 1e9 : 0) + engagedCount(o, p.owner, p)*6000*scale + d;
       if (score < bestScore){ bestScore = score; best = o; }
     }
+    p.tgtCache = {pick:best, frame:aiFrame, range:rangeFt};
     return best;
   }
 
@@ -10533,7 +10567,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
     for (var i=0;i<state.aircraft.length;i++){
       var o = state.aircraft[i];
       if (o.dead || o.owner===p.owner || o.role!=='fighter') continue;
-      var d = Math.hypot(o.x-p.x, o.y-p.y);
+      var d = Math.sqrt((o.x-p.x)*(o.x-p.x)+(o.y-p.y)*(o.y-p.y));
       if (d > rangePx || d >= bestD) continue;
       var toAttacker = headingTo(p.x, p.y, o.x, o.y);
       var dx = Math.sin(toAttacker), dy = -Math.cos(toAttacker);
@@ -10547,7 +10581,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
         var vt = o.airTarget;
         if (vt === p) defendsMate = true;
         else if (vt.owner === p.owner && vt.role !== 'fighter' &&
-                 Math.hypot(vt.x-p.x, vt.y-p.y) < rangePx*1.5) defendsMate = true;
+                 Math.sqrt((vt.x-p.x)*(vt.x-p.x)+(vt.y-p.y)*(vt.y-p.y)) < rangePx*1.5) defendsMate = true;
       }
       if (inCone || defendsMate){ bestD = d; best = o; }
     }
@@ -10559,7 +10593,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
     // a crossing 300kt target.
     var bvx = Math.sin(best.heading)*best.speedKn*1.68781*scale;
     var bvy = -Math.cos(best.heading)*best.speedKn*1.68781*scale;
-    var btof = Math.hypot(best.x-p.x, best.y-p.y)/Math.max(1, AIR_BULLET_SPEED_FTS*scale);
+    var btof = Math.sqrt((best.x-p.x)*(best.x-p.x)+(best.y-p.y)*(best.y-p.y))/Math.max(1, AIR_BULLET_SPEED_FTS*scale);
     fireAirBullets(p, best.x+bvx*btof*0.85, best.y+bvy*btof*0.85, p.owner, rg.damage, 2, 70, p.alt);
     p.muzzleT = 0.14;
     state.sparks.push({x:p.x, y:p.y, vx:0, vy:0, age:0, maxAge:0.08,
@@ -10606,6 +10640,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
   }
 
   function updateAircraft(dt){
+    aiFrame++;
     for (var i=state.aircraft.length-1; i>=0; i--){
       var p = state.aircraft[i];
       if (p.dead){ state.aircraft.splice(i,1); continue; }
@@ -10676,7 +10711,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
         var lgLead = groupLeader(p.group);
         if (lgLead && lgLead !== p && lgLead.phase === 'launch'){
           var joinPt = stationWorldPos(lgLead, p.slot, 1, 0);
-          var jd = Math.hypot(joinPt.x-p.x, joinPt.y-p.y);
+          var jd = Math.sqrt((joinPt.x-p.x)*(joinPt.x-p.x)+(joinPt.y-p.y)*(joinPt.y-p.y));
           desired = jd > FORM_SETTLE_FT*scale ? headingTo(p.x,p.y,joinPt.x,joinPt.y) : lgLead.heading;
         }
         if (p.alt > 0.5){
@@ -10700,7 +10735,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
         if (isLeader){
           if (wp){
             desired = headingTo(p.x, p.y, wp.x, wp.y);
-            if (Math.hypot(wp.x-p.x, wp.y-p.y) < ROUTE_HIT_FT*scale) g.routeIdx++;
+            if (Math.sqrt((wp.x-p.x)*(wp.x-p.x)+(wp.y-p.y)*(wp.y-p.y)) < ROUTE_HIT_FT*scale) g.routeIdx++;
           } else if (ti){
             // Route flown: run in on the target, spread across its beam rather
             // than in single file down the centreline.
@@ -10722,7 +10757,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
         // with the route and the target is in reach, which pulls the strike
         // apart into a stream at the right moment rather than on the way out.
         if (ti && !wp){
-          var d = Math.hypot(ti.x-p.x, ti.y-p.y);
+          var d = Math.sqrt((ti.x-p.x)*(ti.x-p.x)+(ti.y-p.y)*(ti.y-p.y));
           var trigger = (p.role==='dive' ? role.pushoverRangeFt : role.runInRangeFt) * scale;
           if (d < trigger) p.phase = 'attack';
         } else if (!ti && !wp && p.phase === 'cruise'){
@@ -10777,7 +10812,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
           var leftB = p.searchBearing - half, rightB = p.searchBearing + half;
           var lDirX = Math.cos(leftB), lDirY = Math.sin(leftB);
           var rDirX = Math.cos(rightB), rDirY = Math.sin(rightB);
-          var dApex = Math.hypot(p.x-apex.x, p.y-apex.y);
+          var dApex = Math.sqrt((p.x-apex.x)*(p.x-apex.x)+(p.y-apex.y)*(p.y-apex.y));
           if (!p.searchReturn){
             // Outbound: up the left side of the slice to the far end.
             var pxs = p.speedKn*1.68781*scale;
@@ -10805,7 +10840,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
           }
         } else if (swp){
           desired = headingTo(p.x, p.y, swp.x, swp.y);
-          if (Math.hypot(swp.x-p.x, swp.y-p.y) < ROUTE_HIT_FT*scale) sg.routeIdx++;
+          if (Math.sqrt((swp.x-p.x)*(swp.x-p.x)+(swp.y-p.y)*(swp.y-p.y)) < ROUTE_HIT_FT*scale) sg.routeIdx++;
         } else {
           // The last point of the route — or the assigned sector, or a shadowed
           // ship — is what gets orbited.
@@ -10821,7 +10856,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
             // nose is a circle that never ends and never finds anything.
             p.phase = 'return';
           } else {
-            var sdist = Math.hypot(sxT-p.x, syT-p.y);
+            var sdist = Math.sqrt((sxT-p.x)*(sxT-p.x)+(syT-p.y)*(syT-p.y));
             var orbit = role.orbitFt*scale;
             if (sdist > orbit*1.25){
               desired = headingTo(p.x, p.y, sxT, syT);
@@ -10838,7 +10873,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
         if (!ti){ p.phase = 'return'; }
         else {
           desired = headingTo(p.x, p.y, ti.x, ti.y);
-          var d2 = Math.hypot(ti.x-p.x, ti.y-p.y);
+          var d2 = Math.sqrt((ti.x-p.x)*(ti.x-p.x)+(ti.y-p.y)*(ti.y-p.y));
           if (p.role==='dive'){
             // Push over into the dive: nose down, speed builds fast, committed
             // to a straight screaming line until release, then a hard pull-out.
@@ -10882,7 +10917,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
         // instead of leaving the bombers to meet the enemy CAP on their own.
         if (!ti){ p.phase = home ? 'patrol' : 'return'; }
         else {
-          var sd = Math.hypot(ti.x-p.x, ti.y-p.y);
+          var sd = Math.sqrt((ti.x-p.x)*(ti.x-p.x)+(ti.y-p.y)*(ti.y-p.y));
           var sweepOrbit = CAP_ORBIT_FT*scale;
           if (sd > sweepOrbit*1.5){
             var sbrg = headingTo(p.x, p.y, ti.x, ti.y);
@@ -10903,7 +10938,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
         if (!air && (p.repositionT||0) <= 0) air = p.airTarget = findAirTarget(p, role.engageRangeFt);
         if (air){ p.phase = 'intercept'; }
         else if (home){
-          var hd = Math.hypot(home.x-p.x, home.y-p.y);
+          var hd = Math.sqrt((home.x-p.x)*(home.x-p.x)+(home.y-p.y)*(home.y-p.y));
           var orbit = CAP_ORBIT_FT*scale;
           var toHome = headingTo(p.x, p.y, home.x, home.y);
           if (hd > orbit*1.4) desired = toHome;
@@ -10936,7 +10971,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
           var tvx = Math.sin(air2.heading)*air2.speedKn*1.68781*scale;
           var tvy = -Math.cos(air2.heading)*air2.speedKn*1.68781*scale;
           var mySpd = Math.max(1, p.speedKn*1.68781*scale);
-          var tof2 = Math.hypot(air2.x-p.x, air2.y-p.y)/mySpd;
+          var tof2 = Math.sqrt((air2.x-p.x)*(air2.x-p.x)+(air2.y-p.y)*(air2.y-p.y))/mySpd;
           var aimX = air2.x + tvx*tof2*0.85, aimY = air2.y + tvy*tof2*0.85;
           // A jinking target will not fly straight: weave across the pursuit.
           if (air2.dodgeT > 0){
@@ -10946,7 +10981,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
           }
           desired = headingTo(p.x, p.y, aimX, aimY);
           speedTarget = role.speedKts;
-          var ad = Math.hypot(air2.x-p.x, air2.y-p.y);
+          var ad = Math.sqrt((air2.x-p.x)*(air2.x-p.x)+(air2.y-p.y)*(air2.y-p.y));
           var aim = Math.abs(angleDiffRad(desired, p.heading));
           if (ad < role.gunRangeFt*scale && aim < 0.35 && p.gunCooldown<=0){
             p.gunCooldown = role.gunReload*0.7;
@@ -10988,7 +11023,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
             p.ditchT = (p.ditchT||0) + dt;
             if (p.ditchT > 30){ killPlane(p); state.aircraft.splice(i,1); continue; }
           } else p.ditchT = 0;
-          var hd2 = Math.hypot(home.x-p.x, home.y-p.y);
+          var hd2 = Math.sqrt((home.x-p.x)*(home.x-p.x)+(home.y-p.y)*(home.y-p.y));
           var landingRun = 900*scale;
           // Line up astern first, then fly the deck centreline in — a proper
           // landing pattern instead of a beeline at the island.
@@ -11093,13 +11128,13 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
             var se = state.enemies[si];
             if (se.sinking) continue;
             if (se.tier && se.tier.key==='submarine' && (se.diveT||0) >= SUB_HIDDEN_THRESHOLD) continue;
-            if (Math.hypot(se.x-p.x, se.y-p.y) < spotR) se.airSpotted = SCOUT_CONTACT_MEMORY;
+            if (Math.sqrt((se.x-p.x)*(se.x-p.x)+(se.y-p.y)*(se.y-p.y)) < spotR) se.airSpotted = SCOUT_CONTACT_MEMORY;
           }
         } else {
           var pShip = currentShip();
           var pUnseen = pShip.isSubmarine && state.diveT >= SUB_HIDDEN_THRESHOLD;
           if (!pUnseen && !state.sinking && !state.gameOver &&
-              Math.hypot(state.worldX-p.x, state.worldY-p.y) < spotR){
+              Math.sqrt((state.worldX-p.x)*(state.worldX-p.x)+(state.worldY-p.y)*(state.worldY-p.y)) < spotR){
             state.spottedByAir = SCOUT_CONTACT_MEMORY;
             // The scout has found you, and the group it belongs to now knows
             // exactly where to look — this is how a battle line over the
@@ -11147,7 +11182,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
       if (f >= 1){
         var hitSomething = false;
         // island ground hit takes precedence over ship hit when bomb falls on land
-        if(state.battleIsland && Math.hypot(b.x - state.battleIsland.x, b.y - state.battleIsland.y) < state.battleIsland.radius*0.60){
+        if(state.battleIsland && Math.sqrt((b.x - state.battleIsland.x)*(b.x - state.battleIsland.x)+(b.y - state.battleIsland.y)*(b.y - state.battleIsland.y)) < state.battleIsland.radius*0.60){
           spawnExplosion(b.x,b.y,1.5);
           state.sparks.push({x:b.x,y:b.y,vx:(Math.random()-0.5)*10, vy:(Math.random()-0.5)*10, age:0, maxAge:0.8, size:6, col:'115,108,92', kind:'smoke'});
           hitSomething = true;
@@ -11282,7 +11317,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
         var en = state.enemies[j];
         if (en.sinking) continue;
         var isSub = !!(en.tier && en.tier.key==='submarine');
-        var d = Math.hypot(en.x-dc.x, en.y-dc.y);
+        var d = Math.sqrt((en.x-dc.x)*(en.x-dc.x)+(en.y-dc.y)*(en.y-dc.y));
         var f = depthChargeEffect(dc, d, en.diveT||0, isSub);
         if (f <= 0.02) continue;
         var hf = hullFracAt(dc.x, dc.y, en.x, en.y, en.heading, en.def.lengthFt*scale);
@@ -11299,7 +11334,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
         if (cj === state.groupIndex) continue;
         var cjm = state.group[cj];
         if (cjm.dead || cjm.sinking || !cjm.def.isSubmarine) continue;
-        var cd = Math.hypot(cjm.x-dc.x, cjm.y-dc.y);
+        var cd = Math.sqrt((cjm.x-dc.x)*(cjm.x-dc.x)+(cjm.y-dc.y)*(cjm.y-dc.y));
         var cf = depthChargeEffect(dc, cd, cjm.diveT||0, true);
         if (cf <= 0.02) continue;
         var chf = hullFracAt(dc.x, dc.y, cjm.x, cjm.y, cjm.heading, cjm.def.lengthFt*scale);
@@ -11308,7 +11343,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
     } else {
       var ship = currentShip();
       if (!state.gameOver && !state.sinking){
-        var pd = Math.hypot(state.worldX-dc.x, state.worldY-dc.y);
+        var pd = Math.sqrt((state.worldX-dc.x)*(state.worldX-dc.x)+(state.worldY-dc.y)*(state.worldY-dc.y));
         var depthT = ship.isSubmarine ? Math.max(state.diveT, state.fullSubT) : 0;
         var pf = depthChargeEffect(dc, pd, depthT, !!ship.isSubmarine);
         if (pf > 0.02){
@@ -11321,7 +11356,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
         if (ck === state.groupIndex) continue;
         var ckm = state.group[ck];
         if (ckm.dead || ckm.sinking) continue;
-        var ckd = Math.hypot(ckm.x-dc.x, ckm.y-dc.y);
+        var ckd = Math.sqrt((ckm.x-dc.x)*(ckm.x-dc.x)+(ckm.y-dc.y)*(ckm.y-dc.y));
         var ckDepthT = ckm.def.isSubmarine ? Math.max(ckm.diveT||0, ckm.fullSubT||0) : 0;
         var ckf = depthChargeEffect(dc, ckd, ckDepthT, !!ckm.def.isSubmarine);
         if (ckf <= 0.02) continue;
@@ -11407,7 +11442,7 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
       var en2 = state.enemies[i];
       if (en2 === detector || en2.sinking || en2.aswHunter || en2.formation !== formation) continue;
       if (!depthChargeFit(en2.def)) continue;
-      var d = Math.hypot(en2.x-detector.x, en2.y-detector.y);
+      var d = Math.sqrt((en2.x-detector.x)*(en2.x-detector.x)+(en2.y-detector.y)*(en2.y-detector.y));
       if (d < bestD){ bestD = d; best = en2; }
     }
     if (best){
@@ -11464,7 +11499,7 @@ if (!en.sonarValid && en.formation){
     }
     if (!en.sonarValid) return null;
 
-    var toC = Math.hypot(en.sonarX-en.x, en.sonarY-en.y);
+    var toC = Math.sqrt((en.sonarX-en.x)*(en.sonarX-en.x)+(en.sonarY-en.y)*(en.sonarY-en.y));
     if (toC < DC_ATTACK_RANGE_FT*scale && en.dcCooldown <= 0 && en.dcLeft > 0){
       var count = Math.min(fit.pattern, en.dcLeft);
       var stern = localToWorld(en.x, en.y, en.heading, 0, en.def.lengthFt*scale*0.48);
@@ -11487,7 +11522,7 @@ if (!en.sonarValid && en.formation){
     for (var i=0;i<state.aircraft.length;i++){
       var p = state.aircraft[i];
       if (p.dead || p.owner===owner) continue;
-      var d = Math.hypot(p.x-x, p.y-y);
+      var d = Math.sqrt((p.x-x)*(p.x-x)+(p.y-y)*(p.y-y));
       if (d < rangePx && d < bestD){ bestD = d; best = p; }
     }
     return best ? {plane:best, dist:bestD} : null;
@@ -11502,7 +11537,7 @@ if (!en.sonarValid && en.formation){
     for (var i=0;i<state.aircraft.length;i++){
       var p = state.aircraft[i];
       if (p.dead || p.owner===owner) continue;
-      var d = Math.hypot(p.x-x, p.y-y);
+      var d = Math.sqrt((p.x-x)*(p.x-x)+(p.y-y)*(p.y-y));
       if (d < rangePx) found.push({plane:p, dist:d});
     }
     found.sort(function(a,b){ return a.dist-b.dist; });
@@ -11582,8 +11617,8 @@ if (!en.sonarValid && en.formation){
       var muzzle = localToWorld(x, y, headingRad, mx, my);
       // Slant range: horizontal distance plus the shell's climb to the target's
       // height. High flyers can only be reached once close overhead.
-      var hDist = Math.hypot(cp.x-x, cp.y-y);
-      var slant = Math.hypot(hDist, clamp(cp.alt||0,0,1)*FLAK_ALT_FT*scale);
+      var hDist = Math.sqrt((cp.x-x)*(cp.x-x)+(cp.y-y)*(cp.y-y));
+      var slant = Math.sqrt((hDist)*(hDist)+(clamp(cp.alt||0,0,1)*FLAK_ALT_FT*scale)*(clamp(cp.alt||0,0,1)*FLAK_ALT_FT*scale));
       var closeness = clamp(1 - slant/range, 0, 1);
       if (closeness <= 0.02) continue;
       // Lead the target by its motion over the shell's time of flight, then
@@ -11596,7 +11631,7 @@ if (!en.sonarValid && en.formation){
       var pvx = Math.sin(cp.heading)*cp.speedKn*1.68781*scale;
       var pvy = -Math.cos(cp.heading)*cp.speedKn*1.68781*scale;
       var tof = hDist/Math.max(1, shellSpd);
-      tof = Math.hypot(cp.x+pvx*tof-x, cp.y+pvy*tof-y)/Math.max(1, shellSpd);
+      tof = Math.sqrt((cp.x+pvx*tof-x)*(cp.x+pvx*tof-x)+(cp.y+pvy*tof-y)*(cp.y+pvy*tof-y))/Math.max(1, shellSpd);
       // Scatter in two parts: lateral error plus along-track fuze error, both
       // growing as the range opens — and wider still against a target already
       // jinking. Bursts bracket the target instead of landing on it every time.
@@ -11607,7 +11642,7 @@ if (!en.sonarValid && en.formation){
       var spreadAlong = (110 + 260*(1-closeness)) * scale * jinkMul;
       var lx = cp.x + pvx*tof, ly = cp.y + pvy*tof;
       var ddx = lx-muzzle.x, ddy = ly-muzzle.y;
-      var dl = Math.max(1, Math.hypot(ddx,ddy));
+      var dl = Math.max(1, Math.sqrt((ddx)*(ddx)+(ddy)*(ddy)));
       var dirx = ddx/dl, diry = ddy/dl;
       var bx = lx + (-diry)*(Math.random()-0.5)*2*spreadLat + dirx*(Math.random()-0.5)*2*spreadAlong;
       var by = ly + (dirx)*(Math.random()-0.5)*2*spreadLat + diry*(Math.random()-0.5)*2*spreadAlong;
@@ -11761,7 +11796,7 @@ if (!en.sonarValid && en.formation){
     for (var i=0;i<state.aircraft.length;i++){
       var p = state.aircraft[i];
       if (p.owner==='player') continue;
-      var d = Math.hypot(p.x-state.worldX, p.y-state.worldY);
+      var d = Math.sqrt((p.x-state.worldX)*(p.x-state.worldX)+(p.y-state.worldY)*(p.y-state.worldY));
       if (d < 26000*scale) inbound++;
     }
     return inbound;
@@ -11854,7 +11889,7 @@ if (!en.sonarValid && en.formation){
         var sq = wingSquadron(state.airWing, 'scout');
         if (sq && sq.ready > 0 && !state.gameOver && !state.sinking){
           var pdx = state.aimScreenX-playerScreenX, pdy = state.aimScreenY-playerScreenY;
-          var previewFt = clamp(Math.hypot(pdx, pdy)/Math.max(0.001, camZoom)/Math.max(0.001, scale),
+          var previewFt = clamp(Math.sqrt((pdx)*(pdx)+(pdy)*(pdy))/Math.max(0.001, camZoom)/Math.max(0.001, scale),
                                 SCOUT_MIN_LEG_FT, AIR_ROLES.scout.searchLegFt);
           drawScoutSectorWedge(state.worldX, state.worldY, currentAimAngle(),
             AIR_ROLES.scout.sectorHalfDeg*Math.PI/180, previewFt, 0.85, true);
@@ -12152,8 +12187,8 @@ if (!en.sonarValid && en.formation){
   // centre of the view so distant action rumbles and close action slams.
   function addShake(amt, x, y){
     var sx = (x-camViewX)*camZoom + cssW/2, sy = (y-camViewY)*camZoom + cssH/2;
-    var d = Math.hypot(sx-cssW/2, sy-cssH/2);
-    var maxD = Math.hypot(cssW, cssH)/2;
+    var d = Math.sqrt((sx-cssW/2)*(sx-cssW/2)+(sy-cssH/2)*(sy-cssH/2));
+    var maxD = Math.sqrt((cssW)*(cssW)+(cssH)*(cssH))/2;
     var f = clamp(1 - d/(maxD*1.2), 0, 1);
     state.shake = Math.min(16, (state.shake||0) + amt*f);
   }
@@ -12395,9 +12430,15 @@ if (!en.sonarValid && en.formation){
       checkMissionEnd(dt);
     }
     updateDamageFlash(dt);
-    updateGauges();
-    updateHud();
-    updateAirOpsUI();
+    // HUD/DOM readouts throttle to ~12Hz: numbers and needles stay truthful,
+    // trailing the action by under a tenth of a second.
+    hudAcc += dt;
+    if (hudAcc >= 1/12){
+      hudAcc = 0;
+      updateGauges();
+      updateHud();
+      updateAirOpsUI();
+    }
     updateAirAlert(dt);
   }
 
@@ -12458,7 +12499,8 @@ if (!en.sonarValid && en.formation){
     drawScoutSectors();
     // The strike route is part of the aircraft sights and goes away with them.
     if (state.sightMode==='air' && sightsLive()) drawStrikePlot();
-    drawTacMap();
+    // The plot redraws at ~12Hz; contacts don't move faster than that reads.
+    if (tsec - lastTacT >= 1/12){ lastTacT = tsec; drawTacMap(); }
   }
 
   var COMPASS = ["N","NNE","NE","ENE","E","ESE","SE","SSE","S","SSW","SW","WSW","W","WNW","NW","NNW"];
@@ -12924,7 +12966,7 @@ if (!en.sonarValid && en.formation){
       var sy = (en.y-camViewY)*camZoom + cssH/2;
       var dx = state.aimScreenX - sx;
       var dy = state.aimScreenY - sy;
-      var d = Math.hypot(dx, dy);
+      var d = Math.sqrt((dx)*(dx)+(dy)*(dy));
       var hoverRadius = Math.max(22, en.def.lengthFt*scale*camZoom*0.6);
       if (d <= hoverRadius && d < bestD){
         bestD = d;
@@ -12942,7 +12984,7 @@ if (!en.sonarValid && en.formation){
       var gwy = (gi===state.groupIndex) ? state.worldY : gm.y;
       var gx = (gwx-camViewX)*camZoom + cssW/2;
       var gy = (gwy-camViewY)*camZoom + cssH/2;
-      var ad = Math.hypot(state.aimScreenX-gx, state.aimScreenY-gy);
+      var ad = Math.sqrt((state.aimScreenX-gx)*(state.aimScreenX-gx)+(state.aimScreenY-gy)*(state.aimScreenY-gy));
       var ar = Math.max(22, gm.def.lengthFt*scale*camZoom*0.6);
       if (ad <= ar && ad < bestA){ bestA = ad; state.hoveredAlly = gm; }
     }
@@ -12955,7 +12997,7 @@ if (!en.sonarValid && en.formation){
       if (ap.dead || ap.gone || !ap.group) continue;
       var ax = (ap.x-camViewX)*camZoom + cssW/2;
       var ay = (ap.y-camViewY)*camZoom + cssH/2;
-      var pd = Math.hypot(state.aimScreenX-ax, state.aimScreenY-ay);
+      var pd = Math.sqrt((state.aimScreenX-ax)*(state.aimScreenX-ax)+(state.aimScreenY-ay)*(state.aimScreenY-ay));
       if (pd <= 18 && pd < bestP){ bestP = pd; state.hoveredAirGroup = ap.group; }
     }
   }
@@ -12976,7 +13018,7 @@ if (!en.sonarValid && en.formation){
   canvas.addEventListener('pointermove', function(e){
     if (state.isPanning && e.pointerId===panPointerId){
       var dxs = e.clientX - panDragStartX, dys = e.clientY - panDragStartY;
-      if (Math.hypot(dxs, dys) > PAN_DRAG_SLOP) panDragMoved = true;
+      if (Math.sqrt((dxs)*(dxs)+(dys)*(dys)) > PAN_DRAG_SLOP) panDragMoved = true;
       state.camOffsetX = panStartOffsetX - dxs/camZoom;
       state.camOffsetY = panStartOffsetY - dys/camZoom;
       return;
@@ -13144,7 +13186,7 @@ if (!en.sonarValid && en.formation){
       // Only sighted ships are fair game — but a scout's contact report counts
       // as a sighting, which is what lets a strike be sent beyond the horizon.
       if (en.formation && !en.formation.spotted && !(en.airSpotted > 0)) continue;
-      var d = Math.hypot(en.x-ax, en.y-ay);
+      var d = Math.sqrt((en.x-ax)*(en.x-ax)+(en.y-ay)*(en.y-ay));
       if (d < bestD){ bestD = d; best = en; }
     }
     return best;
@@ -13160,7 +13202,7 @@ if (!en.sonarValid && en.formation){
     var ti = state.strikeTarget ? targetInfo(state.strikeTarget) : null;
     if (ti) pts.push({x:ti.x, y:ti.y});
     var total = 0;
-    for (var j=1;j<pts.length;j++) total += Math.hypot(pts[j].x-pts[j-1].x, pts[j].y-pts[j-1].y);
+    for (var j=1;j<pts.length;j++) total += Math.sqrt((pts[j].x-pts[j-1].x)*(pts[j].x-pts[j-1].x)+(pts[j].y-pts[j-1].y)*(pts[j].y-pts[j-1].y));
     return total/scale;
   }
 
@@ -13192,7 +13234,7 @@ if (!en.sonarValid && en.formation){
     if (!ti) return Infinity;
     var from = (state && state.worldX!=null) ? {x:state.worldX, y:state.worldY} : null;
     if (!from) return Infinity;
-    return Math.hypot(ti.x-from.x, ti.y-from.y)/Math.max(0.001, scale);
+    return Math.sqrt((ti.x-from.x)*(ti.x-from.x)+(ti.y-from.y)*(ti.y-from.y))/Math.max(0.001, scale);
   }
 
   function screenToWorld(sx, sy){
@@ -13245,10 +13287,10 @@ if (!en.sonarValid && en.formation){
       if (cap < Infinity){
         var px = state.worldX, py = state.worldY, used = 0;
         for (var li=0;li<state.strikeRoute.length;li++){
-          used += Math.hypot(state.strikeRoute[li].x-px, state.strikeRoute[li].y-py)/scale;
+          used += Math.sqrt((state.strikeRoute[li].x-px)*(state.strikeRoute[li].x-px)+(state.strikeRoute[li].y-py)*(state.strikeRoute[li].y-py))/scale;
           px = state.strikeRoute[li].x; py = state.strikeRoute[li].y;
         }
-        var legPx = Math.hypot(w.x-px, w.y-py);
+        var legPx = Math.sqrt((w.x-px)*(w.x-px)+(w.y-py)*(w.y-py));
         var legLen = legPx/scale;
         if (used + legLen > cap){
           var allow = cap - used;
@@ -13359,7 +13401,7 @@ if (!en.sonarValid && en.formation){
     var rect = mapEl.getBoundingClientRect();
     mapW = rect.width; mapH = rect.height;
     if (mapW < 2 || mapH < 2) return;
-    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     mapCanvas.width = Math.round(mapW*dpr);
     mapCanvas.height = Math.round(mapH*dpr);
     mapCtx.setTransform(dpr,0,0,dpr,0,0);
@@ -13377,7 +13419,7 @@ if (!en.sonarValid && en.formation){
   function chooseMapRangeFt(contacts){
     var maxD = 0;
     for (var i=0;i<contacts.length;i++){
-      maxD = Math.max(maxD, Math.hypot(contacts[i].p.x-state.worldX, contacts[i].p.y-state.worldY)/scale);
+      maxD = Math.max(maxD, Math.sqrt((contacts[i].p.x-state.worldX)*(contacts[i].p.x-state.worldX)+(contacts[i].p.y-state.worldY)*(contacts[i].p.y-state.worldY))/scale);
     }
     for (var j=0;j<PLOT_RANGE_STEPS_NM.length;j++){
       var r = PLOT_RANGE_STEPS_NM[j]*NM_FT;
@@ -13462,7 +13504,7 @@ if (!en.sonarValid && en.formation){
         var pl = state.aircraft[a];
         if (pl.dead) continue;
         var ap = mapProject(pl.x, pl.y, cx, cy, ppf);
-        if (Math.hypot(ap.x-cx, ap.y-cy) > radius){
+        if (Math.sqrt((ap.x-cx)*(ap.x-cx)+(ap.y-cy)*(ap.y-cy)) > radius){
           // Out-of-range aircraft get the same rim-arrow treatment as contacts.
           var aa = Math.atan2(ap.y-cy, ap.x-cx);
           mapCtx.save();
@@ -13485,7 +13527,7 @@ if (!en.sonarValid && en.formation){
     for (var i=0;i<contacts.length;i++){
       var c = contacts[i], p = c.p;
       var pos = mapProject(p.x, p.y, cx, cy, ppf);
-      var offR = Math.hypot(pos.x-cx, pos.y-cy);
+      var offR = Math.sqrt((pos.x-cx)*(pos.x-cx)+(pos.y-cy)*(pos.y-cy));
       var clipped = false;
       if (offR > radius){
         // Off the edge of the board: pin it to the rim as a bearing marker so
@@ -13571,7 +13613,7 @@ if (!en.sonarValid && en.formation){
           mapCtx.fillStyle = 'rgba(190,205,214,0.7)';
           mapCtx.font = "8px 'Oswald', Arial";
           var brg = ((Math.atan2(p.x-state.worldX, -(p.y-state.worldY))*180/Math.PI)+360)%360;
-          var rng = Math.hypot(p.x-state.worldX, p.y-state.worldY)/scale/NM_FT;
+          var rng = Math.sqrt((p.x-state.worldX)*(p.x-state.worldX)+(p.y-state.worldY)*(p.y-state.worldY))/scale/NM_FT;
           var tag = String(Math.round(brg)).padStart(3,'0') + '° ' + rng.toFixed(1) + ' nm';
           if (isIntel) tag += ' · BRIEF';
           else if (!held) tag += ' · EST ' + Math.round(p.age) + 's';
@@ -13636,7 +13678,7 @@ if (!en.sonarValid && en.formation){
     for (var i=0;i<contacts.length;i++){
       var c = contacts[i];
       var pos = mapProject(c.p.x, c.p.y, cx, cy, ppf);
-      var d = Math.hypot(pos.x-mx, pos.y-my);
+      var d = Math.sqrt((pos.x-mx)*(pos.x-mx)+(pos.y-my)*(pos.y-my));
       if (d < 22 && d < bestD){ bestD = d; best = c; }
     }
     if (!best){ toggleTacMap(); return; }
@@ -13734,7 +13776,7 @@ if (!en.sonarValid && en.formation){
     var ang = currentAimAngle();
     var sdx = (state.aimScreenX==null ? 0 : state.aimScreenX-playerScreenX);
     var sdy = (state.aimScreenY==null ? 0 : state.aimScreenY-playerScreenY);
-    var cursorFt = Math.hypot(sdx, sdy)/Math.max(0.001, camZoom)/Math.max(0.001, scale);
+    var cursorFt = Math.sqrt((sdx)*(sdx)+(sdy)*(sdy))/Math.max(0.001, camZoom)/Math.max(0.001, scale);
     return {bearing: ang, half: AIR_ROLES.scout.sectorHalfDeg*Math.PI/180,
             legFt: clamp(cursorFt, SCOUT_MIN_LEG_FT, AIR_ROLES.scout.searchLegFt)};
   }
@@ -14124,7 +14166,7 @@ if (!en.sonarValid && en.formation){
     var routeFt = (state.strikeRoute.length || ti) ? routeLengthFt() : 0;
     var overRange = routeFt > strikeRadiusFt();
     if (ti && state.strikeTarget.def){
-      var d = Math.hypot(state.strikeTarget.x-state.worldX, state.strikeTarget.y-state.worldY)/scale;
+      var d = Math.sqrt((state.strikeTarget.x-state.worldX)*(state.strikeTarget.x-state.worldX)+(state.strikeTarget.y-state.worldY)*(state.strikeTarget.y-state.worldY))/scale;
       tEl.textContent = state.strikeTarget.def.nameShort + ' · ' + (d/2025).toFixed(1) + ' nm' +
                         (overRange ? ' · OVER RANGE' : '');
       tEl.classList.remove('none');
@@ -14143,7 +14185,7 @@ if (!en.sonarValid && en.formation){
       if (p.owner==='player' || p.dead) continue;
       // An unarmed shadower overhead is a serious problem, but it is not a raid.
       if (p.role === 'scout') continue;
-      if (Math.hypot(p.x-state.worldX, p.y-state.worldY) < 34000*scale) inbound++;
+      if (Math.sqrt((p.x-state.worldX)*(p.x-state.worldX)+(p.y-state.worldY)*(p.y-state.worldY)) < 34000*scale) inbound++;
     }
     var el = document.getElementById('airAlert');
     if (!el) return;
@@ -16414,7 +16456,7 @@ if (!en.sonarValid && en.formation){
                +blob(nx,ny,0.16,0.78,0.135,0.125,0.98)+blob(nx,ny,0.87,0.26,0.17,0.15,0.80);
           m+=0.22*(warped(n,nx*4.4,ny*4.4,4,1.0)-0.5);
           var h=(m-0.32)*0.85;
-          var dS=Math.hypot((nx-0.16)*1.05,ny-0.78);
+          var dS=Math.sqrt(((nx-0.16)*1.05)*((nx-0.16)*1.05)+(ny-0.78)*(ny-0.78));
           h+=Math.pow(Math.max(0,1-dS/0.135),1.35)*0.95-Math.max(0,1-dS/0.024)*0.28;
           if(h>0.10&&nx>0.46&&ny<0.55) h=0.10+(h-0.10)*0.32;
           if(h>0.01&&h<0.16&&nx>0.72) h=Math.round(h*26)/26;
@@ -16520,7 +16562,7 @@ if (!en.sonarValid && en.formation){
         else if(h<-0.010) t=(sheet.reefy&&fbm(nm,x*0.09,y*0.09,3)>0.48)?TI.reef:TI.shallow;
         else if(h<0.006) t=TI.surf;
         else{
-          var sl=Math.hypot(gx[i],gy[i]);
+          var sl=Math.sqrt((gx[i])*(gx[i])+(gy[i])*(gy[i]));
           var m=fbm(nm,x*0.035+11,y*0.035,4);
           m=cl(m+0.22*(1-ss(0.02,0.45,h))-0.12*ss(0,0.10,sl)+(sheet.wet?0.08:0),0,1);
           t=sheet.land(h,sl,m,rnd());
@@ -16541,7 +16583,7 @@ if (!en.sonarValid && en.formation){
       function stampLine(pts,wid,t,flatten,carve){
         for(var s=0;s<pts.length-1;s++){
           var ax=pts[s][0]*W, ay=pts[s][1]*H, bx=pts[s+1][0]*W, by=pts[s+1][1]*H;
-          var steps=Math.ceil(Math.hypot(bx-ax,by-ay)*2), k;
+          var steps=Math.ceil(Math.sqrt((bx-ax)*(bx-ax)+(by-ay)*(by-ay))*2), k;
           for(k=0;k<=steps;k++){
             var u=k/steps, cx=lr(ax,bx,u), cy=lr(ay,by,u);
             var jit=(fbm(nm,cx*0.12,cy*0.12,3)-0.5)*(t===TI.strip?0.5:2.0);
@@ -16552,7 +16594,7 @@ if (!en.sonarValid && en.formation){
             }
             var target=hn?hs/hn:0;
             for(oy=-Math.ceil(r)-1;oy<=r+1;oy++) for(ox=-Math.ceil(r)-1;ox<=r+1;ox++){
-              d=Math.hypot(ox,oy);
+              d=Math.sqrt((ox)*(ox)+(oy)*(oy));
               if(d>r) continue;
               X=(cx+ox)|0; Y=(cy+oy)|0;
               if(X<0||Y<0||X>=W||Y>=H) continue;
@@ -16573,7 +16615,7 @@ if (!en.sonarValid && en.formation){
         clearing:function(cx,cy,r){
           var X=cx*W, Y=cy*H, ox, oy;
           for(oy=-r;oy<=r;oy++) for(ox=-r;ox<=r;ox++){
-            if(Math.hypot(ox,oy)>r*(0.6+0.55*fbm(nm,(X+ox)*0.18,(Y+oy)*0.18,2))) continue;
+            if(Math.sqrt((ox)*(ox)+(oy)*(oy))>r*(0.6+0.55*fbm(nm,(X+ox)*0.18,(Y+oy)*0.18,2))) continue;
             if(!isLand(X+ox,Y+oy)) continue;
             if(TILES[tile[cl((Y+oy)|0,0,H-1)*W+cl((X+ox)|0,0,W-1)]].tree) set(X+ox,Y+oy,rnd()<0.35?TI.kunai:TI.grass);
           }
@@ -16581,7 +16623,7 @@ if (!en.sonarValid && en.formation){
         village:function(cx,cy,r){
           var X=cx*W, Y=cy*H, ox, oy;
           for(oy=-r;oy<=r;oy++) for(ox=-r;ox<=r;ox++){
-            if(Math.hypot(ox,oy)>r*(0.7+0.5*fbm(nm,(X+ox)*0.2,(Y+oy)*0.2,2))) continue;
+            if(Math.sqrt((ox)*(ox)+(oy)*(oy))>r*(0.7+0.5*fbm(nm,(X+ox)*0.2,(Y+oy)*0.2,2))) continue;
             if(!isLand(X+ox,Y+oy)) continue;
             set(X+ox,Y+oy,rnd()<0.32?TI.rubble:TI.grass);
             if(rnd()<0.09){
@@ -16608,7 +16650,7 @@ if (!en.sonarValid && en.formation){
           for(var i2=0;i2<n;i2++){
             var X=(rnd()*W)|0, Y=(rnd()*H)|0, r=3+rnd()*4, ox, oy;
             for(oy=-r;oy<=r;oy++) for(ox=-r;ox<=r;ox++){
-              if(Math.hypot(ox,oy)>r*(0.6+0.6*rnd())||!isLand(X+ox,Y+oy)) continue;
+              if(Math.sqrt((ox)*(ox)+(oy)*(oy))>r*(0.6+0.6*rnd())||!isLand(X+ox,Y+oy)) continue;
               if(TILES[tile[cl((Y+oy)|0,0,H-1)*W+cl((X+ox)|0,0,W-1)]].hard) continue;
               set(X+ox,Y+oy,TI.rubble);
             }
@@ -16629,13 +16671,13 @@ if (!en.sonarValid && en.formation){
               qj=Y*W+X; qt=TILES[tile[qj]];
               if(!(qt.hard||qt.tree||tile[qj]===TI.strip)) continue;
               var ex=Math.max(X-cx/PS, 0, cx/PS-(X+1)), ey=Math.max(Y-cy/PS, 0, cy/PS-(Y+1));
-              if(Math.hypot(ex,ey)<lipT) clash=true;
+              if(Math.sqrt((ex)*(ex)+(ey)*(ey))<lipT) clash=true;
             }
             if(clash) continue;
             for(oy=-span;oy<=span;oy++) for(ox=-span;ox<=span;ox++){
               X=tx+ox; Y=ty+oy;
               if(X<0||Y<0||X>=W||Y>=H||!isLand(X,Y)) continue;
-              d=Math.hypot((X+0.5)*PS-cx,(Y+0.5)*PS-cy)/PS;
+              d=Math.sqrt(((X+0.5)*PS-cx)*((X+0.5)*PS-cx)+((Y+0.5)*PS-cy)*((Y+0.5)*PS-cy))/PS;
               if(d>rT*0.85) continue;
               j=Y*W+X;
               if(tile[j]===TI.strip||TILES[tile[j]].hard||TILES[tile[j]].tree) continue;
@@ -17026,7 +17068,7 @@ if (!en.sonarValid && en.formation){
         }
       }
       function unitDir(dir){
-        if(dir && (dir.x||dir.y)){ var l=Math.hypot(dir.x,dir.y); return {x:dir.x/l, y:dir.y/l, fast:!!dir.fast}; }
+        if(dir && (dir.x||dir.y)){ var l=Math.sqrt((dir.x)*(dir.x)+(dir.y)*(dir.y)); return {x:dir.x/l, y:dir.y/l, fast:!!dir.fast}; }
         var r=Math.random()*6.2832; return {x:Math.cos(r), y:Math.sin(r), fast:!!(dir&&dir.fast)};
       }
       function fell(j, dir){
@@ -17214,14 +17256,14 @@ if (!en.sonarValid && en.formation){
           for(y=2;y<H-2;y++) for(x=2;x<W-2;x++){
             var wx=(x+0.5)*TS, wy=(y+0.5)*TS;
             if(!api.open(wx,wy)) continue;
-            sc=-Math.hypot(wx-bx,wy-by);
+            sc=-Math.sqrt((wx-bx)*(wx-bx)+(wy-by)*(wy-by));
             if(sc>bs){ bs=sc; best={x:wx,y:wy}; }
           }
           return best || {x:bx,y:by};
         },
         /* sight line across the tile grid */
         blocksLos: function(x1,y1,x2,y2){
-          var dx=x2-x1, dy=y2-y1, len=Math.hypot(dx,dy);
+          var dx=x2-x1, dy=y2-y1, len=Math.sqrt((dx)*(dx)+(dy)*(dy));
           if(len<1) return false;
           var steps=Math.ceil(len/(TS*0.5)), i, x, y;
           for(i=1;i<steps;i++){
@@ -17318,7 +17360,7 @@ if (!en.sonarValid && en.formation){
           for(oy=-span;oy<=span;oy++) for(ox=-span;ox<=span;ox++){
             X=(tx|0)+ox; Y=(ty|0)+oy;
             if(X<0||Y<0||X>=W||Y>=H) continue;
-            d=Math.hypot(X+0.5-tx, Y+0.5-ty);
+            d=Math.sqrt((X+0.5-tx)*(X+0.5-tx)+(Y+0.5-ty)*(Y+0.5-ty));
             j=Y*W+X;
             t=TILES[tile[j]];                 // what stood here before the blast
             var away={x:X+0.5-tx, y:Y+0.5-ty, fast:true};
@@ -17343,7 +17385,7 @@ if (!en.sonarValid && en.formation){
             j=Y*W+X; t=TILES[tile[j]];
             if(!(t.hard||t.tree||t.water||objOf[j]>=0)) continue;
             var ddx=Math.max(X*PS-pcx, 0, pcx-(X+1)*PS), ddy=Math.max(Y*PS-pcy, 0, pcy-(Y+1)*PS);
-            var dd=Math.hypot(ddx,ddy);
+            var dd=Math.sqrt((ddx)*(ddx)+(ddy)*(ddy));
             if(dd<lim) lim=dd;
           }
           cr=lim/1.55;
@@ -17435,7 +17477,7 @@ if (!en.sonarValid && en.formation){
     var abx = bx-ax, aby = by-ay;
     var denom = abx*abx + aby*aby;
     var t = denom > 0 ? clamp(((px-ax)*abx + (py-ay)*aby)/denom, 0, 1) : 0;
-    return Math.hypot(px-(ax+abx*t), py-(ay+aby*t));
+    return Math.sqrt((px-(ax+abx*t))*(px-(ax+abx*t))+(py-(ay+aby*t))*(py-(ay+aby*t)));
   }
   function tankSegRectHit(ax,ay,bx,by,r){
     // Segment vs axis-aligned rect r={x,y,w,h} (x,y = top-left).
@@ -17471,7 +17513,7 @@ if (!en.sonarValid && en.formation){
   }
   function tankCircleRectPush(px,py,r,rc){
     var nx = clamp(px, rc.x, rc.x+rc.w), ny = clamp(py, rc.y, rc.y+rc.h);
-    var dx = px-nx, dy = py-ny, d = Math.hypot(dx,dy);
+    var dx = px-nx, dy = py-ny, d = Math.sqrt((dx)*(dx)+(dy)*(dy));
     if (d >= r) return null;
     if (d < 0.001){ return {x:px, y:py-rc.h/2-r}; }
     return {x:nx+dx/d*r, y:ny+dy/d*r};
@@ -17567,7 +17609,7 @@ if (!en.sonarValid && en.formation){
         placed = true;
         if (tank.ground && !tank.ground.open(ex,ey)) placed = false;
         for (var o2=0;o2<tank.enemies.length;o2++){
-          if (Math.hypot(ex-tank.enemies[o2].x, ey-tank.enemies[o2].y) < 190){ placed = false; break; }
+          if (Math.sqrt((ex-tank.enemies[o2].x)*(ex-tank.enemies[o2].x)+(ey-tank.enemies[o2].y)*(ey-tank.enemies[o2].y)) < 190){ placed = false; break; }
         }
       }
       if (tank.ground){ var enp = tank.ground.nudge(ex, ey); ex = enp.x; ey = enp.y; }
@@ -17622,8 +17664,8 @@ if (!en.sonarValid && en.formation){
     if (tank && !tank.gameOver){
       var sx = (x-(tank.camX+tankPanX))*tankZoom + tankW/2;
       var sy = (y-(tank.camY+tankPanY))*tankZoom + tankH/2;
-      var d = Math.hypot(sx-tankW/2, sy-tankH/2);
-      var maxD = Math.hypot(tankW, tankH)/2;
+      var d = Math.sqrt((sx-tankW/2)*(sx-tankW/2)+(sy-tankH/2)*(sy-tankH/2));
+      var maxD = Math.sqrt((tankW)*(tankW)+(tankH)*(tankH))/2;
       tank.shake = Math.min(12, tank.shake + (big?9:4)*clamp(1-d/(maxD*1.2), 0, 1));
     }
   }
@@ -17700,6 +17742,10 @@ if (!en.sonarValid && en.formation){
     if (currentScreen!=='tank' || !tank) return;
     tank.time += dt;
     tank.shake = Math.max(0, tank.shake - dt*26);
+    // Tank HUD throttles with the naval one (~12Hz).
+    hudAcc += dt;
+    var hudDue = hudAcc >= 1/12;
+    if (hudDue) hudAcc = 0;
     var def = currentTank(), p = tank.player;
     if (tank.gameOver){
       for (var pi=0; pi<tank.parts.length; pi++){ var pp0 = tank.parts[pi]; pp0.age += dt; pp0.x += pp0.vx*dt; pp0.y += pp0.vy*dt; }
@@ -17712,7 +17758,7 @@ if (!en.sonarValid && en.formation){
       }
       var elf = document.getElementById('tankDamageFlash');
       if (elf) elf.style.opacity = String(Math.max(0, parseFloat(elf.style.opacity||'0') - dt*1.8));
-      updateTankHud();
+      if (hudDue) updateTankHud();
       return;
     }
     // --- player drive ---
@@ -17766,7 +17812,7 @@ if (!en.sonarValid && en.formation){
       for (var be_i=0; be_i<tank.enemies.length; be_i++){
         var cand = tank.enemies[be_i];
         if (cand.dead) continue;
-        var cdx = cand.x-wa.x, cdy = cand.y-wa.y, cd = Math.hypot(cdx,cdy);
+        var cdx = cand.x-wa.x, cdy = cand.y-wa.y, cd = Math.sqrt((cdx)*(cdx)+(cdy)*(cdy));
         if (cd < wd.range && cd < bd && !tankLosBlocked(wa.x, wa.y, cand.x, cand.y)){ bd = cd; be = cand; }
       }
       var gx, gy, desSpA;
@@ -17787,7 +17833,7 @@ if (!en.sonarValid && en.formation){
       var wantH = Math.atan2(gx-wa.x, -(gy-wa.y));
       var dH = angleDiffRad(wantH, wa.h);
       wa.h += clamp(dH, -wd.turnRate*dt, wd.turnRate*dt);
-      var stDist = Math.hypot(gx-wa.x, gy-wa.y);
+      var stDist = Math.sqrt((gx-wa.x)*(gx-wa.x)+(gy-wa.y)*(gy-wa.y));
       var goSp = (be && desSpA===0) ? 0 : clamp((stDist-24)*1.6, 0, desSpA);
       wa.sp += clamp(goSp - wa.sp, -wd.accel*dt, wd.accel*dt);
       var wgx0 = wa.x, wgy0 = wa.y;
@@ -17817,11 +17863,11 @@ if (!en.sonarValid && en.formation){
       e.reload = Math.max(0, e.reload - dt);
       e.flash = Math.max(0, e.flash - dt*6);
       // face the nearest living friendly: the guide or a wingman
-      var tgt = p, tdx = p.x-e.x, tdy = p.y-e.y, tdist = Math.hypot(tdx,tdy);
+      var tgt = p, tdx = p.x-e.x, tdy = p.y-e.y, tdist = Math.sqrt((tdx)*(tdx)+(tdy)*(tdy));
       for (var nf=0; nf<tank.allies.length; nf++){
         var nfa = tank.allies[nf];
         if (nfa.dead) continue;
-        var nadx = nfa.x-e.x, nady = nfa.y-e.y, nad = Math.hypot(nadx,nady);
+        var nadx = nfa.x-e.x, nady = nfa.y-e.y, nad = Math.sqrt((nadx)*(nadx)+(nady)*(nady));
         if (nad < tdist){ tdist = nad; tdx = nadx; tdy = nady; tgt = nfa; }
       }
       var dx = tdx, dy = tdy, dist = tdist;
@@ -17889,7 +17935,7 @@ if (!en.sonarValid && en.formation){
         if (a.dead && a.wreckT>6) continue;
         if (b.dead && b.wreckT>6) continue;
         var ar = (a===p?def.hullWid:(a.def?a.def.hullWid:a.wid))*0.62, br = (b===p?def.hullWid:(b.def?b.def.hullWid:b.wid))*0.62;
-        var ddx = b.x-a.x, ddy = b.y-a.y, dd = Math.hypot(ddx,ddy), min = ar+br;
+        var ddx = b.x-a.x, ddy = b.y-a.y, dd = Math.sqrt((ddx)*(ddx)+(ddy)*(ddy)), min = ar+br;
         if (dd < min && dd > 0.01){
           var push = (min-dd)/2;
           ddx/=dd; ddy/=dd;
@@ -17929,7 +17975,7 @@ if (!en.sonarValid && en.formation){
     for (i=tank.shells.length-1;i>=0;i--){
       var s = tank.shells[i];
       s.x += s.vx*dt; s.y += s.vy*dt;
-      s.traveled += Math.hypot(s.vx,s.vy)*dt;
+      s.traveled += Math.sqrt((s.vx)*(s.vx)+(s.vy)*(s.vy))*dt;
       var dead = false;
       if (s.x<0 || s.y<0 || s.x>TANK_WORLD.w || s.y>TANK_WORLD.h || s.traveled > s.maxDist){
         dead = true;
@@ -17972,7 +18018,7 @@ if (!en.sonarValid && en.formation){
       if (!dead){
         for (var ti=0; ti<tank.trees.length && !dead; ti++){
           var tr = tank.trees[ti];
-          if (Math.hypot(s.x-tr.x, s.y-tr.y) < tr.r){
+          if (Math.sqrt((s.x-tr.x)*(s.x-tr.x)+(s.y-tr.y)*(s.y-tr.y)) < tr.r){
             dead = true;
             tank.parts.push({x:s.x, y:s.y, vx:0, vy:0, age:0, max:0.4, size:2.5, col:'90,120,70'});
           }
@@ -17983,7 +18029,7 @@ if (!en.sonarValid && en.formation){
           for (var k=0;k<tank.enemies.length && !dead;k++){
             var en = tank.enemies[k];
             if (en.dead) continue;
-            if (Math.hypot(s.x-en.x, s.y-en.y) < Math.max(en.len,en.wid)*0.42){
+            if (Math.sqrt((s.x-en.x)*(s.x-en.x)+(s.y-en.y)*(s.y-en.y)) < Math.max(en.len,en.wid)*0.42){
               dead = true;
               tankBurst(s.x, s.y, false);
               tankDamageEnemy(en, s.dmg);
@@ -17991,11 +18037,11 @@ if (!en.sonarValid && en.formation){
           }
         } else {
           var hitF = null;
-          if (!p.dead && Math.hypot(s.x-p.x, s.y-p.y) < Math.max(def.hullLen,def.hullWid)*0.42) hitF = p;
+          if (!p.dead && Math.sqrt((s.x-p.x)*(s.x-p.x)+(s.y-p.y)*(s.y-p.y)) < Math.max(def.hullLen,def.hullWid)*0.42) hitF = p;
           if (!hitF){
             for (var hai=0; hai<tank.allies.length && !hitF; hai++){
               var haa = tank.allies[hai];
-              if (!haa.dead && Math.hypot(s.x-haa.x, s.y-haa.y) < Math.max(haa.def.hullLen,haa.def.hullWid)*0.42) hitF = haa;
+              if (!haa.dead && Math.sqrt((s.x-haa.x)*(s.x-haa.x)+(s.y-haa.y)*(s.y-haa.y)) < Math.max(haa.def.hullLen,haa.def.hullWid)*0.42) hitF = haa;
             }
           }
           if (hitF){
@@ -18040,7 +18086,7 @@ if (!en.sonarValid && en.formation){
     tank.camY += (p.y - tank.camY) * Math.min(1, dt*5);
     var elf2 = document.getElementById('tankDamageFlash');
     if (elf2) elf2.style.opacity = String(Math.max(0, parseFloat(elf2.style.opacity||'0') - dt*1.8));
-    updateTankHud();
+    if (hudDue) updateTankHud();
   }
   function tankScreenOf(wx, wy){
     var cx = tank.camX + tankPanX, cy = tank.camY + tankPanY;
@@ -18473,7 +18519,7 @@ if (!en.sonarValid && en.formation){
     var rect = tankViewport.getBoundingClientRect();
     tankW = rect.width; tankH = rect.height;
     if (tankW < 2 || tankH < 2) return;
-    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     tankCanvas.width = Math.round(tankW*dpr);
     tankCanvas.height = Math.round(tankH*dpr);
     tankCtx.setTransform(dpr,0,0,dpr,0,0);
@@ -18495,7 +18541,7 @@ if (!en.sonarValid && en.formation){
     tankCanvas.addEventListener('pointermove', function(e){
       if (tankPanning && e.pointerId===tankPanId){
         var dxs = e.clientX-tankPanSX, dys = e.clientY-tankPanSY;
-        if (Math.hypot(dxs,dys) > 6) tankPanMoved = true;
+        if (Math.sqrt((dxs)*(dxs)+(dys)*(dys)) > 6) tankPanMoved = true;
         tankPanX = tankPanOX - dxs/tankZoom;
         tankPanY = tankPanOY - dys/tankZoom;
         return;
@@ -18548,7 +18594,7 @@ if (!en.sonarValid && en.formation){
 
   showScreen('menu');
 
-  var lastT = null;
+  var lastT = null, hudAcc = 0, lastTacT = -1;
   function frame(ts){
     if (lastT===null) lastT = ts;
     var dt = (ts-lastT)/1000; lastT = ts;
@@ -18891,7 +18937,7 @@ function clipHalf(poly,a,b){
 function chamfer(poly,f,cap){
   const n=poly.length,out=[];
   const step=(p,q)=>{
-    const d=Math.hypot(q[0]-p[0],q[1]-p[1])||1;
+    const d=Math.sqrt((q[0]-p[0])*(q[0]-p[0])+(q[1]-p[1])*(q[1]-p[1]))||1;
     const t=cap?Math.min(f,cap/d):f;
     return [+(p[0]+(q[0]-p[0])*t).toFixed(1),+(p[1]+(q[1]-p[1])*t).toFixed(1)];
   };
@@ -18904,18 +18950,18 @@ function chamfer(poly,f,cap){
 }
 function sharedEdge(poly,a,b){
   const mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2;
-  let nx=b[0]-a[0],ny=b[1]-a[1];const nl=Math.hypot(nx,ny)||1;nx/=nl;ny/=nl;
+  let nx=b[0]-a[0],ny=b[1]-a[1];const nl=Math.sqrt((nx)*(nx)+(ny)*(ny))||1;nx/=nl;ny/=nl;
   const f=p=>(p[0]-mx)*nx+(p[1]-my)*ny;
   let total=0;
   for(let i=0;i<poly.length;i++){
     const p=poly[i],q=poly[(i+1)%poly.length];
-    if(Math.abs(f(p))<0.8&&Math.abs(f(q))<0.8) total+=Math.hypot(q[0]-p[0],q[1]-p[1]);
+    if(Math.abs(f(p))<0.8&&Math.abs(f(q))<0.8) total+=Math.sqrt((q[0]-p[0])*(q[0]-p[0])+(q[1]-p[1])*(q[1]-p[1]));
   }
   return total;
 }
 function dist2seg(p,a,b){const vx=b[0]-a[0],vy=b[1]-a[1],wx=p[0]-a[0],wy=p[1]-a[1];
   let t=(vx*wx+vy*wy)/(vx*vx+vy*vy||1);t=t<0?0:t>1?1:t;
-  return Math.hypot(a[0]+vx*t-p[0],a[1]+vy*t-p[1]);}
+  return Math.sqrt((a[0]+vx*t-p[0])*(a[0]+vx*t-p[0])+(a[1]+vy*t-p[1])*(a[1]+vy*t-p[1]));}
 function polyDist(A,B){let m=1e9;
   for(const q of A) for(let i=0;i<B.length;i++) m=Math.min(m,dist2seg(q,B[i],B[(i+1)%B.length]));
   for(const q of B) for(let i=0;i<A.length;i++) m=Math.min(m,dist2seg(q,A[i],A[(i+1)%A.length]));
@@ -18944,15 +18990,15 @@ function clean(poly){
   const out=[];
   for(const q of poly){
     const p=out[out.length-1];
-    if(!p||Math.hypot(q[0]-p[0],q[1]-p[1])>0.4) out.push(q);
+    if(!p||Math.sqrt((q[0]-p[0])*(q[0]-p[0])+(q[1]-p[1])*(q[1]-p[1]))>0.4) out.push(q);
   }
-  while(out.length>2&&Math.hypot(out[0][0]-out[out.length-1][0],out[0][1]-out[out.length-1][1])<0.4) out.pop();
+  while(out.length>2&&Math.sqrt((out[0][0]-out[out.length-1][0])*(out[0][0]-out[out.length-1][0])+(out[0][1]-out[out.length-1][1])*(out[0][1]-out[out.length-1][1]))<0.4) out.pop();
   for(let guard=0;guard<400&&out.length>3;guard++){
     let cut=-1;
     for(let i=0;i<out.length;i++){
       const a=out[(i-1+out.length)%out.length],b=out[i],c=out[(i+1)%out.length];
       const ux=b[0]-a[0],uy=b[1]-a[1],vx=c[0]-b[0],vy=c[1]-b[1];
-      const lu=Math.hypot(ux,uy),lv=Math.hypot(vx,vy);
+      const lu=Math.sqrt((ux)*(ux)+(uy)*(uy)),lv=Math.sqrt((vx)*(vx)+(vy)*(vy));
       if(lu<0.5||lv<0.5){cut=i;break;}
       if(ux*vx+uy*vy<0 && Math.abs(ux*vy-uy*vx)<0.5*Math.min(lu,lv)){cut=i;break;}
     }
@@ -19576,7 +19622,7 @@ function playAttackSail(uid, kind, fromId, terrId, done){
   var a = mapFxPos(fromId) || (T[fromId] && T[fromId].c);
   var b = T[terrId] && T[terrId].c;
   if(mapReducedMotion() || !a || !b){ if(done) done(); return; }
-  var dx = b[0]-a[0], dy = b[1]-a[1], len = Math.hypot(dx,dy);
+  var dx = b[0]-a[0], dy = b[1]-a[1], len = Math.sqrt((dx)*(dx)+(dy)*(dy));
   if(len < 4 || !node || !gFx){ if(done) done(); return; }
   var ux = dx/len, uy = dy/len;
   var x1 = a[0]+ux*20, y1 = a[1]+uy*20;
@@ -19585,23 +19631,27 @@ function playAttackSail(uid, kind, fromId, terrId, done){
   var mx = (x1+x2)/2 - uy*len*0.08, my = (y1+y2)/2 + ux*len*0.08;
   var dur = Math.min(3200, Math.max(1700, 1100 + len*5));
   node.classList.add('sailing');
+  var ghost = createSilhouetteGhost(kind, uid);
+  gFx.appendChild(ghost);
+  var icon = ghost.querySelector('.move-silhouette-icon');
+  var curAngle = headingFromDelta(x2-x1, y2-y1), lastPX = x1, lastPY = y1;
+  ghost.setAttribute('transform','translate('+x1+','+y1+')');
+  icon.setAttribute('transform','rotate('+curAngle.toFixed(1)+')');
   var t0 = performance.now(), lastWake = 0, wakeN = 0;
   function ease(t){ return t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
   function step(now){
     var t = Math.min(1, (now-t0)/dur), u = ease(t);
     var ix = (1-u)*(1-u)*x1 + 2*(1-u)*u*mx + u*u*x2;
     var iy = (1-u)*(1-u)*y1 + 2*(1-u)*u*my + u*u*y2;
-    node.setAttribute('transform','translate('+ix+','+iy+')');
-    if(now-lastWake > 140 && t>0.05 && t<0.95){
-      lastWake = now;
-      var w = el('circle',{cx:ix-ux*10, cy:iy-uy*10, r: kind==='naval' ? 3+wakeN%3 : 2.4+(wakeN%2),
-        fill: kind==='naval' ? '#dcecec' : '#c9b896', opacity:'0.5', class:'move-wake'});
-      gFx.appendChild(w);
-      (function(_w){ setTimeout(function(){ if(_w.parentNode) _w.parentNode.removeChild(_w); }, 1200); })(w);
-      wakeN++;
-    }
+    var dxh = ix-lastPX, dyh = iy-lastPY;
+    if(dxh*dxh+dyh*dyh > 0.03){ curAngle = angleLerp(curAngle, headingFromDelta(dxh,dyh), 0.4); }
+    lastPX = ix; lastPY = iy;
+    ghost.setAttribute('transform','translate('+ix+','+iy+')');
+    icon.setAttribute('transform','rotate('+curAngle.toFixed(1)+')');
+    if(now-lastWake > 140 && t>0.05 && t<0.95){ lastWake = now; spawnTrailFx(ix, iy, curAngle, kind, wakeN); wakeN++; }
     if(t < 1){ requestAnimationFrame(step); return; }
     node.classList.remove('sailing');
+    if(ghost.parentNode) ghost.parentNode.removeChild(ghost);
     if(done) done();
   }
   requestAnimationFrame(step);
@@ -19714,7 +19764,7 @@ function resolveIncoming(choice){
     refreshAll();
     try {
       var wTo = unitAnchor(inc.terrId);
-      enemySlideNode(att.id, att.kind, wFrom, wTo, 0);
+      enemySlideNode(att.id, att.kind, wFrom, wTo, 0, null, inc.from, inc.terrId);
     } catch(_e) {}
     return;
   }
@@ -20274,7 +20324,7 @@ function paintReach(){
     if(!T[id]) return;
     var atk = reach[id].type==='attack';
     var b = T[id].c;
-    var dx = b[0]-a[0], dy = b[1]-a[1], len = Math.hypot(dx,dy);
+    var dx = b[0]-a[0], dy = b[1]-a[1], len = Math.sqrt((dx)*(dx)+(dy)*(dy));
     if(len < 1) return;
     var ux = dx/len, uy = dy/len, s = Math.min(30, len*0.22);
     var x1 = a[0]+ux*s, y1 = a[1]+uy*s, x2 = b[0]-ux*s, y2 = b[1]-uy*s;
@@ -20290,7 +20340,7 @@ function renderTrails(){
   TRAILS.forEach(function(tr){
     if(!T[tr.from] || !T[tr.to] || tr.from===tr.to) return;
     var a = T[tr.from].c, b = T[tr.to].c;
-    var dx = b[0]-a[0], dy = b[1]-a[1], len = Math.hypot(dx,dy) || 1;
+    var dx = b[0]-a[0], dy = b[1]-a[1], len = Math.sqrt((dx)*(dx)+(dy)*(dy)) || 1;
     var ux = dx/len, uy = dy/len, s = Math.min(14, len*0.2);
     var x1 = a[0]+ux*s, y1 = a[1]+uy*s, x2 = b[0]-ux*s, y2 = b[1]-uy*s;
     // a gentle bow so opposing arrows don't overlap
@@ -20306,6 +20356,166 @@ function mapReducedMotion(){
   try { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
   catch(_e) { return false; }
 }
+/* Heading helpers for the move animations below: the silhouette rotates to
+   face its instantaneous direction of travel (finite difference between
+   frames, so it naturally follows the bezier's curvature and lateral
+   wander) instead of just sliding nose-first the whole way, and wake/dust
+   trail off its stern at that same heading rather than the point-to-point
+   straight line. */
+function headingFromDelta(dx, dy){ return Math.atan2(dx, -dy) * 180/Math.PI; }
+function angleLerp(cur, target, amt){
+  var d = ((target - cur + 540) % 360) - 180;
+  return cur + d*amt;
+}
+/* Map sprites: one black low-res silhouette per ship type, struck from the
+   most iconic in-game sprite of that type (sprites/icons/map/*.png) —
+   Fletcher for destroyers, Elco PT for torpedo boats, Gato for submarines,
+   Cleveland for cruisers, Yamato for battleships, Essex for carriers,
+   Liberty for auxiliaries, and the Sherman (body + gun composited the way
+   the battle screen layers them) for armor. */
+var MAP_TYPE_SPRITES = {dd:'dd', pt:'pt', ss:'ss', ca:'ca', bb:'bb', cv:'cv', aux:'aux', tank:'tank'};
+function mapTypeForCls(cls){
+  if(!cls) return null;
+  try {
+    var groups = (window.PT && window.PT.SHIP_TYPE_GROUPS) || [];
+    for(var i=0;i<groups.length;i++){
+      var g = groups[i];
+      if(g.ids.indexOf(cls)===-1) continue;
+      if(g.label==='Destroyers') return 'dd';
+      if(g.label==='Torpedo boats') return 'pt';
+      if(g.label==='Cruisers') return 'ca';
+      if(g.label==='Submarines') return 'ss';
+      if(g.label==='Battleships') return 'bb';
+      if(g.label==='Carriers') return 'cv';
+    }
+  } catch(_e) {}
+  // Escorts sail as destroyers; oilers and merchantmen as auxiliaries.
+  if(cls==='cimarron' || cls==='liberty') return 'aux';
+  if(cls==='buckley' || cls==='blackswan' || cls==='cannon' || cls==='flower') return 'dd';
+  return null;
+}
+function mapSpriteForType(t, kind){
+  if(t && MAP_TYPE_SPRITES[t]) return 'sprites/icons/map/'+t+'.png';
+  return kind==='naval' ? 'sprites/icons/ship.png' : 'sprites/icons/map/tank.png';
+}
+function ghostUnitById(uid){
+  if(!uid) return null;
+  try {
+    var list = allUnits();
+    for (var i=0;i<list.length;i++) if (list[i].id===uid) return list[i];
+  } catch(_e) {}
+  var u = null;
+  try { u = unitById(uid); } catch(_e2) {}
+  if (u) return u;
+  try {
+    var pus = syncPlayerUnits();
+    for (var j=0;j<pus.length;j++) if (pus[j].id===uid) return pus[j];
+  } catch(_e3) {}
+  return null;
+}
+/* Representative hull of a force: the heaviest body aboard (count × class
+   weight), so a battleship with a destroyer screen sails as a battleship. */
+function ghostClsFor(uid, kind){
+  var u = ghostUnitById(uid);
+  if (!u) return null;
+  var list = (kind==='naval') ? (u.ships||[]) : (u.tanks||[]);
+  if (!list.length) return null;
+  var best = list[0].cls, bestS = -1;
+  for (var i=0;i<list.length;i++){
+    var s = (list[i].n||1);
+    try { s *= classWeight(list[i].cls, kind); } catch(_e) {}
+    if (s > bestS){ bestS = s; best = list[i].cls; }
+  }
+  return best;
+}
+function silhouetteHref(kind, cls){
+  if(kind!=='naval') return 'sprites/icons/map/tank.png';
+  return mapSpriteForType(mapTypeForCls(cls), kind);
+}
+function silhouetteSize(kind, cls){
+  if(kind!=='naval') return {x:-11, y:-9, w:22, h:18};
+  var t = mapTypeForCls(cls);
+  if(t==='pt') return {x:-8, y:-12, w:16, h:24};
+  if(t==='bb' || t==='cv') return {x:-12, y:-17, w:24, h:34};
+  return {x:-10, y:-14, w:20, h:28};
+}
+/* The territory counters (circle + badge) never move — only this bare
+   silhouette travels between them, so the roster always reads correctly at
+   a glance and the transit is purely the vehicle making the trip. */
+function createSilhouetteGhost(kind, uid, clsOverride){
+  var g = el('g',{class:'move-silhouette'});
+  var cls = (clsOverride===undefined || clsOverride===null) ? ghostClsFor(uid, kind) : clsOverride;
+  var size = silhouetteSize(kind, cls);
+  var ic = el('image',{class:'move-silhouette-icon', x:size.x, y:size.y, width:size.w, height:size.h,
+    preserveAspectRatio:'xMidYMid meet', href: silhouetteHref(kind, cls)});
+  ic.addEventListener('error', function(){
+    var fb = kind==='naval' ? 'sprites/icons/ship.png' : 'sprites/icons/tank.png';
+    if (ic.getAttribute('href')!==fb) ic.setAttribute('href', fb);
+  });
+  g.appendChild(ic);
+  return g;
+}
+/* A soft ring at the destination, timed to the silhouette's arrival, so the
+   counter's number reads as having just changed rather than teleporting. */
+function spawnArrivalPulse(x, y, kind){
+  if(!gFx || mapReducedMotion()) return;
+  var ring = el('circle',{cx:x, cy:y, r:13, class:'arrive-ring'});
+  ring.style.animation = 'arrivePulse .5s ease-out forwards';
+  gFx.appendChild(ring);
+  fxRemoveLater(ring, 520);
+}
+/* Wake and dust always paint below every hull, so each ship in the column
+   rides on top of the foam ahead of it instead of sailing under it. */
+function appendWakeBelowGhosts(node){
+  var under = gFx.querySelector('.move-silhouette');
+  if(under) gFx.insertBefore(node, under); else gFx.appendChild(node);
+}
+/* One shared 250ms sweeper replaces the per-particle removal timeouts map FX
+   used to spray (hundreds of live timers during a column transit). Sequencing
+   timeouts that drive gameplay are untouched — only removals go through here. */
+var fxSweepQueue = [];
+function fxRemoveLater(node, ms){
+  if(!node) return;
+  var t = performance.now() + (ms||0);
+  if(node instanceof Array){ for(var i=0;i<node.length;i++) fxSweepQueue.push({node:node[i], t:t}); }
+  else fxSweepQueue.push({node:node, t:t});
+}
+function fxSweep(){
+  if(!fxSweepQueue.length) return;
+  var now = performance.now();
+  for(var i=fxSweepQueue.length-1;i>=0;i--){
+    if(fxSweepQueue[i].t <= now){
+      var n = fxSweepQueue[i].node;
+      if(n && n.parentNode) n.parentNode.removeChild(n);
+      fxSweepQueue.splice(i,1);
+    }
+  }
+}
+setInterval(fxSweep, 250);
+function spawnTrailFx(x, y, angleDeg, kind, wakeN){
+  if(!gFx) return;
+  var rad = angleDeg*Math.PI/180, fx = Math.sin(rad), fy = -Math.cos(rad);
+  var px = -fy, py = fx;
+  if(kind==='naval'){
+    // Narrow twin wake lobes tucked close astern in a tight V.
+    [-1,1].forEach(function(side){
+      var spread = 2 + (wakeN%3)*0.7;
+      var wx = x - fx*9 + px*spread*side, wy = y - fy*9 + py*spread*side;
+      var w = el('circle',{cx:wx, cy:wy, r:1.4+Math.random()*0.9, fill:'#dcecec', opacity:'0.55', class:'move-wake'});
+      w.style.animation = 'wakeFade 1.3s ease-out forwards';
+      appendWakeBelowGhosts(w);
+      fxRemoveLater(w, 1300);
+    });
+  } else {
+    // dust kicked up alternately by the left/right track
+    var side2 = (wakeN%2===0) ? -1 : 1;
+    var wx2 = x - fx*7 + px*5*side2, wy2 = y - fy*7 + py*5*side2;
+    var w2 = el('circle',{cx:wx2, cy:wy2, r:1.3+Math.random()*0.8, fill:'#c9b896', opacity:'0.45', class:'move-wake'});
+    w2.style.animation = 'dustPuff 0.9s ease-out forwards';
+    appendWakeBelowGhosts(w2);
+    fxRemoveLater(w2, 900);
+  }
+}
 function mapFxPos(id){
   if(!T[id]) return null;
   try {
@@ -20314,70 +20524,183 @@ function mapFxPos(id){
   } catch(_e) {}
   return unitAnchor(id);
 }
-function playMoveFx(fromId, toId, kind, unitId){
-  if(!T[fromId] || !T[toId]) return;
-  var a = mapFxPos(fromId) || T[fromId].c, b = mapFxPos(toId) || T[toId].c;
-  var dx = b[0]-a[0], dy = b[1]-a[1], len = Math.hypot(dx,dy);
-  if(len < 2 || mapReducedMotion()) return;
-  // Slow, weighty transit: ~2.5-6.5s by distance so a fleet visibly sails / drives.
-  var dur = Math.min(6500, Math.max(2400, 1400 + len*9));
-  var ux = dx/len, uy = dy/len, s = Math.min(22, len*0.2);
-  var x1 = a[0]+ux*s, y1 = a[1]+uy*s, x2 = b[0]-ux*s, y2 = b[1]-uy*s;
-  // Gentle seaway bow + a touch of sine wander so it doesn't ride a laser line.
-  var mx = (x1+x2)/2 - uy*len*0.10, my = (y1+y2)/2 + ux*len*0.10;
-  var node = (unitId && unitNodeOf[unitId]) || null;
-  var ghost = null, path = null;
-  if(gFx){
-    path = el('path',{d:'M'+x1+','+y1+' Q'+mx+','+my+' '+x2+','+y2, class:'move-path'});
-    gFx.appendChild(path);
-  }
-  if(!node && gFx){
-    ghost = el('g',{class:'move-ghost'});
-    var bg = el('circle',{cx:0,cy:0,r:15, fill: kind==='naval' ? '#e9f4fc' : '#f3e9c8', stroke:'#ffce5c','stroke-width':2.5});
-    var ic = el('text',{x:0,y:1,'text-anchor':'middle','dominant-baseline':'middle','font-size':15});
-    ic.textContent = kind==='naval' ? '⚓' : '⬢';
-    ghost.appendChild(bg); ghost.appendChild(ic);
-    gFx.appendChild(ghost);
-  }
-  var mover = node || ghost;
-  if(!mover){ if(path && path.parentNode) path.parentNode.removeChild(path); return; }
-  if(node) node.classList.add('sailing');
+/* --- Staggered column: a force sails back-to-back, not as a single ghost ---
+   Hulls depart on a fixed stagger while the ones ahead are still under way.
+   The badge on each counter tracks the transit live: the departure counter
+   left on the old territory counts down what is still leaving, while the
+   arriving counter on the new territory counts up what has made it across. */
+var TRANSITS = [];
+function transitFor(uid){
+  for(var i=0;i<TRANSITS.length;i++) if(TRANSITS[i].uid===uid) return TRANSITS[i];
+  return null;
+}
+function transitArrivedFor(uid){
+  var tr = transitFor(uid);
+  return tr ? tr.arrived : null;
+}
+/* Expanded roster, one entry per hull/vehicle, heaviest first so the flagship leads. */
+function ghostRosterFor(uid, kind){
+  var u = ghostUnitById(uid);
+  if(!u) return [];
+  var list = (kind==='naval') ? (u.ships||[]) : (u.tanks||[]);
+  var out = [];
+  list.forEach(function(s){ for(var i=0;i<(s.n||1);i++) out.push(s.cls); });
+  out.sort(function(a,b){
+    var wa=1, wb=1;
+    try { wa = classWeight(a, kind); } catch(_e) {}
+    try { wb = classWeight(b, kind); } catch(_e2) {}
+    return wb-wa;
+  });
+  return out;
+}
+/* A single hull sails a touch slower than the old whole-force dash. */
+function hullSailDur(len){
+  return Math.min(8000, Math.max(3000, 1700 + len*10));
+}
+function sailHullGhost(o, done){
+  var dur = hullSailDur(o.len);
+  var path = el('path',{d:'M'+o.x1+','+o.y1+' Q'+o.mx+','+o.my+' '+o.x2+','+o.y2, class:'move-path'});
+  gFx.appendChild(path);
+  var ghost = createSilhouetteGhost(o.kind, null, o.cls);
+  gFx.appendChild(ghost);
+  var icon = ghost.querySelector('.move-silhouette-icon');
+  if(o.node) o.node.classList.add('sailing');
+  // Single file: every hull starts on the same rail, astern of its leader.
+  var sx = o.x1, sy = o.y1;
+  var curAngle = headingFromDelta(o.x2-o.x1, o.y2-o.y1), lastPX = sx, lastPY = sy;
+  var smDx = 0, smDy = 0, seeded = false;
   var t0 = performance.now(), lastWake = 0, wakeN = 0;
-  function ease(t){ // ease-in-out cubic: weigh anchor, cruise, come to rest
-    return t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2;
-  }
-  function bez(u){
-    var ix = (1-u)*(1-u)*x1 + 2*(1-u)*u*mx + u*u*x2;
-    var iy = (1-u)*(1-u)*y1 + 2*(1-u)*u*my + u*u*y2;
-    // faint lateral wander mid-voyage, settled at both ends
-    var w = Math.sin(u*Math.PI)*Math.sin(u*9.4)*len*0.012;
-    return [ix + (-uy)*w, iy + (ux)*w];
-  }
-  function wake(p, u){
-    if(!gFx) return;
-    // naval: white water astern; armor: dust kicked up astern
-    var naval = kind==='naval';
-    var w = el('circle',{cx:p[0]-ux*10, cy:p[1]-uy*10, r: naval ? 3+wakeN%3 : 2.4+(wakeN%2),
-      fill: naval ? '#dcecec' : '#c9b896', opacity: naval ? '0.5' : '0.45', class:'move-wake'});
-    gFx.appendChild(w);
-    setTimeout(function(){ if(w.parentNode) w.parentNode.removeChild(w); }, 1300);
-    wakeN++;
-  }
   function step(now){
-    var t = Math.min(1, (now-t0)/dur), u = ease(t), p = bez(u);
-    mover.setAttribute('transform','translate('+p[0]+','+p[1]+')');
-    if(path) path.setAttribute('opacity', String(0.9*(1-t*0.35)));
-    if(now-lastWake > 130 && t>0.03 && t<0.97){ lastWake = now; wake(p, u); }
+    // Steady bell-to-bell speed: linear progress, no ease-in/out surging.
+    var t = Math.min(1, (now-t0)/dur), u = t;
+    var ix = (1-u)*(1-u)*o.x1 + 2*(1-u)*u*o.mx + u*u*o.x2;
+    var iy = (1-u)*(1-u)*o.y1 + 2*(1-u)*u*o.my + u*u*o.y2;
+    // Single file: no sheer and no lane offset — every hull rides the exact
+    // same rail, spaced only by the departure stagger.
+    var dxh = ix-lastPX, dyh = iy-lastPY;
+    if(dxh*dxh+dyh*dyh > 0.03){
+      if(!seeded){ smDx = dxh; smDy = dyh; seeded = true; }
+      else { smDx += (dxh-smDx)*0.15; smDy += (dyh-smDy)*0.15; }
+      // Wide rudder: only answer sustained course changes, a few degrees at a time.
+      var want = headingFromDelta(smDx, smDy);
+      var dh = ((want - curAngle + 540) % 360) - 180;
+      if(Math.abs(dh) > 2) curAngle += dh*0.12;
+    }
+    lastPX = ix; lastPY = iy;
+    ghost.setAttribute('transform','translate('+ix+','+iy+')');
+    icon.setAttribute('transform','rotate('+curAngle.toFixed(1)+')');
+    path.setAttribute('opacity', String(0.9*(1-t*0.35)));
+    if(now-lastWake > 130 && t>0.03 && t<0.97){ lastWake = now; spawnTrailFx(ix, iy, curAngle, o.kind, wakeN); wakeN++; }
     if(t < 1){ requestAnimationFrame(step); return; }
-    if(node) node.classList.remove('sailing');
-    if(ghost && ghost.parentNode) ghost.parentNode.removeChild(ghost);
-    if(path && path.parentNode) path.parentNode.removeChild(path);
-    try { renderUnits(); paintReach(); } catch(_e) {}
+    if(ghost.parentNode) ghost.parentNode.removeChild(ghost);
+    if(path.parentNode) path.parentNode.removeChild(path);
+    if(done) done();
   }
-  // start from the quay, not the final berth (renderUnits already snapped there)
-  mover.setAttribute('transform','translate('+x1+','+y1+')');
+  ghost.setAttribute('transform','translate('+sx+','+sy+')');
+  icon.setAttribute('transform','rotate('+curAngle.toFixed(1)+')');
   requestAnimationFrame(step);
 }
+function updateTransitBadges(tr){
+  var node = unitNodeOf[tr.uid];
+  if(node){
+    var badge = node.querySelector('.unit-badge');
+    if(badge) badge.textContent = tr.arrived;
+  }
+  if(tr.srcBadge) tr.srcBadge.textContent = (tr.total - tr.departed);
+}
+function endTransit(tr){
+  var i = TRANSITS.indexOf(tr);
+  if(i!==-1) TRANSITS.splice(i,1);
+  if(tr.srcNode && tr.srcNode.parentNode) tr.srcNode.parentNode.removeChild(tr.srcNode);
+  tr.srcNode = null; tr.srcBadge = null;
+}
+/* Departure counter left on the old territory: whatever has not sailed yet. */
+function makeTransitSrcCounter(tr){
+  if(!gFx || !tr.fromId || !T[tr.fromId]) return;
+  var a = unitAnchor(tr.fromId);
+  var others = 0;
+  try {
+    others = allUnits().filter(function(x){ return x.id!==tr.uid && unitLoc(x)===tr.fromId; }).length;
+  } catch(_e) {}
+  var px = a[0] + (others ? others*20 : 0), py = a[1];
+  var g = el('g',{class:'unit transit-counter', 'pointer-events':'none'});
+  g.setAttribute('transform','translate('+px+','+py+')');
+  g.appendChild(el('circle',{cx:0,cy:0,r:18,class:'unit-bg '+tr.side}));
+  g.appendChild(el('image',{class:'unit-icon',x:-12,y:-10,width:24,height:20,preserveAspectRatio:'xMidYMid meet',href: tr.kind==='naval' ? 'sprites/icons/ship.png' : 'sprites/icons/tank.png'}));
+  g.appendChild(el('circle',{cx:13,cy:-12,r:8,fill:'#ffce5c',stroke:'#04141d','stroke-width':1}));
+  var txt = el('text',{x:13,y:-9,'text-anchor':'middle','dominant-baseline':'middle',class:'unit-badge'});
+  txt.textContent = tr.total;
+  g.appendChild(txt);
+  gFx.appendChild(g);
+  tr.srcNode = g; tr.srcBadge = txt;
+}
+/* Sails a whole force as a column, one hull at a time, badges live. */
+function sailForceSequential(o){
+  var uid = o.uid, kind = o.kind;
+  var a = o.fromPos, b = o.toPos;
+  var dx = b[0]-a[0], dy = b[1]-a[1], len = Math.sqrt((dx)*(dx)+(dy)*(dy));
+  if(len < 2){ if(o.onDone) o.onDone(); return; }
+  var old = transitFor(uid);
+  if(old) endTransit(old);
+  var roster = ghostRosterFor(uid, kind);
+  if(!roster.length) roster = [ghostClsFor(uid, kind)];
+  var ux = dx/len, uy = dy/len, s = Math.min(22, len*0.2);
+  var x1 = a[0]+ux*s, y1 = a[1]+uy*s, x2 = b[0]-ux*s, y2 = b[1]-uy*s;
+  var mx = (x1+x2)/2 - uy*len*0.10, my = (y1+y2)/2 + ux*len*0.10;
+  var u = ghostUnitById(uid);
+  var tr = {uid:uid, kind:kind, fromId:o.fromId||null, toId:o.toId||null,
+    total:roster.length, departed:0, arrived:0,
+    side:(u && u.side ? String(u.side).toLowerCase() : 'neu'),
+    srcNode:null, srcBadge:null};
+  TRANSITS.push(tr);
+  if(tr.fromId) makeTransitSrcCounter(tr);
+  updateTransitBadges(tr);
+  var n = roster.length;
+  // Back-to-back column on one rail: hulls depart on a fixed stagger while
+  // the ones ahead are still under way, instead of waiting for each arrival.
+  var stagger = Math.min(1900, Math.max(850, hullSailDur(len)*0.42));
+  var finished = false;
+  function finish(){
+    if(transitFor(uid)!==tr || finished) return;
+    finished = true;
+    if(o.node) o.node.classList.remove('sailing');
+    endTransit(tr);
+    if(o.arrivalPulse!==false) spawnArrivalPulse(b[0], b[1], kind);
+    if(o.onDone) o.onDone();
+  }
+  for(var i=0;i<n;i++){
+    (function(idx){
+      setTimeout(function(){
+        if(transitFor(uid)!==tr) return;
+        if(o.node) o.node.classList.add('sailing');
+        var lane = 0;
+        tr.departed = Math.max(tr.departed, idx+1);
+        updateTransitBadges(tr);
+        if(tr.srcBadge && (tr.total-tr.departed)<=0 && tr.srcNode){
+          if(tr.srcNode.parentNode) tr.srcNode.parentNode.removeChild(tr.srcNode);
+          tr.srcNode = null; tr.srcBadge = null;
+        }
+        sailHullGhost({x1:x1,y1:y1,x2:x2,y2:y2,mx:mx,my:my,len:len,ux:ux,uy:uy,
+          kind:kind, cls:roster[idx], node:null, lane:lane, phase:idx*1.7}, function(){
+          if(transitFor(uid)!==tr) return;
+          tr.arrived++;
+          updateTransitBadges(tr);
+          if(tr.arrived >= n) finish();
+        });
+      }, idx*stagger);
+    })(i);
+  }
+}
+function playMoveFx(fromId, toId, kind, unitId){
+  if(!T[fromId] || !T[toId]) return;
+  if(mapReducedMotion() || !gFx){ try { renderUnits(); paintReach(); } catch(_e) {} return; }
+  var a = mapFxPos(fromId) || T[fromId].c, b = mapFxPos(toId) || T[toId].c;
+  var node = (unitId && unitNodeOf[unitId]) || null;
+  sailForceSequential({uid:unitId, kind:kind, fromId:fromId, toId:toId,
+    fromPos:[a[0],a[1]], toPos:[b[0],b[1]], node:node,
+    onDone:function(){ try { renderUnits(); paintReach(); } catch(_e) {} }});
+}
+
 /* Second click finishes the order: unit first + territory second, or territory
    first + unit second, sails/drives and fights at once — no confirm button. */
 var autoOrdering = false;
@@ -20403,12 +20726,12 @@ function playFightFx(terrId, fromId){
   // attacker lunges a short way toward the target so the clash has direction
   var dart = null;
   if(fromId && T[fromId] && fromId!==terrId){
-    var a = T[fromId].c, dx = c[0]-a[0], dy = c[1]-a[1], len = Math.hypot(dx,dy) || 1;
+    var a = T[fromId].c, dx = c[0]-a[0], dy = c[1]-a[1], len = Math.sqrt((dx)*(dx)+(dy)*(dy)) || 1;
     var ux = dx/len, uy = dy/len;
     dart = el('path',{d:'M'+(a[0]+ux*20)+','+(a[1]+uy*20)+' L'+(c[0]-ux*26)+','+(c[1]-uy*26),
       class:'move-path', style:'stroke:#ff7a5c'});
     gFx.appendChild(dart);
-    setTimeout(function(){ if(dart && dart.parentNode) dart.parentNode.removeChild(dart); }, 850);
+    fxRemoveLater(dart, 850);
   }
   [0, 140, 300].forEach(function(delay, k){
     setTimeout(function(){
@@ -20417,7 +20740,7 @@ function playFightFx(terrId, fromId){
       r.style.transformOrigin = c[0]+'px '+c[1]+'px';
       r.style.animation = 'fightPulse '+(k===2?'0.55s':'0.7s')+' ease-out forwards';
       gFx.appendChild(r);
-      setTimeout(function(){ if(r.parentNode) r.parentNode.removeChild(r); }, 750);
+      fxRemoveLater(r, 750);
     }, delay);
   });
   var flash = el('circle',{cx:c[0], cy:c[1], r:13, class:'fight-flash'});
@@ -20427,11 +20750,7 @@ function playFightFx(terrId, fromId){
   lab.textContent = '⚔';
   lab.style.animation = 'fightBlink 0.85s linear';
   gFx.appendChild(flash); gFx.appendChild(x1); gFx.appendChild(lab);
-  setTimeout(function(){
-    if(flash.parentNode) flash.parentNode.removeChild(flash);
-    if(x1.parentNode) x1.parentNode.removeChild(x1);
-    if(lab.parentNode) lab.parentNode.removeChild(lab);
-  }, 900);
+  fxRemoveLater([flash, x1, lab], 900);
 }
 function paintOccupation(fromId, toId){
   try { if(fromId) paintOwner(fromId); } catch(_e) {}
@@ -20443,49 +20762,18 @@ function paintOccupation(fromId, toId){
    after the state has settled, sliding the real counters with wake/dust. */
 var ENEMY_ANIM = [];
 function enemyEase(t){ return t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
-function enemySlideNode(uid, kind, fromPos, toPos, delay, done){
+function enemySlideNode(uid, kind, fromPos, toPos, delay, done, fromId, toId){
   var start = function(){
     var node = unitNodeOf[uid];
-    if(mapReducedMotion() || !node || !gFx || !fromPos || !toPos){
-      if(done) done();
-      return;
-    }
-    var dx = toPos[0]-fromPos[0], dy = toPos[1]-fromPos[1], len = Math.hypot(dx,dy);
+    if(mapReducedMotion() || !node || !gFx || !fromPos || !toPos){ if(done) done(); return; }
+    var dx = toPos[0]-fromPos[0], dy = toPos[1]-fromPos[1], len = Math.sqrt((dx)*(dx)+(dy)*(dy));
     if(len < 3){ if(done) done(); return; }
-    var ux = dx/len, uy = dy/len, s = Math.min(22, len*0.2);
-    var x1 = fromPos[0]+ux*s, y1 = fromPos[1]+uy*s;
-    var x2 = toPos[0]-ux*s, y2 = toPos[1]-uy*s;
-    var mx = (x1+x2)/2 - uy*len*0.10, my = (y1+y2)/2 + ux*len*0.10;
-    var dur = Math.min(6500, Math.max(2400, 1400 + len*9));
-    var path = el('path',{d:'M'+x1+','+y1+' Q'+mx+','+my+' '+x2+','+y2, class:'move-path'});
-    gFx.appendChild(path);
-    node.classList.add('sailing');
-    node.setAttribute('transform','translate('+x1+','+y1+')');
-    var t0 = performance.now(), lastWake = 0, wakeN = 0;
-    function step(now){
-      var t = Math.min(1, (now-t0)/dur), u = enemyEase(t);
-      var ix = (1-u)*(1-u)*x1 + 2*(1-u)*u*mx + u*u*x2;
-      var iy = (1-u)*(1-u)*y1 + 2*(1-u)*u*my + u*u*y2;
-      var w = Math.sin(u*Math.PI)*Math.sin(u*9.4)*len*0.012;
-      ix += (-uy)*w; iy += (ux)*w;
-      node.setAttribute('transform','translate('+ix+','+iy+')');
-      path.setAttribute('opacity', String(0.9*(1-t*0.35)));
-      if(now-lastWake > 130 && t>0.03 && t<0.97){
-        lastWake = now;
-        var naval = kind==='naval';
-        var w = el('circle',{cx:ix-ux*10, cy:iy-uy*10, r: naval ? 3+wakeN%3 : 2.4+(wakeN%2),
-          fill: naval ? '#dcecec' : '#c9b896', opacity: naval ? '0.5' : '0.45', class:'move-wake'});
-        gFx.appendChild(w);
-        (function(_w){ setTimeout(function(){ if(_w.parentNode) _w.parentNode.removeChild(_w); }, 1300); })(w);
-        wakeN++;
-      }
-      if(t < 1){ requestAnimationFrame(step); return; }
-      node.classList.remove('sailing');
-      if(path.parentNode) path.parentNode.removeChild(path);
-      try { renderUnits(); paintReach(); } catch(_e) {}
-      if(done) done();
-    }
-    requestAnimationFrame(step);
+    sailForceSequential({uid:uid, kind:kind, fromId:fromId||null, toId:toId||null,
+      fromPos:[fromPos[0],fromPos[1]], toPos:[toPos[0],toPos[1]], node:node,
+      onDone:function(){
+        try { renderUnits(); paintReach(); } catch(_e) {}
+        if(done) done();
+      }});
   };
   if(delay && delay>0) setTimeout(start, delay);
   else start();
@@ -20494,30 +20782,33 @@ function enemyAttackLunge(uid, kind, fromPos, targetPos, delay, done){
   var start = function(){
     var node = unitNodeOf[uid];
     if(mapReducedMotion() || !node || !gFx || !fromPos || !targetPos){ if(done) done(); return; }
-    var dx = targetPos[0]-fromPos[0], dy = targetPos[1]-fromPos[1], len = Math.hypot(dx,dy) || 1;
+    var dx = targetPos[0]-fromPos[0], dy = targetPos[1]-fromPos[1], len = Math.sqrt((dx)*(dx)+(dy)*(dy)) || 1;
     var ux = dx/len, uy = dy/len;
     var x1 = fromPos[0]+ux*20, y1 = fromPos[1]+uy*20;
     var x2 = fromPos[0]+dx*0.62, y2 = fromPos[1]+dy*0.62;
     var mx = (x1+x2)/2 - uy*len*0.08, my = (y1+y2)/2 + ux*len*0.08;
     var dur = Math.min(3200, Math.max(1700, 1100 + len*5));
     node.classList.add('sailing');
+    var ghost = createSilhouetteGhost(kind, uid);
+    gFx.appendChild(ghost);
+    var icon = ghost.querySelector('.move-silhouette-icon');
+    var curAngle = headingFromDelta(x2-x1, y2-y1), lastPX = x1, lastPY = y1;
+    ghost.setAttribute('transform','translate('+x1+','+y1+')');
+    icon.setAttribute('transform','rotate('+curAngle.toFixed(1)+')');
     var t0 = performance.now(), lastWake = 0, wakeN = 0;
     function step(now){
       var t = Math.min(1, (now-t0)/dur), u = enemyEase(t);
       var ix = (1-u)*(1-u)*x1 + 2*(1-u)*u*mx + u*u*x2;
       var iy = (1-u)*(1-u)*y1 + 2*(1-u)*u*my + u*u*y2;
-      node.setAttribute('transform','translate('+ix+','+iy+')');
-      if(now-lastWake > 140 && t>0.05 && t<0.95){
-        lastWake = now;
-        var naval = kind==='naval';
-        var w = el('circle',{cx:ix-ux*10, cy:iy-uy*10, r: naval ? 3+wakeN%3 : 2.4+(wakeN%2),
-          fill: naval ? '#dcecec' : '#c9b896', opacity:'0.5', class:'move-wake'});
-        gFx.appendChild(w);
-        (function(_w){ setTimeout(function(){ if(_w.parentNode) _w.parentNode.removeChild(_w); }, 1200); })(w);
-        wakeN++;
-      }
+      var dxh = ix-lastPX, dyh = iy-lastPY;
+      if(dxh*dxh+dyh*dyh > 0.03){ curAngle = angleLerp(curAngle, headingFromDelta(dxh,dyh), 0.4); }
+      lastPX = ix; lastPY = iy;
+      ghost.setAttribute('transform','translate('+ix+','+iy+')');
+      icon.setAttribute('transform','rotate('+curAngle.toFixed(1)+')');
+      if(now-lastWake > 140 && t>0.05 && t<0.95){ lastWake = now; spawnTrailFx(ix, iy, curAngle, kind, wakeN); wakeN++; }
       if(t < 1){ requestAnimationFrame(step); return; }
       node.classList.remove('sailing');
+      if(ghost.parentNode) ghost.parentNode.removeChild(ghost);
       if(done) done();
     }
     requestAnimationFrame(step);
@@ -20558,7 +20849,7 @@ function enemySlideUnit(a, delay){
     }
     // rewind to the quay, then sail home like the player does
     node.setAttribute('transform','translate('+a.fromPos[0]+','+a.fromPos[1]+')');
-    enemySlideNode(a.uid, a.kind, a.fromPos, toPos, 0);
+    enemySlideNode(a.uid, a.kind, a.fromPos, toPos, 0, null, a.from, a.to);
   };
   if(delay && delay>0) setTimeout(start, delay);
   else start();
@@ -20593,7 +20884,7 @@ function clientToMap(x, y){
 window.addEventListener('pointermove', function(e){
   if(!unitDrag || e.pointerId!==unitDrag.pid) return;
   if(!unitDrag.started){
-    if(Math.hypot(e.clientX-unitDrag.x0, e.clientY-unitDrag.y0) < 6) return;
+    if(Math.sqrt((e.clientX-unitDrag.x0)*(e.clientX-unitDrag.x0)+(e.clientY-unitDrag.y0)*(e.clientY-unitDrag.y0)) < 6) return;
     unitDrag.started = true;
     selectUnit(unitDrag.u.id);
     svg.classList.add('unitdrag');
@@ -20637,6 +20928,9 @@ function renderUnits(){
     g.appendChild(el('circle',{cx:13,cy:-12,r:8,fill:'#ffce5c',stroke:'#04141d','stroke-width':1}));
     var txt = el('text',{x:13,y:-9,'text-anchor':'middle','dominant-baseline':'middle',class:'unit-badge'});
     txt.textContent = unitTotal(u); g.appendChild(txt);
+    // A force under way counts live: what has arrived so far, not the roster.
+    var trArrived = transitArrivedFor(u.id);
+    if(trArrived!==null) txt.textContent = trArrived;
     if(u.mine){
       for(var i=0;i<MOVE_POINTS;i++) g.appendChild(el('circle',{cx:-17+i*7,cy:14,r:2.8,class:'unit-pip'+(i<u.mp?' on':'')}));
     }
@@ -21089,7 +21383,7 @@ function zoomAt(cx,cy,f){
 let drag=null, moved=false;
 const pts=new Map(); let pinch=null;
 function gap(){const [a,b]=[...pts.values()];
-  return {d:Math.hypot(a.x-b.x,a.y-b.y),cx:(a.x+b.x)/2,cy:(a.y+b.y)/2};}
+  return {d:Math.sqrt((a.x-b.x)*(a.x-b.x)+(a.y-b.y)*(a.y-b.y)),cx:(a.x+b.x)/2,cy:(a.y+b.y)/2};}
 svg.addEventListener('pointerdown',e=>{
   // Kill native behaviors up front: text selection, image drag, middle-click
   // autoscroll. Click events still fire, so selection logic is unaffected.
