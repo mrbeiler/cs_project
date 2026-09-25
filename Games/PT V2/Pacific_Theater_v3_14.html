@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="color-scheme" content="dark">
 <title>Pacific Theater — WWII naval combat</title>
-<link rel="icon" href="sprites/icons/PT%20icon.png" width="32" height="32">
+<link rel="icon" href="sprites/ui/PT%20icon.png" width="32" height="32">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500&display=swap" rel="stylesheet">
@@ -810,6 +810,12 @@ svg#map text{user-select:none;-webkit-user-select:none}
 #map .fight-label{font-family:'Oswald',system-ui,sans-serif;font-size:22px;font-weight:700;fill:#ff8a70;paint-order:stroke;stroke:#04141d;stroke-width:4;stroke-linejoin:round;pointer-events:none;text-anchor:middle}
 @keyframes fightPulse{0%{transform:scale(.35);opacity:.95}100%{transform:scale(1.6);opacity:0}}
 @keyframes fightBlink{0%,100%{opacity:1}50%{opacity:.25}}
+/* --- Attack impact: flash, fireball blobs, shockwave, sparks and smoke --- */
+@keyframes boomFlash{0%{transform:scale(.25);opacity:1}100%{transform:scale(2.2);opacity:0}}
+@keyframes boomRing{0%{transform:scale(.3);opacity:.95}100%{transform:scale(2.9);opacity:0}}
+@keyframes boomFire{0%{transform:scale(.3);opacity:1}55%{opacity:.9}100%{transform:scale(1.55);opacity:0}}
+@keyframes boomSpark{0%{transform:translate(0,0);opacity:1}100%{transform:translate(var(--bx),var(--by));opacity:0}}
+@keyframes boomSmoke{0%{transform:translate(0,0);opacity:.7}100%{transform:translate(var(--sx),var(--sy));opacity:0}}
 @media (prefers-reduced-motion:reduce){#map .order-arrow,#map .move-path,#map .move-wake{animation:none}}
 @media (prefers-reduced-motion:reduce){#map .order-arrow{animation:none}}
 #selBox .facItem.off{opacity:.55}
@@ -21236,13 +21242,13 @@ function attackWith(key, terrId){
     });
     return;
   }
-  // The force sails/drives toward the target on the map, then the clash plays
+  // The force sails/drives in as a regular leg, the target erupts on arrival,
   // and the battle loads — one click, no confirm button.
   mapFxBusy = true;
   selMsg = 'Attacking '+T[terrId].name+'…';
   renderSelBox();
   playAttackSail(uid, kind, via, terrId, function(){
-    playFightFx(terrId, via);
+    spawnMapExplosion(T[terrId].c[0], T[terrId].c[1]);
     setTimeout(function(){
       mapFxBusy = false;
       var fresh = unitByKey(key);
@@ -21252,61 +21258,20 @@ function attackWith(key, terrId){
     }, mapReducedMotion() ? 30 : 750);
   });
 }
-/* Attack approach: the actual counter gets under way toward the target's edge
-   (about two-thirds of the way there), with wake/dust, before the clash. */
+/* Attack approach: the force sails/drives in as an ordinary leg — same
+   column, cruising speed and track language as any move — right up to the
+   target's edge, where the caller sets off the explosion. */
 function playAttackSail(uid, kind, fromId, terrId, done){
   var node = unitNodeOf[uid];
   var a = unitFxPos(uid, fromId) || mapFxPos(fromId) || (T[fromId] && T[fromId].c);
   var b = T[terrId] && T[terrId].c;
-  if(mapReducedMotion() || !a || !b){ if(done) done(); return; }
-  var dx = b[0]-a[0], dy = b[1]-a[1], len = Math.hypot(dx,dy);
-  if(len < 4 || !node || !gFx){ if(done) done(); return; }
-  var ux = dx/len, uy = dy/len;
-  var x1 = a[0]+ux*20, y1 = a[1]+uy*20;
-  // halt short of the defender so counters don't pile up, then fight
-  var x2 = a[0]+dx*0.62, y2 = a[1]+dy*0.62;
-  var mx = (x1+x2)/2 - uy*len*0.08, my = (y1+y2)/2 + ux*len*0.08;
-  var bow = [];
-  for(var k=0;k<=40;k++){ var q = k/40;
-    bow.push([(1-q)*(1-q)*x1 + 2*(1-q)*q*mx + q*q*x2, (1-q)*(1-q)*y1 + 2*(1-q)*q*my + q*q*y2]); }
-  var track = trackOf(bow);
-  if(kind==='naval'){
-    var NG = navGrid();
-    if(NG && !navClear(NG, bow, 1, 18)){
-      var lane = navRoute(a, b);
-      if(lane){ var full = trackOf(trackTrim(lane, 20, 0)); track = trackOf(trackTrim(full.pts, 0, full.len*0.38)); }
-    }
-  }
-  x2 = track.pts[track.pts.length-1][0]; y2 = track.pts[track.pts.length-1][1];
-  var dur = Math.min(3200, Math.max(1700, 1100 + track.len*5));
-  lungeStart();
-  node.classList.add('sailing');
-  var ghost = createSilhouetteGhost(kind, uid);
-  gFx.appendChild(ghost);
-  var icon = ghost.querySelector('.move-silhouette-icon');
-  var h1 = trackAt(track, Math.min(1, 12/(track.len||1)));
-  x1 = track.pts[0][0]; y1 = track.pts[0][1];
-  var curAngle = headingFromDelta(h1[0]-x1, h1[1]-y1), lastPX = x1, lastPY = y1;
-  ghost.setAttribute('transform','translate('+x1+','+y1+')');
-  icon.setAttribute('transform','rotate('+curAngle.toFixed(1)+')');
-  var t0 = performance.now(), lastWake = 0, wakeN = 0;
-  function ease(t){ return t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
-  function step(now){
-    var t = Math.min(1, (now-t0)/dur), u = ease(t);
-    var ip = trackAt(track, u), ix = ip[0], iy = ip[1];
-    var dxh = ix-lastPX, dyh = iy-lastPY;
-    if(dxh*dxh+dyh*dyh > 0.03){ curAngle = angleLerp(curAngle, headingFromDelta(dxh,dyh), 0.4); }
-    lastPX = ix; lastPY = iy;
-    ghost.setAttribute('transform','translate('+ix+','+iy+')');
-    icon.setAttribute('transform','rotate('+curAngle.toFixed(1)+')');
-    if(now-lastWake > 140 && t>0.05 && t<0.95){ lastWake = now; spawnTrailFx(ix, iy, curAngle, kind, wakeN); wakeN++; }
-    if(t < 1){ requestAnimationFrame(step); return; }
-    node.classList.remove('sailing');
-    if(ghost.parentNode) ghost.parentNode.removeChild(ghost);
-    lungeDone();
-    if(done) done();
-  }
-  requestAnimationFrame(step);
+  if(!a || !b || !node || !gFx || mapReducedMotion()){ if(done) done(); return; }
+  sailForceSequential({uid:uid, kind:kind, fromId:fromId||null, toId:terrId,
+    fromPos:[a[0],a[1]], toPos:[b[0],b[1]], node:node, arrivalPulse:false,
+    onDone:function(){
+      try { renderUnits(); paintReach(); } catch(_e) {}
+      if(done) done();
+    }});
 }
 function expandUnitShips(u){
   var out = [];
@@ -22198,7 +22163,7 @@ function angleLerp(cur, target, amt){
   return cur + d*amt;
 }
 /* Map sprites: one black low-res silhouette per ship type, struck from the
-   most iconic in-game sprite of that type (sprites/icons/map/*.png) —
+   most iconic in-game sprite of that type (sprites/ui/map/*.png) —
    Fletcher for destroyers, Elco PT for torpedo boats, Gato for submarines,
    Cleveland for cruisers, Yamato for battleships, Essex for carriers,
    Liberty for auxiliaries, and the Sherman (body + gun composited the way
@@ -22228,8 +22193,8 @@ function mapTypeForCls(cls){
   return null;
 }
 function mapSpriteForType(t, kind){
-  if(t && MAP_TYPE_SPRITES[t]) return 'sprites/icons/map/'+t+'.png';
-  return kind==='naval' ? 'sprites/icons/ship.png' : 'sprites/icons/map/tank.png';
+  if(t && MAP_TYPE_SPRITES[t]) return 'sprites/ui/map/'+t+'.png';
+  return kind==='naval' ? 'sprites/ui/ship.png' : 'sprites/ui/map/tank.png';
 }
 function ghostUnitById(uid){
   if(!uid) return null;
@@ -22262,7 +22227,7 @@ function ghostClsFor(uid, kind){
   return best;
 }
 function silhouetteHref(kind, cls){
-  if(kind!=='naval') return 'sprites/icons/map/tank.png';
+  if(kind!=='naval') return 'sprites/ui/map/tank.png';
   return mapSpriteForType(mapTypeForCls(cls), kind);
 }
 function silhouetteSize(kind, cls){
@@ -22282,7 +22247,7 @@ function createSilhouetteGhost(kind, uid, clsOverride){
   var ic = el('image',{class:'move-silhouette-icon', x:size.x, y:size.y, width:size.w, height:size.h,
     preserveAspectRatio:'xMidYMid meet', href: silhouetteHref(kind, cls)});
   ic.addEventListener('error', function(){
-    var fb = kind==='naval' ? 'sprites/icons/ship.png' : 'sprites/icons/tank.png';
+    var fb = kind==='naval' ? 'sprites/ui/ship.png' : 'sprites/ui/tank.png';
     if (ic.getAttribute('href')!==fb) ic.setAttribute('href', fb);
   });
   g.appendChild(ic);
@@ -22631,9 +22596,12 @@ function ghostRosterFor(uid, kind){
   });
   return out;
 }
-/* A single hull sails a touch slower than the old whole-force dash. */
+/* One cruising speed for every leg on the map: duration follows distance, so
+   a short hop takes less time than a long haul but nothing ever moves faster
+   or slower than this. */
+var MOVE_SPEED = 75;   // px per second
 function hullSailDur(len){
-  return Math.min(8000, Math.max(3000, 1700 + len*10));
+  return Math.max(400, (len/MOVE_SPEED)*1000);
 }
 function sailHullGhost(o, done){
   var dur = hullSailDur(o.track.len);
@@ -22711,7 +22679,7 @@ function makeTransitSrcCounter(tr){
   var g = el('g',{class:'unit transit-counter', 'pointer-events':'none'});
   g.setAttribute('transform','translate('+px+','+py+')');
   g.appendChild(el('circle',{cx:0,cy:0,r:18,class:'unit-bg '+tr.side}));
-  g.appendChild(el('image',{class:'unit-icon',x:-12,y:-10,width:24,height:20,preserveAspectRatio:'xMidYMid meet',href: tr.kind==='naval' ? 'sprites/icons/ship.png' : 'sprites/icons/tank.png'}));
+  g.appendChild(el('image',{class:'unit-icon',x:-12,y:-10,width:24,height:20,preserveAspectRatio:'xMidYMid meet',href: tr.kind==='naval' ? 'sprites/ui/ship.png' : 'sprites/ui/tank.png'}));
   var txt = addBadge(g, trPowerLeft(tr));
   gFx.appendChild(g);
   tr.srcNode = g; tr.srcBadge = txt;
@@ -22839,6 +22807,54 @@ function playFightFx(terrId, fromId){
     if(lab.parentNode) lab.parentNode.removeChild(lab);
   }, 900);
 }
+/* Attack impact on the map: a shell burst at the target that stands in for
+   the old clash — white-hot flash, rolling fireball, shockwave, thrown
+   sparks and a puff of smoke, all on the FX layer. */
+function spawnMapExplosion(x, y){
+  if(!gFx || mapReducedMotion()) return;
+  var made = [];
+  function put(node, life){
+    node.style.pointerEvents = 'none';
+    gFx.appendChild(node); made.push([node, life]);
+    return node;
+  }
+  var flash = el('circle',{cx:x, cy:y, r:17, fill:'#fff3d0'});
+  flash.style.transformOrigin = x+'px '+y+'px';
+  flash.style.animation = 'boomFlash .18s ease-out forwards';
+  put(flash, 260);
+  var ring = el('circle',{cx:x, cy:y, r:15, fill:'none', stroke:'#ff9a5c', 'stroke-width':3.2});
+  ring.style.transformOrigin = x+'px '+y+'px';
+  ring.style.animation = 'boomRing .5s ease-out forwards';
+  put(ring, 560);
+  [[0,0,12,'#ffb14e',0],[-11,7,9,'#ff7a3c',.06],[9,-8,8,'#ffd873',.1]].forEach(function(f){
+    var blob = el('circle',{cx:x+f[0], cy:y+f[1], r:f[2], fill:f[3], opacity:.92});
+    blob.style.transformOrigin = (x+f[0])+'px '+(y+f[1])+'px';
+    blob.style.animation = 'boomFire .5s ease-out ' + f[4] + 's forwards';
+    put(blob, 560 + f[4]*1000);
+  });
+  for(var i=0;i<7;i++){
+    var ang = Math.random()*Math.PI*2, dist = 26 + Math.random()*22;
+    var spark = el('circle',{cx:x, cy:y, r:1.6 + Math.random()*1.8,
+      fill: Math.random()<0.5 ? '#ffd27a' : '#ff9a5c'});
+    spark.style.setProperty('--bx', (Math.cos(ang)*dist).toFixed(1)+'px');
+    spark.style.setProperty('--by', (Math.sin(ang)*dist).toFixed(1)+'px');
+    spark.style.animation = 'boomSpark .45s ease-out ' + (Math.random()*0.1).toFixed(2) + 's forwards';
+    put(spark, 620);
+  }
+  for(var s=0;s<3;s++){
+    var smoke = el('circle',{cx:x + (Math.random()*14-7), cy:y + (Math.random()*10-5),
+      r:5 + Math.random()*4, fill:'rgba(150,150,146,.8)'});
+    smoke.style.setProperty('--sx', ((Math.random()*18-9)).toFixed(1)+'px');
+    smoke.style.setProperty('--sy', (-12 - Math.random()*8).toFixed(1)+'px');
+    smoke.style.animation = 'boomSmoke .95s ease-out ' + (s*0.12).toFixed(2) + 's forwards';
+    put(smoke, 1250);
+  }
+  var life = 0;
+  made.forEach(function(m){ life = Math.max(life, m[1]); });
+  setTimeout(function(){
+    made.forEach(function(m){ if(m[0].parentNode) m[0].parentNode.removeChild(m[0]); });
+  }, life + 80);
+}
 function paintOccupation(fromId, toId){
   try { if(fromId) paintOwner(fromId); } catch(_e) {}
   try { if(toId) paintOwner(toId); } catch(_e) {}
@@ -22887,7 +22903,7 @@ function engageEnemyAttackNow(){
   return !!(window.PT && window.PT.pendingBattle);
 }
 function enemyEase(t){ return t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
-function enemySlideNode(uid, kind, fromPos, toPos, delay, done, fromId, toId){
+function enemySlideNode(uid, kind, fromPos, toPos, delay, done, fromId, toId, quiet){
   var start = function(){
     var node = unitNodeOf[uid];
     if(mapReducedMotion() || !node || !gFx || !fromPos || !toPos){
@@ -22902,52 +22918,12 @@ function enemySlideNode(uid, kind, fromPos, toPos, delay, done, fromId, toId){
     if(ENEMY_ANIM_OLDS[uid] != null) node.style.opacity = '0';
     sailForceSequential({uid:uid, kind:kind, fromId:fromId||null, toId:toId||null,
       fromPos:[fromPos[0],fromPos[1]], toPos:[toPos[0],toPos[1]],
-      srcPos:[fromPos[0],fromPos[1]], node:node,
+      srcPos:[fromPos[0],fromPos[1]], node:node, arrivalPulse: quiet!==true,
       onDone:function(){
         clearEnemyAnimOld(uid);
         try { renderUnits(); paintReach(); } catch(_e) {}
         if(done) done();
       }});
-  };
-  if(delay && delay>0) setTimeout(start, delay);
-  else start();
-}
-function enemyAttackLunge(uid, kind, fromPos, targetPos, delay, done){
-  var start = function(){
-    var node = unitNodeOf[uid];
-    if(mapReducedMotion() || !node || !gFx || !fromPos || !targetPos){ if(done) done(); return; }
-    var dx = targetPos[0]-fromPos[0], dy = targetPos[1]-fromPos[1], len = Math.hypot(dx,dy) || 1;
-    var ux = dx/len, uy = dy/len;
-    var x1 = fromPos[0]+ux*20, y1 = fromPos[1]+uy*20;
-    var x2 = fromPos[0]+dx*0.62, y2 = fromPos[1]+dy*0.62;
-    var mx = (x1+x2)/2 - uy*len*0.08, my = (y1+y2)/2 + ux*len*0.08;
-    var dur = Math.min(3200, Math.max(1700, 1100 + len*5));
-    lungeStart();
-    node.classList.add('sailing');
-    var ghost = createSilhouetteGhost(kind, uid);
-    gFx.appendChild(ghost);
-    var icon = ghost.querySelector('.move-silhouette-icon');
-    var curAngle = headingFromDelta(x2-x1, y2-y1), lastPX = x1, lastPY = y1;
-    ghost.setAttribute('transform','translate('+x1+','+y1+')');
-    icon.setAttribute('transform','rotate('+curAngle.toFixed(1)+')');
-    var t0 = performance.now(), lastWake = 0, wakeN = 0;
-    function step(now){
-      var t = Math.min(1, (now-t0)/dur), u = enemyEase(t);
-      var ix = (1-u)*(1-u)*x1 + 2*(1-u)*u*mx + u*u*x2;
-      var iy = (1-u)*(1-u)*y1 + 2*(1-u)*u*my + u*u*y2;
-      var dxh = ix-lastPX, dyh = iy-lastPY;
-      if(dxh*dxh+dyh*dyh > 0.03){ curAngle = angleLerp(curAngle, headingFromDelta(dxh,dyh), 0.4); }
-      lastPX = ix; lastPY = iy;
-      ghost.setAttribute('transform','translate('+ix+','+iy+')');
-      icon.setAttribute('transform','rotate('+curAngle.toFixed(1)+')');
-      if(now-lastWake > 140 && t>0.05 && t<0.95){ lastWake = now; spawnTrailFx(ix, iy, curAngle, kind, wakeN); wakeN++; }
-      if(t < 1){ requestAnimationFrame(step); return; }
-      node.classList.remove('sailing');
-      if(ghost.parentNode) ghost.parentNode.removeChild(ghost);
-      lungeDone();
-      if(done) done();
-    }
-    requestAnimationFrame(step);
   };
   if(delay && delay>0) setTimeout(start, delay);
   else start();
@@ -22969,17 +22945,17 @@ function playEnemyAnims(list, onDone){
     function run(){
     if(window.PT && window.PT.pendingBattle){ parkEnemyAnims(list, i-1, onDone); return; }
     if(a.type==='attack'){
-      enemyAttackLunge(a.uid, a.kind, a.fromPos, a.targetPos, 0, function(){
-        playFightFx(a.to, a.from);
+      // Approach as an ordinary leg at cruising speed — same sail as any
+      // move — then the target erupts and the battle takes over.
+      enemySlideNode(a.uid, a.kind, a.fromPos, a.targetPos, 0, function(){
+        spawnMapExplosion(a.targetPos[0], a.targetPos[1]);
         setTimeout(function(){
-          clearEnemyAnimOld(a.uid);
-          try { renderUnits(); paintReach(); } catch(_e) {}
-          // This clash starts its battle right now — the rest of the turn
+          // This impact starts its battle right now — the rest of the turn
           // waits in the park until the fight is over.
           if(engageEnemyAttackNow()){ parkEnemyAnims(list, i, onDone); return; }
           next();
         }, mapReducedMotion() ? 30 : 850);
-      });
+      }, a.from, a.to, true);
     } else if(a.type==='capture-pulse'){
       playFightFx(a.to, null);
       setTimeout(next, mapReducedMotion() ? 30 : 850);
@@ -23084,7 +23060,7 @@ function renderUnits(){
     var g = el('g',{class:cls});
     g.setAttribute('transform','translate('+u.pos[0]+','+u.pos[1]+')');
     g.appendChild(el('circle',{cx:0,cy:0,r:18,class:'unit-bg '+u.side.toLowerCase()}));
-    g.appendChild(el('image',{class:'unit-icon',x:-12,y:-10,width:24,height:20,preserveAspectRatio:'xMidYMid meet',href: u.kind==='naval' ? 'sprites/icons/ship.png' : 'sprites/icons/tank.png'}));
+    g.appendChild(el('image',{class:'unit-icon',x:-12,y:-10,width:24,height:20,preserveAspectRatio:'xMidYMid meet',href: u.kind==='naval' ? 'sprites/ui/ship.png' : 'sprites/ui/tank.png'}));
     var txt = addBadge(g, fmtPower(unitPower(u)));
     // A force under way counts live: what has arrived so far, not the roster.
     var trArrived = transitArrivedFor(u.id);
