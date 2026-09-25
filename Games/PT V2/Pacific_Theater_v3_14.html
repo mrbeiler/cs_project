@@ -320,18 +320,6 @@
   }
   .menu-hero-ship .ship-card-name{ font-size:19px; }
   .menu-hero .money-badge{ margin-top:16px; }
-  .menu-hero-art{
-    position:relative; z-index:1; flex:0 0 auto; width:280px; height:170px;
-    display:flex; align-items:center; justify-content:center;
-    background:radial-gradient(ellipse at center, rgba(33,93,112,0.28), transparent 70%);
-    border-radius:8px;
-  }
-  .menu-ship-sprite{
-    max-width:100%; max-height:100%; width:auto; height:auto;
-    filter:drop-shadow(0 8px 14px rgba(0,0,0,0.55));
-    image-rendering:pixelated;
-    transform:rotate(90deg);
-  }
   .money-badge{
     display:inline-flex; align-items:center; gap:6px; background:var(--panel-2); border:1px solid var(--border-soft);
     border-radius:6px; padding:8px 14px; font-family:ui-monospace,Consolas,monospace; font-size:15px; color:var(--brass-bright);
@@ -356,7 +344,6 @@
 
   @media (max-width:700px){
     .menu-hero{ flex-direction:column; align-items:stretch; padding:26px 22px; }
-    .menu-hero-art{ width:100%; height:130px; }
     .menu-title{ font-size:28px; }
   }
   .back-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
@@ -1251,7 +1238,6 @@ svg#map text{user-select:none;-webkit-user-select:none}
   body.menu-mode #screenMenu.active .menu-hero .menu-title{ font-size:24px; letter-spacing:.02em; line-height:1; }
   body.menu-mode #screenMenu.active .menu-hero .menu-hero-ship{ margin-top:4px; padding-top:0; border-top:0; }
   body.menu-mode #screenMenu.active .menu-hero .money-badge{ margin-top:4px; }
-  body.menu-mode #screenMenu.active .menu-hero-art{ width:170px; height:74px; }
   body.menu-mode #screenMenu.active #tmapPlate{
     flex:1 1 auto; min-height:0; min-width:0;
     display:flex; align-items:stretch;
@@ -1275,7 +1261,6 @@ svg#map text{user-select:none;-webkit-user-select:none}
     background:rgba(7,33,46,.55); border:1px solid rgba(130,190,215,.28); border-radius:6px;
     padding:8px 10px 10px;
   }
-  body.menu-mode #screenMenu.active #tmapPlate .menu-actions #btnGoDepot{ margin-top:auto; }
   body.menu-mode #screenMenu.active #tmapPlate .menu-actions #selBox:empty{ display:none; }
   /* Laptop screens are short: the header becomes one slim row and the map
      takes every pixel of height the plate has, instead of a fixed 560px. */
@@ -1284,7 +1269,6 @@ svg#map text{user-select:none;-webkit-user-select:none}
   body.menu-mode #screenMenu.active .menu-hero .menu-hero-info{ display:flex; align-items:center; gap:22px; flex-wrap:wrap; }
   body.menu-mode #screenMenu.active .menu-hero .menu-hero-ship{ margin-top:0; display:flex; align-items:baseline; gap:10px; }
   body.menu-mode #screenMenu.active .menu-hero .money-badge{ margin-top:0; padding:5px 12px; }
-  body.menu-mode #screenMenu.active .menu-hero-art{ width:150px; height:42px; }
   /* the turn bar sits atop the side panel rather than over the map */
   body.menu-mode #screenMenu.active #tmapPlate .menu-actions{ flex-wrap:nowrap; }
   body.menu-mode #screenMenu.active .menu-actions #turnbar{
@@ -1304,8 +1288,7 @@ svg#map text{user-select:none;-webkit-user-select:none}
     body.menu-mode #screenMenu.active #tmapPlate .menu-actions #selBox{ flex:1 1 100%; }
     body.menu-mode #screenMenu.active #tmapPlate #shell{ height:auto; flex:1 1 auto; min-height:300px; }
     body.menu-mode #screenMenu.active #tmapPlate .menu-actions{ flex-wrap:wrap; max-height:45%; overflow:auto; }
-    body.menu-mode #screenMenu.active .menu-hero .ship-card-sub,
-    body.menu-mode #screenMenu.active .menu-hero-art{ display:none; }
+    body.menu-mode #screenMenu.active .menu-hero .ship-card-sub{ display:none; }
   }
 
   /* ------------------------------------------------------------------ *
@@ -1344,9 +1327,6 @@ svg#map text{user-select:none;-webkit-user-select:none}
           <div class="ship-card-sub" id="menuShipSub">Fletcher-class destroyer</div>
         </div>
         <div class="money-badge"><span class="lbl">Funds</span><span id="menuMoney">$0</span></div>
-      </div>
-      <div class="menu-hero-art">
-        <img class="menu-ship-sprite" id="menuShipSprite" alt="">
       </div>
     </div>
     <div class="plate" id="tmapPlate">
@@ -1504,7 +1484,7 @@ svg#map text{user-select:none;-webkit-user-select:none}
         <div class="yd-ready" id="portReady"></div>
         <div class="yd-toast" id="portToast" role="status" aria-live="polite"></div>
         <div class="yd-foot-btns">
-          <button type="button" id="btnSetSail" class="port-go">Set sail</button>
+          <button type="button" id="btnSetSail" class="port-go">Practice</button>
           <button type="button" id="ask" class="cl" hidden>Yard report</button>
         </div>
       </div>
@@ -1629,7 +1609,7 @@ svg#map text{user-select:none;-webkit-user-select:none}
         <div class="yd-ready" id="depotReady"></div>
         <div class="yd-toast" id="depotToast" role="status" aria-live="polite"></div>
         <div class="yd-foot-btns">
-          <button type="button" id="btnRollOut" class="port-go">Roll out</button>
+          <button type="button" id="btnRollOut" class="port-go">Practice</button>
         </div>
       </div>
     </div>
@@ -3076,12 +3056,12 @@ svg#map text{user-select:none;-webkit-user-select:none}
     lcm: {
       id:'lcm', nameShort:'LCM-6', nameFull:'LCM(6)-class landing craft',
       navy:'United States Navy', laid:'1943',
-      lengthFt:56, beamFt:14, topSpeedKts:8, turnRateMul:1.6, hullType:'fastboat',
+      lengthFt:56, beamFt:18, topSpeedKts:8, turnRateMul:1.6, hullType:'fastboat',
       hull:'#4a5250', deck:'#3b423f',
       gunBoreFt:0.1312, gunCaliberMult:56, gunMountType:'single', gunBoxFt:3,
       guns:[
-        {frac:0.35, tier:0},
-        {frac:0.65, tier:0}
+        {frac:0.758, side:-0.805, tier:0},
+        {frac:0.758, side:0.805, tier:0}
       ],
       torpedoBoreFt:0, torpedoTubes:0, torpedoTubeLenFt:0,
       torpedoMounts:[], torpedoReloadBox:false,
@@ -3379,7 +3359,7 @@ svg#map text{user-select:none;-webkit-user-select:none}
   var BRIDGE_HALF_BEAM = 0.34;
   var MAIN_ARC_SHRINK = 0.55;
   var MAIN_INSIDE_SPAN = 26 * Math.PI/180;
-  var MIN_ZOOM = 0.22, MAX_ZOOM = 2.4;
+  var MIN_ZOOM = 0.22, MAX_ZOOM = 6;
 
   // --- Submarine dive mechanics --------------------------------------------
   // A submarine's dive state is a continuous 0..1 value (diveT), not just a
@@ -14500,10 +14480,6 @@ if (!en.sonarValid && en.formation){
       : '';
     document.getElementById('menuShipSub').textContent = ship.nameFull + ' · ' + ship.navy + company;
     document.getElementById('menuMoney').textContent = fmtMoney(garage.money);
-    var spriteEl = document.getElementById('menuShipSprite');
-    var uri = spriteDataUri(ship);
-    if (uri){ spriteEl.src = uri; spriteEl.style.display = ''; }
-    else { spriteEl.style.display = 'none'; }
   }
 
   var practiceMode = 'sea';
@@ -15631,7 +15607,7 @@ if (!en.sonarValid && en.formation){
         ready.innerHTML = escHtml(ag.name) + ' has no ships. Add one before you sail.';
       }
       if (go){
-        go.textContent = n ? 'Set sail' : 'Assign ships';
+        go.textContent = n ? 'Practice' : 'Assign ships';
         go.classList.toggle('warn', !n);
       }
     }
@@ -21084,6 +21060,7 @@ function playAttackSail(uid, kind, fromId, terrId, done){
   }
   x2 = track.pts[track.pts.length-1][0]; y2 = track.pts[track.pts.length-1][1];
   var dur = Math.min(3200, Math.max(1700, 1100 + track.len*5));
+  lungeStart();
   node.classList.add('sailing');
   var ghost = createSilhouetteGhost(kind, uid);
   gFx.appendChild(ghost);
@@ -21107,6 +21084,7 @@ function playAttackSail(uid, kind, fromId, terrId, done){
     if(t < 1){ requestAnimationFrame(step); return; }
     node.classList.remove('sailing');
     if(ghost.parentNode) ghost.parentNode.removeChild(ghost);
+    lungeDone();
     if(done) done();
   }
   requestAnimationFrame(step);
@@ -21467,24 +21445,9 @@ function enemyTurn(){
   if(!log.length) log.push('Japanese forces held their positions.');
   return log;
 }
-/* End Turn stays off while any deployed force still has moves to spend.
-   A force with nowhere legal to go counts as done, so the turn can never jam. */
-function unitsAwaitingOrders(){
-  var waiting = [];
-  try {
-    syncPlayerUnits().filter(function(p){ return p.loc && p.mp>0; }).forEach(function(p){
-      if(Object.keys(reachOf(p)).length) waiting.push(p);
-    });
-  } catch(_e) {}
-  return waiting;
-}
 function endTurn(){
   if(INCOMING.length){ selMsg = 'Deal with the enemy attacks first.'; selected=null; selectedUnit=null; refreshAll(); return; }
-  var waiting = unitsAwaitingOrders();
-  if(waiting.length){
-    selMsg = waiting.map(function(p){ return p.name; }).join(', ')+(waiting.length===1?' still has':' still have')+' moves left.';
-    renderSelBox(); return;
-  }
+  if(unitsInMotion()){ return; }
   SIM_REPORTS = [];
   REPORT = enemyTurn();
   if(BATTLE_MODE==='sim' && INCOMING.length) simResolveIncoming();
@@ -21526,12 +21489,12 @@ function renderTurnbar(){
   var b = document.getElementById('btnEndTurn');
   if(b){
     var blocked = INCOMING.length>0;
-    var waiting = blocked ? [] : unitsAwaitingOrders();
-    var held = blocked || waiting.length>0;
+    var moving = !blocked && unitsInMotion();
+    var held = blocked || moving;
     b.classList.toggle('blocked', held);
     b.disabled = held;
     b.title = blocked ? 'Resolve the enemy attacks first.'
-      : (waiting.length ? 'Waiting on: '+waiting.map(function(p){ return p.name; }).join(', ') : 'End your turn');
+      : (moving ? 'Units still moving…' : 'End your turn');
   }
 }
 
@@ -21946,6 +21909,15 @@ function paintReach(){
    Occupation (DEPLOY + paintOwner) updates first so the map repaints
    immediately; these visuals ride on top in gFx and never block logic. */
 var mapFxBusy = false;
+/* Units in motion: column sails are tracked live through TRANSITS, lunges
+   through a counter. End Turn waits while either is non-empty. */
+var lungesInFlight = 0;
+function unitsInMotion(){
+  try { if(typeof TRANSITS!=='undefined' && TRANSITS.length>0) return true; } catch(_e) {}
+  return lungesInFlight>0;
+}
+function lungeStart(){ lungesInFlight++; try { renderTurnbar(); } catch(_e) {} }
+function lungeDone(){ lungesInFlight = Math.max(0, lungesInFlight-1); try { renderTurnbar(); } catch(_e) {} }
 function mapReducedMotion(){
   try { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
   catch(_e) { return false; }
@@ -22640,6 +22612,7 @@ function enemyAttackLunge(uid, kind, fromPos, targetPos, delay, done){
     var x2 = fromPos[0]+dx*0.62, y2 = fromPos[1]+dy*0.62;
     var mx = (x1+x2)/2 - uy*len*0.08, my = (y1+y2)/2 + ux*len*0.08;
     var dur = Math.min(3200, Math.max(1700, 1100 + len*5));
+    lungeStart();
     node.classList.add('sailing');
     var ghost = createSilhouetteGhost(kind, uid);
     gFx.appendChild(ghost);
@@ -22661,6 +22634,7 @@ function enemyAttackLunge(uid, kind, fromPos, targetPos, delay, done){
       if(t < 1){ requestAnimationFrame(step); return; }
       node.classList.remove('sailing');
       if(ghost.parentNode) ghost.parentNode.removeChild(ghost);
+      lungeDone();
       if(done) done();
     }
     requestAnimationFrame(step);
