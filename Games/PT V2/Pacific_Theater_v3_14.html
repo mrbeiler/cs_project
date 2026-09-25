@@ -442,7 +442,7 @@
     background:var(--panel-2); color:var(--ivory-dim); border:1px solid var(--border-soft);
     border-radius:4px; padding:7px 12px; cursor:pointer;
   }
-  .abort-btn:hover{ border-color:#6b3b30; color:#e2765f; }
+  .abort-btn:hover{ border-color:#4f86a3; color:#ffce5c; }
 
   #screenBattle.active{ flex:1 1 auto; min-height:0; }
   #screenBattle .console{ flex:1 1 auto; min-height:0; }
@@ -1626,7 +1626,7 @@ svg#map text{user-select:none;-webkit-user-select:none}
           <span class="ship-name" id="shipName">USS Fletcher</span>
           <span class="ship-sub" id="shipSub">Fletcher-class destroyer · United States Navy · 1942</span>
         </div>
-        <button class="abort-btn" id="btnAbort" type="button">Abort</button>
+        <button class="abort-btn" id="btnAbort" type="button" title="Hand this fight to the Simulate — it settles on the map">SIM</button>
       </div>
 
       <div class="plate viewport" id="viewport">
@@ -1739,7 +1739,7 @@ svg#map text{user-select:none;-webkit-user-select:none}
           <span class="ship-name" id="tankName">M4 Sherman</span>
           <span class="ship-sub" id="tankSub">Medium tank · land battle</span>
         </div>
-        <button class="abort-btn" id="btnTankAbort" type="button">Withdraw</button>
+        <button class="abort-btn" id="btnTankAbort" type="button" title="Hand this fight to the Simulate — it settles on the map">SIM</button>
       </div>
 
       <div class="plate viewport" id="tankViewport">
@@ -3056,12 +3056,12 @@ svg#map text{user-select:none;-webkit-user-select:none}
     lcm: {
       id:'lcm', nameShort:'LCM-6', nameFull:'LCM(6)-class landing craft',
       navy:'United States Navy', laid:'1943',
-      lengthFt:56, beamFt:18, topSpeedKts:8, turnRateMul:1.6, hullType:'fastboat',
+      lengthFt:56, beamFt:16, topSpeedKts:8, turnRateMul:1.6, hullType:'fastboat',
       hull:'#4a5250', deck:'#3b423f',
       gunBoreFt:0.1312, gunCaliberMult:56, gunMountType:'single', gunBoxFt:3,
       guns:[
-        {frac:0.758, side:-0.805, tier:0},
-        {frac:0.758, side:0.805, tier:0}
+        {frac:0.765, side:-0.77, tier:0},
+        {frac:0.765, side:0.78, tier:0}
       ],
       torpedoBoreFt:0, torpedoTubes:0, torpedoTubeLenFt:0,
       torpedoMounts:[], torpedoReloadBox:false,
@@ -5652,9 +5652,7 @@ svg#map text{user-select:none;-webkit-user-select:none}
     spawnSplashBlob(x,y,16,0.5,0);
   }
   // A steady trickle of bubbles and debris while a hull is sinking, growing
-  // heavier the further under it settles, plus an occasional small swirl
-  // once it's most of the way gone — a hint of the whirlpool as she takes
-  // her last plunge.
+  // heavier the further under it settles.
   function spawnSinkTrail(dt, obj, x, y, sinkT){
     obj.sinkBubbleAcc = (obj.sinkBubbleAcc||0) + dt*(4+sinkT*10);
     while (obj.sinkBubbleAcc >= 1){
@@ -5671,13 +5669,6 @@ svg#map text{user-select:none;-webkit-user-select:none}
         driftX:Math.cos(fa)*3, driftY:Math.sin(fa)*3, kind:'wreckfoam'});
     }
     if (state.wake.length > MAX_WAKE+400) state.wake.splice(0, state.wake.length-(MAX_WAKE+400));
-    if (sinkT>0.55){
-      obj.sinkSwirlAcc = (obj.sinkSwirlAcc||0) + dt*(2+sinkT*4);
-      while (obj.sinkSwirlAcc>=1){
-        obj.sinkSwirlAcc -= 1;
-        spawnRipple(x,y, 14+Math.random()*16+sinkT*22, 0.7, 0, '200,225,230');
-      }
-    }
   }
   function spawnSinkingFire(dt, obj, x, y, headingRad, def, sinkT){
     if (sinkT>0.68) return;
@@ -5974,15 +5965,13 @@ svg#map text{user-select:none;-webkit-user-select:none}
     ctx.translate(cx,cy);
     ctx.rotate(headingRad);
     if (sinkT){
-      // She takes on water slowly, then rolls and slips under fast at the end:
-      // list builds to ~55°, the hull settles bodily to ~55% size, bow dips
-      // (trim by the bow reads as a slight stern-ward slide top-down), and a
-      // dark waterline shadow creeps up over the deck. Alpha is handled by the
-      // caller — the hull stays fully visible until 70% gone, then slips under.
+      // She takes on water and slips under by the bow — no death-roll spin,
+      // only a hint of shrink as she settles. A dark waterline shadow creeps
+      // up over the deck. Alpha is handled by the caller — the hull stays
+      // fully visible until 70% gone, then slips under.
       var ease = sinkT*sinkT*(3-2*sinkT);
-      ctx.rotate(ease*0.95*(sinkListDir||1));
       ctx.translate(0, ease*lenPx*0.10);
-      var settle = 1-ease*0.45;
+      var settle = 1-ease*0.12;
       ctx.scale(settle, settle);
     } else if (diveT){
       // A submarine settles bodily into the water as it goes down rather than
@@ -7794,7 +7783,6 @@ var diveT = isCtl ? state.diveT : m.diveT;
     m.sinkListDir = Math.random()<0.5?1:-1; m.sinkBubbleAcc = 0; m.sinkSwirlAcc = 0;
     m.sinkFoamAcc = 0; m.sinkFireAcc = 0;
     spawnBubbleBurst(m.x, m.y, 8);
-    spawnRipple(m.x, m.y, 20, 0.6, 0, '200,225,230');
     if (magazine){ spawnExplosion(m.x, m.y, 2.6); spawnHeavyHitFx(m.x, m.y, 2.6); }
     updateGroupStrip();
   }
@@ -8597,8 +8585,6 @@ var speedFrac = clamp(Math.abs(m.speedKn)/m.def.topSpeedKts, 0, 1);
         driftX:Math.cos(a2)*1.5, driftY:Math.sin(a2)*1.5, kind:'oil'});
     }
     spawnBubbleBurst(x, y, 14);
-    spawnRipple(x, y, 30, 0.8, 0, '200,225,230');
-    spawnRipple(x, y, 52, 1.2, 0.15, '200,225,230');
     spawnSplashBlob(x, y, 22, 0.7, 0);
     if (state.wake.length > MAX_WAKE+400) state.wake.splice(0, state.wake.length-(MAX_WAKE+400));
   }
@@ -8631,7 +8617,7 @@ var speedFrac = clamp(Math.abs(m.speedKn)/m.def.topSpeedKts, 0, 1);
       if ((isDoomed(en.dm) || isWrecked(en.dm)) && !en.sinking){
         en.sinking=true; en.sinkTimer=0; en.magazineKill=false;
         en.sinkListDir = Math.random()<0.5?1:-1; en.sinkBubbleAcc=0; en.sinkSwirlAcc=0; en.sinkFoamAcc=0; en.sinkFireAcc=0;
-        spawnBubbleBurst(en.x,en.y,8); spawnRipple(en.x,en.y,20,0.6,0,'200,225,230');
+        spawnBubbleBurst(en.x,en.y,8);
         state.kills++; state.score+=en.tier.scoreValue;
         state.missionEarnings += KILL_BONUS[en.tier.key] || 0;
         if (state.mission && state.mission.objType==='kills' && (!state.mission.targetTier || state.mission.targetTier===en.tier.key)){
@@ -9290,12 +9276,11 @@ var torpSpd = (en.tier.torpedoSpeedKts||40) * 1.68781 * scale;
       spawnRipple(x, y, 16*blast, 0.5, 0, '255,225,180');
     }
   }
-  // The extra layer on top of a serious hit: shockwave ring, rising smoke
-  // column and a camera kick. Called for heavy shell, bomb and torpedo hits
-  // and magazine explosions — never for splashes or sparks.
+  // The extra layer on top of a serious hit: rising smoke column and a camera
+  // kick. Called for heavy shell, bomb and torpedo hits and magazine
+  // explosions — never for splashes or sparks.
   function spawnHeavyHitFx(x, y, intensity){
     if (intensity >= 1.8){
-      spawnRipple(x, y, 24*intensity, 0.5, 0, '255,225,180');
       var ncol = Math.round(2+intensity*2);
       for (var i=0;i<ncol;i++){
         var ang = Math.random()*Math.PI*2, d = Math.random()*10*intensity;
@@ -12127,8 +12112,9 @@ if (!en.sonarValid && en.formation){
 
   // Writes the battle's outcome back onto the garage hulls so port shows
   // every ship as she ended it: sunk (drydock until repaired) or carrying a
-  // damage fraction into the next sailing. All battle exits funnel through
-  // endMission (including Abort), so one hook covers them.
+  // damage fraction into the next sailing. Battle exits funnel through
+  // endMission — except handing the fight to the Simulate, which settles it
+  // from the pre-battle state instead.
   function recordBattleDamage(){
     if (!state.group || !state.group.length) return;
     try { pullControlled(); } catch(_e) {}
@@ -12535,7 +12521,7 @@ if (!en.sonarValid && en.formation){
         if ((isDoomed(state.dm) || isWrecked(state.dm)) && !state.gameOver && !state.sinking){
           state.sinking = true; state.sinkTimer = 0; state.magazineKill = false;
           state.sinkListDir = Math.random()<0.5?1:-1; state.sinkBubbleAcc=0; state.sinkSwirlAcc=0; state.sinkFoamAcc=0; state.sinkFireAcc=0;
-          spawnBubbleBurst(state.worldX,state.worldY,8); spawnRipple(state.worldX,state.worldY,20,0.6,0,'200,225,230');
+          spawnBubbleBurst(state.worldX,state.worldY,8);
         }
 
         if (ship.torpedoReloadCapable){
@@ -14427,8 +14413,9 @@ if (!en.sonarValid && en.formation){
   document.getElementById('submergeToggle').addEventListener('click', function(){ tryToggleSilentRunning(); updateSubmergeToggleUI(); });
   document.getElementById('restartBtn').addEventListener('click', function(){ showScreen('menu'); });
   document.getElementById('btnAbort').addEventListener('click', function(){
-    if (!state.gameOver) endMission(false);
-    showScreen('menu');
+    // No aborting: hand the fight to the Simulate, which settles it and
+    // returns you to the map.
+    if(window.PT && window.PT.setBattleMode) window.PT.setBattleMode('sim');
   });
 
   function showScreen(name){
@@ -14456,6 +14443,11 @@ if (!en.sonarValid && en.formation){
     if (name==='menu' && window.PT && typeof window.PT.refreshMenu==='function') window.PT.refreshMenu();
     // Leaving the yard drops the territory it was opened from.
     if (name==='menu' && window.PT && window.PT.clearYardOrigin) window.PT.clearYardOrigin();
+    // Back on the map after a battle: any enemy attack still waiting on you
+    // fights now — never while a battle screen is up.
+    if (name==='menu' && window.PT && window.PT.afterBattleReturn){
+      setTimeout(function(){ try { window.PT.afterBattleReturn(); } catch(_e){} }, 0);
+    }
   }
 
   // War-budget formatting: $2.50B, $68.00M, $44.5K, $900.
@@ -17750,6 +17742,191 @@ if (!en.sonarValid && en.formation){
     tank.mission = m;
     tank.kills = 0; tank.earnings = 0; tank.gameOver = false; tank.result = null;
     tank.endTimer = 0; tank.shake = 0; tank.time = 0;
+    tank.landed = true; tank.craft = []; tank._objNormal = null;
+  }
+  /* ---- amphibious landing: LCMs run the beach on the tank map ------------- */
+  function tankIsWater(x, y){
+    if (!tank.ground) return false;
+    if (x < 0 || y < 0 || x > TANK_WORLD.w || y > TANK_WORLD.h) return false;
+    var n = tank.ground.groundName(x, y);
+    return n==='Deep water' || n==='Open water' || n==='Shallows' || n==='Coral reef' || n==='Surf';
+  }
+  /* Find a spot where water meets open dry ground: the craft start offshore
+     and drive in along the approach vector to the beachhead. */
+  function findLandingSite(){
+    var g = tank.ground; if (!g) return null;
+    var W = TANK_WORLD.w, H = TANK_WORLD.h;
+    var DIRS = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+    var best = null, bs = -1e9, di, s, s2;
+    for (var y=40; y<H-40; y+=26){
+      for (var x=40; x<W-40; x+=26){
+        if (!tankIsWater(x, y)) continue;
+        for (di=0; di<8; di++){
+          var ux = DIRS[di][0], uy = DIRS[di][1];
+          // open water behind the start (past the sheet edge counts as sea)
+          var wr = 0;
+          for (s=1; s<=8; s++){
+            var wx = x-ux*s*26, wy = y-uy*s*26;
+            if (wx<0 || wy<0 || wx>W || wy>H){ wr++; continue; }
+            if (tankIsWater(wx, wy)) wr++; else break;
+          }
+          if (wr < 2) continue;
+          // first dry, open ground coming in along the vector
+          var lx = -1, ly = -1, hit = -1;
+          for (s2=1; s2<=6; s2++){
+            var tx = x+ux*s2*26, ty = y+uy*s2*26;
+            if (tx<30 || ty<30 || tx>W-30 || ty>H-30) break;
+            if (!tankIsWater(tx, ty) && g.open(tx, ty)){ lx = tx; ly = ty; hit = s2; break; }
+          }
+          if (lx < 0) continue;
+          var openN = 0;
+          for (var ox=-2; ox<=2; ox++) for (var oy=-2; oy<=2; oy++) if (g.open(lx+ox*30, ly+oy*30)) openN++;
+          if (openN < 14) continue;
+          var edge = Math.min(x, W-x, y, H-y);
+          var sc = wr*8 + openN*2 + (7-hit)*5 - edge*0.05;
+          if (sc > bs){ bs = sc; best = {sx:x, sy:y, gx:lx, gy:ly, ux:ux, uy:uy}; }
+        }
+      }
+    }
+    return best;
+  }
+  /* Squadron of craft in a column down the approach lane, guide's tank in the
+     first boat, wingmen round-robin behind her. */
+  function tankBuildLanding(site, n){
+    n = clamp(n|0, 1, 4);
+    var craft = [], i;
+    var perpX = -site.uy, perpY = site.ux;
+    for (i=0; i<n; i++){
+      var sx = clamp(site.sx - site.ux*(i*64), 30, TANK_WORLD.w-30);
+      var sy = clamp(site.sy - site.uy*(i*64), 30, TANK_WORLD.h-30);
+      var off = (i-(n-1)/2)*26;
+      var gx = site.gx + perpX*off, gy = site.gy + perpY*off;
+      craft.push({x:sx, y:sy, h:Math.atan2(gx-sx, -(gy-sy)), sp:0, ramp:0, state:'sail',
+        len:112, wid:44, gx:gx, gy:gy, pax:[]});
+    }
+    tank.craft = craft;
+    tank.landingDir = {ux:site.ux, uy:site.uy};
+    if (tank.player){
+      tank.player.embarked = true;
+      tank.player.x = craft[0].x; tank.player.y = craft[0].y;
+      tank.player.h = craft[0].h; tank.player.t = craft[0].h;
+      tank.player.sp = 0;
+      craft[0].pax.push(tank.player);
+    }
+    for (i=0; i<tank.allies.length; i++){
+      var wa = tank.allies[i];
+      wa.embarked = true;
+      wa.x = craft[(i+1) % craft.length].x;
+      wa.y = craft[(i+1) % craft.length].y;
+      wa.h = Math.PI/2; wa.t = Math.PI/2; wa.sp = 0;
+      craft[(i+1) % craft.length].pax.push(wa);
+    }
+    return craft;
+  }
+  function tankUpdateLanding(dt){
+    var i, c;
+    for (i=0; i<tank.craft.length; i++){
+      c = tank.craft[i];
+      if (c.state === 'beached'){
+        c.sp = 0;
+        c.ramp = Math.min(1, c.ramp + dt*1.4);
+        continue;
+      }
+      var dx = c.gx - c.x, dy = c.gy - c.y, d = Math.hypot(dx, dy);
+      if (d > 0.1){
+        var wantH = Math.atan2(dx, -dy);
+        c.h += clamp(angleDiffRad(wantH, c.h), -1.4*dt, 1.4*dt);
+      }
+      var desSp = d > 34 ? 62 : 0;
+      c.sp += clamp(desSp - c.sp, -50*dt, 60*dt);
+      c.x += Math.sin(c.h)*c.sp*dt;
+      c.y -= Math.cos(c.h)*c.sp*dt;
+      c.x = clamp(c.x, 20, TANK_WORLD.w-20);
+      c.y = clamp(c.y, 20, TANK_WORLD.h-20);
+      if (d <= 34){ c.state = 'beached'; c.sp = 0; c.ramp = 0; }
+      if (c.sp > 8 && Math.random() < dt*30){
+        // wake astern
+        var bx = c.x - Math.sin(c.h)*c.len*0.5, by = c.y + Math.cos(c.h)*c.len*0.5;
+        tank.parts.push({x:bx+(Math.random()-0.5)*c.wid, y:by+(Math.random()-0.5)*12,
+          vx:(Math.random()-0.5)*16, vy:(Math.random()-0.5)*16, age:0,
+          max:0.5+Math.random()*0.4, size:2+Math.random()*2, col:'214,230,232'});
+      }
+    }
+    // the guide rides the first craft — camera and HUD read her
+    if (tank.craft.length && tank.player){
+      tank.player.x = tank.craft[0].x; tank.player.y = tank.craft[0].y;
+    }
+    for (i=0; i<tank.craft.length; i++){
+      if (tank.craft[i].state !== 'beached' || tank.craft[i].ramp < 0.99) return;
+    }
+    tankUnloadLanding();
+  }
+  /* Ramps down: the division goes ashore around each boat and the fight is on. */
+  function tankUnloadLanding(){
+    if (tank.landed) return;
+    var g = tank.ground, i, j;
+    for (i=0; i<tank.craft.length; i++){
+      var c = tank.craft[i];
+      c.state = 'offloaded';
+      for (j=0; j<c.pax.length; j++){
+        var u = c.pax[j];
+        var px = c.x + 46, py = c.y + (j - (c.pax.length-1)/2)*34;
+        for (var t=0; t<8 && g && (tankIsWater(px, py) || !g.open(px, py)); t++) px += 26;
+        if (g){ var np = g.nudge(px, py); px = np.x; py = np.y; }
+        u.x = px; u.y = py;
+        var hd = tank.landingDir || {ux:1, uy:0};
+        var uh = Math.atan2(hd.ux, -(hd.uy));
+        u.h = uh; u.t = uh; u.sp = 0;
+        u.embarked = false;
+      }
+    }
+    tank.landed = true;
+    var ob = document.getElementById('tankObjective');
+    if (ob && tank._objNormal) ob.textContent = tank._objNormal;
+  }
+  var _lcmArt = null;
+  function tankLcmArt(){
+    if (!_lcmArt){ _lcmArt = new Image(); _lcmArt.src = 'sprites/hull/lcm.png'; }
+    return _lcmArt;
+  }
+  function drawTankCraft(c){
+    var s = tankZoom;
+    var p = tankScreenOf(c.x, c.y);
+    if (p.x < -160 || p.x > tankW+160 || p.y < -180 || p.y > tankH+180) return;
+    var L = c.len*s, Wd = c.wid*s;
+    tankCtx.save();
+    tankCtx.translate(p.x, p.y);
+    tankCtx.rotate(c.h);
+    // ramp lowered onto the sand
+    if (c.ramp > 0.02){
+      var rl = c.ramp * L*0.30;
+      tankCtx.fillStyle = '#7f858d';
+      tankCtx.fillRect(-Wd*0.34, -L/2 - rl, Wd*0.68, rl + 3);
+      tankCtx.strokeStyle = 'rgba(30,34,38,0.7)'; tankCtx.lineWidth = 1;
+      tankCtx.strokeRect(-Wd*0.34, -L/2 - rl, Wd*0.68, rl + 3);
+    }
+    tankCtx.fillStyle = 'rgba(0,0,0,0.30)';
+    tankCtx.fillRect(-Wd/2+2, -L/2+3, Wd, L);
+    var art = tankLcmArt();
+    if (art && art.complete && art.naturalWidth > 0){
+      tankCtx.drawImage(art, -Wd/2, -L/2, Wd, L);
+    } else {
+      tankCtx.beginPath();
+      tankCtx.moveTo(-Wd*0.30, -L/2);
+      tankCtx.lineTo(Wd*0.30, -L/2);
+      tankCtx.lineTo(Wd/2, -L*0.34);
+      tankCtx.lineTo(Wd/2, L/2);
+      tankCtx.lineTo(-Wd/2, L/2);
+      tankCtx.lineTo(-Wd/2, -L*0.34);
+      tankCtx.closePath();
+      tankCtx.fillStyle = '#6f7a86'; tankCtx.fill();
+      tankCtx.strokeStyle = '#454c53'; tankCtx.lineWidth = 1.2; tankCtx.stroke();
+      tankCtx.fillStyle = '#6b4a2f';
+      tankCtx.fillRect(-Wd*0.34, -L*0.42, Wd*0.68, L*0.62);
+      tankCtx.fillStyle = '#4a5158';
+      tankCtx.fillRect(-Wd*0.40, L*0.24, Wd*0.80, L*0.22);
+    }
+    tankCtx.restore();
   }
   function resetTankBattle(){
     var m = (tank && tank.mission) || LAND_MISSIONS[0];
@@ -17782,12 +17959,20 @@ if (!en.sonarValid && en.formation){
                  : (m.terrain==='jungle') ? 'lunga'
                  : (m.terrain==='airfield') ? 'iwo' : 'shuri';
     tank.ground = PT_GROUND.build(sheetKey, m.id.length*7919 + def.hp*13 + 7 + (Math.random()*90000|0), TANK_WORLD.w, TANK_WORLD.h);
+    // --- amphibious assault: the LCMs start offshore, run the beach in and
+    // disembark the division; anything else rolls out from the usual start. ---
+    var _pbA = (window.PT && window.PT.pendingBattle) || null;
+    if (_pbA && _pbA.amphib && !(m && m.practice)){
+      var _siteA = findLandingSite();
+      if (_siteA && tankBuildLanding(_siteA, _pbA.amphib.craft || 1)) tank.landed = false;
+    }
     var start = tank.ground.spawnNear(0.12, 0.5);
-    tank.player.x = start.x; tank.player.y = start.y;
-    tank.camX = start.x; tank.camY = start.y;
-    for (var wi=0; wi<tank.allies.length; wi++){
-      var wp = tank.ground.nudge(start.x + tank.allies[wi].sx, start.y + tank.allies[wi].sy);
-      tank.allies[wi].x = wp.x; tank.allies[wi].y = wp.y;
+    if (tank.landed){
+      tank.player.x = start.x; tank.player.y = start.y;
+      for (var wi=0; wi<tank.allies.length; wi++){
+        var wp = tank.ground.nudge(start.x + tank.allies[wi].sx, start.y + tank.allies[wi].sy);
+        tank.allies[wi].x = wp.x; tank.allies[wi].y = wp.y;
+      }
     }
     tank.camX = tank.player.x; tank.camY = tank.player.y; tankZoom = 1;
     tankPanX = 0; tankPanY = 0;
@@ -17823,7 +18008,9 @@ if (!en.sonarValid && en.formation){
     }
     document.getElementById('tankName').textContent = def.nameShort;
     document.getElementById('tankSub').textContent = def.nameFull + ' · ' + def.navy + ' · ' + def.laid;
-    document.getElementById('tankObjective').textContent = m.name + ' — destroy ' + m.target + (m.practice ? ' practice targets (' : ' enemy vehicles (') + (tank.ground ? tank.ground.name : terr.name) + ')';
+    tank._objNormal = m.name + ' — destroy ' + m.target + (m.practice ? ' practice targets (' : ' enemy vehicles (') + (tank.ground ? tank.ground.name : terr.name) + ')';
+    document.getElementById('tankObjective').textContent = tank.landed ? tank._objNormal
+      : 'LANDING — run the craft up the beach and disembark, then destroy ' + m.target + ' enemy vehicles';
     document.getElementById('tankGameoverOverlay').style.display = 'none';
     updateTankHud();
   }
@@ -17957,6 +18144,25 @@ if (!en.sonarValid && en.formation){
       }
       var elf = document.getElementById('tankDamageFlash');
       if (elf) elf.style.opacity = String(Math.max(0, parseFloat(elf.style.opacity||'0') - dt*1.8));
+      updateTankHud();
+      return;
+    }
+    // --- landing phase: everything holds while the craft run in, beach and
+    // disembark; only the boats, their wakes and the camera move. ---
+    if (!tank.landed && tank.craft && tank.craft.length){
+      tankUpdateLanding(dt);
+      for (var lp=0; lp<tank.parts.length; lp++){
+        var lpp = tank.parts[lp];
+        lpp.age += dt; lpp.x += lpp.vx*dt; lpp.y += lpp.vy*dt;
+        lpp.vx *= (1-dt*2); lpp.vy *= (1-dt*2);
+      }
+      tank.parts = tank.parts.filter(function(q){ return q.age < q.max; });
+      for (var lf2=0; lf2<tank.flashes.length; lf2++) tank.flashes[lf2].age += dt;
+      tank.flashes = tank.flashes.filter(function(q){ return q.age < q.max; });
+      tank.camX += (p.x - tank.camX) * Math.min(1, dt*5);
+      tank.camY += (p.y - tank.camY) * Math.min(1, dt*5);
+      var elfL = document.getElementById('tankDamageFlash');
+      if (elfL) elfL.style.opacity = String(Math.max(0, parseFloat(elfL.style.opacity||'0') - dt*1.8));
       updateTankHud();
       return;
     }
@@ -18542,6 +18748,11 @@ if (!en.sonarValid && en.formation){
         tankCtx.closePath(); tankCtx.fill();
       }
     }
+    // landing craft: run in, beach, ramps down (before the tanks so the
+    // division disembarks on top of the boats)
+    if (tank.craft && tank.craft.length){
+      for (i=0;i<tank.craft.length;i++) drawTankCraft(tank.craft[i]);
+    }
     // enemies, then wingmen, then player (player on top)
     for (i=0;i<tank.enemies.length;i++){
       var en = tank.enemies[i];
@@ -18587,14 +18798,15 @@ if (!en.sonarValid && en.formation){
     for (i=0;i<tank.allies.length;i++){
       var wa2 = tank.allies[i];
       if (wa2.dead && wa2.wreckT>6) continue;
+      if (wa2.embarked) continue;
       drawTankUnit(wa2, true, wa2.def, wa2.def.color, wa2.def.dark);
     }
-    if (!(tank.player.dead && tank.player.wreckT>6))
+    if (!(tank.player.dead && tank.player.wreckT>6) && !tank.player.embarked)
       drawTankUnit(tank.player, true, null, def.color, def.dark);
     // ally nameplates + hp bars over the division, mirroring the naval consort tags
     for (i=0;i<tank.allies.length;i++){
       var wa3 = tank.allies[i];
-      if (wa3.dead) continue;
+      if (wa3.dead || wa3.embarked) continue;
       var ap = tankScreenOf(wa3.x, wa3.y);
       var alen = (wa3.def.hullLen||42)*tankZoom;
       if (ap.x<-80 || ap.x>tankW+80 || ap.y<-60 || ap.y>tankH+60) continue;
@@ -18655,7 +18867,7 @@ if (!en.sonarValid && en.formation){
       tankCtx.beginPath(); tankCtx.arc(p.x, p.y, fl.r*tankZoom, 0, Math.PI*2); tankCtx.fill();
     }
     // aim reticle at the mouse
-    if (tankAimSX!==null && !tank.player.dead && !tank.gameOver){
+    if (tankAimSX!==null && tank.landed && !tank.player.dead && !tank.gameOver){
       var rl = 10;
       tankCtx.strokeStyle = 'rgba(232,202,146,0.9)'; tankCtx.lineWidth = 1.4;
       tankCtx.beginPath(); tankCtx.arc(tankAimSX, tankAimSY, 9, 0, Math.PI*2); tankCtx.stroke();
@@ -18670,6 +18882,8 @@ if (!en.sonarValid && en.formation){
   function updateTankGroupStrip(){
     var bar = document.getElementById('tankGroupStrip');
     if (!bar || !tank || !tank.player){ if (bar) bar.classList.remove('active'); return; }
+    // still aboard: no division strip until the tanks are ashore
+    if (!tank.landed){ bar.classList.remove('active'); bar.innerHTML=''; return; }
     var crew = [tank.player].concat(tank.allies || []);
     // Single tank: no strip needed — same rule as the naval group strip.
     if (crew.length < 2){ bar.classList.remove('active'); bar.innerHTML=''; return; }
@@ -18784,8 +18998,9 @@ if (!en.sonarValid && en.formation){
       document.getElementById('tankFire').addEventListener(ev, function(){ tankFireHeld = false; });
     });
     document.getElementById('btnTankAbort').addEventListener('click', function(){
-      if (tank && !tank.gameOver) endLandMission(false);
-      showScreen('menu');
+      // No withdrawing: hand the fight to the Simulate, which settles it and
+      // returns you to the map.
+      if(window.PT && window.PT.setBattleMode) window.PT.setBattleMode('sim');
     });
     document.getElementById('tankRestartBtn').addEventListener('click', function(){ showScreen('menu'); });
   }
@@ -19262,6 +19477,7 @@ if (!en.sonarValid && en.formation){
     garage: garage, MISSIONS: MISSIONS, LAND_MISSIONS: LAND_MISSIONS,
     TANK_CLASSES: TANK_CLASSES, TANK_ID_LIST: TANK_ID_LIST,
     landMissionById: landMissionById, fmtMoney: fmtMoney, showScreen: showScreen,
+    screenName: function(){ return currentScreen; },
     launchMission: launchMission, launchLandMission: launchLandMission,
     hullByUid: hullByUid, guideHull: guideHull, selectHull: selectHull, depotUi: depotUi,
     tankByUid: tankByUid, getActiveTankDiv: getActiveTankDiv, tankDivOf: tankDivOf,
@@ -20945,6 +21161,7 @@ function commission(key, terrId){
   renderSelBox();
 }
 function recall(key){
+  if(INCOMING.length){ selMsg = 'Enemy attacks are landing — resolve them first.'; renderSelBox(); return; }
   var pu = unitByKey(key); if(!pu || !pu.loc) return;
   var at = pu.loc;
   delete DEPLOY[key];
@@ -20954,6 +21171,7 @@ function recall(key){
   selMsg = pu.name+' returned to reserve.'; renderSelBox();
 }
 function moveUnit(key, terrId){
+  if(INCOMING.length){ selMsg = 'Enemy attacks are landing — resolve them first.'; renderSelBox(); return; }
   var pu = unitByKey(key); if(!pu) return;
   var r = reachOf(pu)[terrId]; if(!r || r.type!=='move') return;
   var fromId = pu.loc, kind = pu.kind, uid = pu.id;
@@ -20990,6 +21208,7 @@ function moveUnit(key, terrId){
   playMoveFx(fromId, terrId, kind, uid, fromPos, toPos);
 }
 function attackWith(key, terrId){
+  if(INCOMING.length){ selMsg = 'Enemy attacks are landing — resolve them first.'; renderSelBox(); return; }
   var pu = unitByKey(key); if(!pu) return;
   var r = reachOf(pu)[terrId];
   if(!r || r.type!=='attack'){ selMsg='Out of range this turn.'; renderSelBox(); return; }
@@ -21135,27 +21354,36 @@ function launchBattle(pu, terrId, fromId, extra){
     // land puts the active tank division ashore instead of fighting at sea.
     // The ships stay offshore — the battle is the division's to fight, so it
     // needs embarked tanks or the assault is refused with mp preserved.
-    var _amphib = !t.sea && !isIsland(t) && ((pu.ships||[]).some(function(s){ return s.cls==='lcm'; }));
-    if(_amphib){
-      var _dv = null;
-      try {
-        var _ad = PT.getActiveTankDiv ? PT.getActiveTankDiv() : null;
-        if(_ad){
-          var _crew = (_ad.tanks||[]).map(PT.tankByUid).filter(function(x){ return x && !x.destroyed; });
-          if(_crew.length) _dv = _ad;
+      var _amphib = !t.sea && !isIsland(t) && ((pu.ships||[]).some(function(s){ return s.cls==='lcm'; }));
+      if(_amphib){
+        var _dv = null;
+        try {
+          var _ad = PT.getActiveTankDiv ? PT.getActiveTankDiv() : null;
+          if(_ad){
+            var _crew = (_ad.tanks||[]).map(PT.tankByUid).filter(function(x){ return x && !x.destroyed; });
+            if(_crew.length) _dv = _ad;
+          }
+        } catch(_e) {}
+        if(!_dv){ selMsg = 'Embark tanks first — build armor in the Depot and form a division.'; renderSelBox(); return; }
+        var _lm = PT.landMissionById(LAND_MISSION[t.region]||'tank_ambush');
+        if(!_lm){ selMsg = 'No land action briefed here.'; renderSelBox(); return; }
+        var _adefs = defendersAt('ALL', terrId).filter(function(x){ return x.kind!=='naval'; });
+        if(_adefs.length){
+          pending.opponentName = _adefs.map(function(x){ return x.name; }).join(' + ');
+          pending.defenderTanks = _adefs.reduce(function(a,x){ return a.concat(expandUnitTanks(x)); }, []);
         }
-      } catch(_e) {}
-      if(!_dv){ selMsg = 'Embark tanks first — build armor in the Depot and form a division.'; renderSelBox(); return; }
-      var _lm = PT.landMissionById(LAND_MISSION[t.region]||'tank_ambush');
-      if(!_lm){ selMsg = 'No land action briefed here.'; renderSelBox(); return; }
-      var _adefs = defendersAt('ALL', terrId).filter(function(x){ return x.kind!=='naval'; });
-      if(_adefs.length){
-        pending.opponentName = _adefs.map(function(x){ return x.name; }).join(' + ');
-        pending.defenderTanks = _adefs.reduce(function(a,x){ return a.concat(expandUnitTanks(x)); }, []);
-      }
-      if(!pending.defense) DEPLOY[pu.key] = {loc:fromId, mp:0};
-      pending.branch = 'land';
-      if(BATTLE_MODE==='sim'){ runSimBattle(pending, {branch:'land', divId:_dv.id, mission:_lm, defenders:pending.defenderTanks||[]}, pu); return; }
+        if(!pending.defense) DEPLOY[pu.key] = {loc:fromId, mp:0};
+        pending.branch = 'land';
+        // The landing craft themselves: how many make the run up the beach on
+        // the tank map (live battles only — sim resolves without the screen).
+        var _lcmN = 0;
+        for (var _lci=0; _lci<(pu.ships||[]).length; _lci++){
+          if(((pu.ships[_lci]||{}).cls||pu.ships[_lci])==='lcm') _lcmN++;
+        }
+        pending.amphib = {craft: Math.max(1, Math.min(4, _lcmN))};
+      // The sim's own briefing, kept so a live fight can be handed to it later.
+      pending.simSpec = {branch:'land', divId:_dv.id, mission:_lm, defenders:pending.defenderTanks||[]};
+      if(BATTLE_MODE==='sim'){ runSimBattle(pending, pending.simSpec, pu); return; }
       if(PT.setActiveTankDiv) PT.setActiveTankDiv(_dv.id);
       PT.pendingBattle = pending;
       PT.launchLandMission(_lm);
@@ -21165,7 +21393,8 @@ function launchBattle(pu, terrId, fromId, extra){
     if(!m){ selMsg = 'No naval action briefed here.'; renderSelBox(); return; }
     if(!pending.defense) DEPLOY[pu.key] = {loc:fromId, mp:0};
     pending.branch = 'sea';
-    if(BATTLE_MODE==='sim'){ runSimBattle(pending, {branch:'sea', groupId:pu.ref, mission:m, defenders:pending.defenderShips||[]}, pu); return; }
+    pending.simSpec = {branch:'sea', groupId:pu.ref, mission:m, defenders:pending.defenderShips||[]};
+    if(BATTLE_MODE==='sim'){ runSimBattle(pending, pending.simSpec, pu); return; }
     if(PT.setActiveGroup && pu.ref) PT.setActiveGroup(pu.ref);
     PT.pendingBattle = pending;
     PT.launchMission(m);
@@ -21174,7 +21403,8 @@ function launchBattle(pu, terrId, fromId, extra){
     if(!lm){ selMsg = 'No land action briefed here.'; renderSelBox(); return; }
     if(!pending.defense) DEPLOY[pu.key] = {loc:fromId, mp:0};
     pending.branch = 'land';
-    if(BATTLE_MODE==='sim'){ runSimBattle(pending, {branch:'land', divId:pu.ref, mission:lm, defenders:pending.defenderTanks||[]}, pu); return; }
+    pending.simSpec = {branch:'land', divId:pu.ref, mission:lm, defenders:pending.defenderTanks||[]};
+    if(BATTLE_MODE==='sim'){ runSimBattle(pending, pending.simSpec, pu); return; }
     if(PT.setActiveTankDiv && pu.ref) PT.setActiveTankDiv(pu.ref);
     PT.pendingBattle = pending;
     PT.launchLandMission(lm);
@@ -21193,9 +21423,27 @@ function setBattleMode(m){
   BATTLE_MODE = (m==='sim') ? 'sim' : 'live';
   try { localStorage.setItem('pt.battleMode', BATTLE_MODE); } catch(_e) {}
   paintModeToggle();
+  // A fight you are in can be handed to the Simulate: it settles there and
+  // puts you straight back on the map.
+  if(BATTLE_MODE==='sim' && window.PT && window.PT.screenName &&
+     (window.PT.screenName()==='battle' || window.PT.screenName()==='tank')){
+    resolveLiveBattleToSim();
+    return;
+  }
   // Attacks already waiting on you can be settled right away in Simulate.
   if(BATTLE_MODE==='sim' && INCOMING.length){ simResolveIncoming(); refreshAll(); }
   else renderSelBox();
+}
+// Hand the live fight on screen to the Simulate: settle it the sim way and
+// return to the map. Practice fights (no map battle behind them) just leave.
+function resolveLiveBattleToSim(){
+  var PT = window.PT;
+  var p = PT && PT.pendingBattle;
+  try { if(PT && PT.showScreen) PT.showScreen('menu'); } catch(_e) {}
+  if(!p || !p.simSpec || !p.unitKey){ if(PT) PT.pendingBattle = null; return; }
+  var pu = unitByKey(p.unitKey);
+  if(!pu){ PT.pendingBattle = null; return; }
+  runSimBattle(p, p.simSpec, pu);
 }
 function fmtMoneyShort(n){
   n = Math.round(n||0);
@@ -21319,8 +21567,12 @@ function resolveIncoming(choice){
 /* Enemy attacks resolve themselves: no withdraw choice, the defense battle
    launches on its own. Empty positions fall through the capture path. */
 function autoFightIncoming(){
+  if(window.PT && window.PT.pendingBattle) return;  // a battle is still running
   if(BATTLE_MODE==='sim'){ if(INCOMING.length) simResolveIncoming(); return; }
   var inc = INCOMING[0]; if(!inc) return;
+  // Never launch over another screen: the fight waits for the map to show
+  // again (afterBattleReturn picks it up there).
+  if(window.PT && window.PT.screenName && window.PT.screenName()!=='menu') return;
   var att = unitById(inc.attackerId);
   if(!att){ INCOMING.shift(); refreshAll(); autoFightIncoming(); return; }
   var mine = syncPlayerUnits().filter(function(p){ return p.loc===inc.terrId; });
@@ -21448,6 +21700,8 @@ function enemyTurn(){
 function endTurn(){
   if(INCOMING.length){ selMsg = 'Deal with the enemy attacks first.'; selected=null; selectedUnit=null; refreshAll(); return; }
   if(unitsInMotion()){ return; }
+  // A parked replay from an earlier turn must not leak into this one.
+  if(ENEMY_ANIM_PARK){ ENEMY_ANIM_PARK = null; flushEnemyAnimOlds(); }
   SIM_REPORTS = [];
   REPORT = enemyTurn();
   if(BATTLE_MODE==='sim' && INCOMING.length) simResolveIncoming();
@@ -21458,11 +21712,21 @@ function endTurn(){
   refreshAll();
   // Replay Japan's turn with the same sail/clash language: counters slide with
   // wake/dust, attacks lunge and clash. State is already final; this is visual.
+  // Every counter with a leg to play is parked at its old spot first, so the
+  // map doesn't jump to the final positions before the replay runs.
   try {
     var anims = ENEMY_ANIM.slice(0, 12);
     ENEMY_ANIM = [];
-    playEnemyAnims(anims, function(){ autoFightIncoming(); });
-  } catch(_e) {}
+    ENEMY_ANIM_OLDS = {};
+    for (var _ai=0; _ai<anims.length; _ai++){
+      var _aa = anims[_ai];
+      if((_aa.type==='move' || _aa.type==='attack') && _aa.fromPos && _aa.fromPos.length===2){
+        ENEMY_ANIM_OLDS[_aa.uid] = [_aa.fromPos[0], _aa.fromPos[1]];
+      }
+    }
+    applyEnemyAnimOlds();
+    playEnemyAnims(anims, function(){ flushEnemyAnimOlds(); autoFightIncoming(); });
+  } catch(_e){ flushEnemyAnimOlds(); autoFightIncoming(); }
 }
 function outcome(){
   var jp = IDS.filter(function(id){ return sideOf(id)==='JPN'; }).length;
@@ -21567,7 +21831,6 @@ function bindPanel(box){
       else if(a==='selunit') selectUnit(b.getAttribute('data-uid'));
       else if(a==='selterr') select(t);
       else if(a==='fight') resolveIncoming('fight');
-      else if(a==='withdraw') resolveIncoming('withdraw');
       else if(a==='dismissRep'){ SIM_REPORTS.splice(+b.getAttribute('data-i'), 1); renderSelBox(); }
       else if(a==='port'){ var _pu = k ? unitByKey(k) : null; if(_pu && _pu.ref && window.PT.openPortForGroup) window.PT.openPortForGroup(_pu.ref); else window.PT.showScreen('port'); }
       else if(a==='depot'){ var _du = k ? unitByKey(k) : null; if(_du && _du.ref && window.PT.openDepotForDiv) window.PT.openDepotForDiv(_du.ref); else window.PT.showScreen('depot'); }
@@ -21748,6 +22011,7 @@ function resetFront(){
   IDS.forEach(paintOwner);
   UNITS.length = 0; JSON.parse(JSON.stringify(UNITS0)).forEach(function(u){ UNITS.push(u); });
   TURN = 1; DEPLOY = {}; INCOMING = []; REPORT = []; spawnSeq = 1;
+  ENEMY_ANIM = []; ENEMY_ANIM_OLDS = {}; ENEMY_ANIM_PARK = null;
   YARD_ORIGIN = null;
   Object.keys(START_DEPLOY).forEach(function(k){ DEPLOY[k] = {loc:START_DEPLOY[k], mp:MOVE_POINTS}; });
   // Allied forces are garage groups now: (re)create, repair and top up to
@@ -21803,8 +22067,8 @@ if(window.PT){
     pu = p.unitKey ? unitByKey(p.unitKey) : null;
     selectedUnit = (pu && pu.loc && !INCOMING.length) ? (allUnits().find(function(x){ return x.key===pu.key; }) || null) : null;
     refreshAll();
-    // Enemy attacks resolve themselves: fight the next pending attack, if any.
-    if(BATTLE_MODE==='live' && INCOMING.length) autoFightIncoming();
+    // The next pending enemy attack waits until the map shows again — it must
+    // never launch while this battle's result screen is still up.
   };
 }
 
@@ -22585,16 +22849,62 @@ function paintOccupation(fromId, toId){
    after the state has settled, sliding the real counters with wake/dust. */
 var ENEMY_ANIM = [];
 var ENEMY_MOVE_GAP = 700;   // beat between replayed moves, in ms
+/* Enemy counters whose replayed move hasn't played yet stay parked at their
+   old spots; renderUnits re-applies these until each move plays out, so the
+   whole enemy turn no longer jumps to its final positions the instant you
+   press End Turn. */
+var ENEMY_ANIM_OLDS = {};
+function applyEnemyAnimOlds(){
+  if(!ENEMY_ANIM_OLDS) return;
+  var ids = Object.keys(ENEMY_ANIM_OLDS);
+  for (var i=0;i<ids.length;i++){
+    var node = unitNodeOf[ids[i]], p = ENEMY_ANIM_OLDS[ids[i]];
+    if (node && p) node.setAttribute('transform','translate('+p[0]+','+p[1]+')');
+  }
+}
+function clearEnemyAnimOld(uid){ if(uid && ENEMY_ANIM_OLDS) delete ENEMY_ANIM_OLDS[uid]; }
+function flushEnemyAnimOlds(){
+  if(!ENEMY_ANIM_OLDS || !Object.keys(ENEMY_ANIM_OLDS).length) return;
+  ENEMY_ANIM_OLDS = {};
+  try { renderUnits(); } catch(_e) {}
+}
+/* The moves still to replay park here while this attack's battle is fought;
+   afterBattleReturn resumes them once the map is back. */
+var ENEMY_ANIM_PARK = null;
+function parkEnemyAnims(list, idx, done){ ENEMY_ANIM_PARK = {list:list, idx:idx, done:done}; }
+function resumeEnemyAnims(){
+  var pk = ENEMY_ANIM_PARK; ENEMY_ANIM_PARK = null;
+  if(!pk) return false;
+  playEnemyAnims(pk.list.slice(pk.idx), pk.done);
+  return true;
+}
+/* Called the moment an attack's clash has played: live mode starts that
+   battle right away, sim mode settles everything at once. Returns true when
+   a battle took over and the remaining moves must park. */
+function engageEnemyAttackNow(){
+  if(!INCOMING.length) return false;
+  autoFightIncoming();
+  return !!(window.PT && window.PT.pendingBattle);
+}
 function enemyEase(t){ return t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
 function enemySlideNode(uid, kind, fromPos, toPos, delay, done, fromId, toId){
   var start = function(){
     var node = unitNodeOf[uid];
-    if(mapReducedMotion() || !node || !gFx || !fromPos || !toPos){ if(done) done(); return; }
+    if(mapReducedMotion() || !node || !gFx || !fromPos || !toPos){
+      clearEnemyAnimOld(uid); try { renderUnits(); } catch(_e) {}
+      if(done) done(); return;
+    }
     var dx = toPos[0]-fromPos[0], dy = toPos[1]-fromPos[1], len = Math.hypot(dx,dy);
-    if(len < 3){ if(done) done(); return; }
+    if(len < 3){ clearEnemyAnimOld(uid); try { renderUnits(); } catch(_e) {} if(done) done(); return; }
+    // The counter is held at its old spot for the replay; the transit's own
+    // origin clone stands in while the column sails, so hide the real one
+    // rather than stack two circles on the same point.
+    if(ENEMY_ANIM_OLDS[uid] != null) node.style.opacity = '0';
     sailForceSequential({uid:uid, kind:kind, fromId:fromId||null, toId:toId||null,
-      fromPos:[fromPos[0],fromPos[1]], toPos:[toPos[0],toPos[1]], node:node,
+      fromPos:[fromPos[0],fromPos[1]], toPos:[toPos[0],toPos[1]],
+      srcPos:[fromPos[0],fromPos[1]], node:node,
       onDone:function(){
+        clearEnemyAnimOld(uid);
         try { renderUnits(); paintReach(); } catch(_e) {}
         if(done) done();
       }});
@@ -22649,16 +22959,24 @@ function playEnemyAnims(list, onDone){
   var i = 0;
   function next(){
     if(i >= list.length){ if(onDone) onDone(); return; }
+    // A battle took over (one the player started mid-replay): park the rest
+    // of the moves until the map is back.
+    if(window.PT && window.PT.pendingBattle){ parkEnemyAnims(list, i, onDone); return; }
     var a = list[i++];
     // A beat between moves so each one reads on its own.
     if(i > 1 && !mapReducedMotion()){ setTimeout(run, ENEMY_MOVE_GAP); return; }
     run();
     function run(){
+    if(window.PT && window.PT.pendingBattle){ parkEnemyAnims(list, i-1, onDone); return; }
     if(a.type==='attack'){
       enemyAttackLunge(a.uid, a.kind, a.fromPos, a.targetPos, 0, function(){
         playFightFx(a.to, a.from);
         setTimeout(function(){
+          clearEnemyAnimOld(a.uid);
           try { renderUnits(); paintReach(); } catch(_e) {}
+          // This clash starts its battle right now — the rest of the turn
+          // waits in the park until the fight is over.
+          if(engageEnemyAttackNow()){ parkEnemyAnims(list, i, onDone); return; }
           next();
         }, mapReducedMotion() ? 30 : 850);
       });
@@ -22683,13 +23001,14 @@ function enemySlideUnit(a, delay, done){
     } catch(_e) {}
     if(!toPos && T[a.to]) toPos = unitAnchor(a.to);
     if(mapReducedMotion() || !node || !a.fromPos || !toPos){
+      clearEnemyAnimOld(a.uid);
       try { renderUnits(); paintReach(); } catch(_e) {}
       finish();
       return;
     }
-    // Just like a player move, the counter already sits at its destination
-    // (state settled before the replay) — the ghost alone flies the leg, so
-    // the circle stays rendered the whole way through.
+    // The counter is parked at its old spot (held back for the replay) while
+    // the hulls sail the leg; enemySlideNode hides it so the transit's origin
+    // clone can stand in, then renderUnits snaps it to the destination.
     enemySlideNode(a.uid, a.kind, a.fromPos, toPos, 0, finish, a.from, a.to);
   };
   if(delay && delay>0) setTimeout(start, delay);
@@ -22808,6 +23127,7 @@ function renderUnits(){
     gUnits.appendChild(g);
     unitNodeOf[u.id]=g;
   });
+  applyEnemyAnimOlds();
   renderTurnbar();
 }
 
@@ -23563,6 +23883,14 @@ if(window.PT){
   window.PT.yardOrigin = yardOrigin;
   window.PT.clearYardOrigin = clearYardOrigin;
   window.PT.autoCommission = autoCommission;
+  // The battle screens hand a live fight back through these: switching the
+  // mode to Simulate mid-fight, and picking up the queue of enemy attacks /
+  // parked replay moves whenever the map comes back up.
+  window.PT.setBattleMode = setBattleMode;
+  window.PT.afterBattleReturn = function(){
+    if(resumeEnemyAnims()) return;
+    if(INCOMING.length) autoFightIncoming();
+  };
 }
 // Refresh units if the fleet or motor pool changes while the map is visible.
 var lastRoster = '';
