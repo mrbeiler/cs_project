@@ -806,7 +806,6 @@ svg#map text{user-select:none;-webkit-user-select:none}
 #map .fight-ring{fill:none;stroke:#ff7a5c;stroke-width:3;opacity:.95;pointer-events:none}
 #map .fight-ring.r2{stroke:#ffce5c;stroke-width:2}
 #map .fight-flash{fill:#fff3d0;stroke:#ff7a5c;stroke-width:2;pointer-events:none}
-#map .fight-x{fill:none;stroke:#ff5c3c;stroke-width:4;stroke-linecap:round;pointer-events:none}
 #map .fight-label{font-family:'Oswald',system-ui,sans-serif;font-size:22px;font-weight:700;fill:#ff8a70;paint-order:stroke;stroke:#04141d;stroke-width:4;stroke-linejoin:round;pointer-events:none;text-anchor:middle}
 @keyframes fightPulse{0%{transform:scale(.35);opacity:.95}100%{transform:scale(1.6);opacity:0}}
 @keyframes fightBlink{0%,100%{opacity:1}50%{opacity:.25}}
@@ -816,6 +815,9 @@ svg#map text{user-select:none;-webkit-user-select:none}
 @keyframes boomFire{0%{transform:scale(.3);opacity:1}55%{opacity:.9}100%{transform:scale(1.55);opacity:0}}
 @keyframes boomSpark{0%{transform:translate(0,0);opacity:1}100%{transform:translate(var(--bx),var(--by));opacity:0}}
 @keyframes boomSmoke{0%{transform:translate(0,0);opacity:.7}100%{transform:translate(var(--sx),var(--sy));opacity:0}}
+/* --- Sim battles on the map: power lost floats up off the territory --- */
+#map .sim-loss{font-family:'Oswald',system-ui,sans-serif;font-size:17px;font-weight:700;paint-order:stroke;stroke:#04141d;stroke-width:3.5;stroke-linejoin:round;pointer-events:none;text-anchor:middle}
+@keyframes simLossRise{0%{opacity:0;transform:translateY(8px)}12%{opacity:1}72%{opacity:1}100%{opacity:0;transform:translateY(-26px)}}
 @media (prefers-reduced-motion:reduce){#map .order-arrow,#map .move-path,#map .move-wake{animation:none}}
 @media (prefers-reduced-motion:reduce){#map .order-arrow{animation:none}}
 #selBox .facItem.off{opacity:.55}
@@ -4077,6 +4079,53 @@ svg#map text{user-select:none;-webkit-user-select:none}
     garage.formation = ag.formation;
     garage.spacingMul = ag.spacingMul;
   }
+  // The yard only works on a fleet that's physically in port: in reserve, or
+  // standing at an allied harbor. Anything else is read-only.
+  function yardInPort(gid){
+    try {
+      if(window.PT && window.PT.yardAccess) return !!window.PT.yardAccess('naval', gid).ok;
+    } catch(_e){}
+    return true;
+  }
+  function yardEditOk(gid){
+    if(yardInPort(gid)) return true;
+    try {
+      if(window.PT && window.PT.yardAccess){
+        var acc = window.PT.yardAccess('naval', gid);
+        portToast(acc && acc.msg ? acc.msg : 'That fleet is not in port.');
+        return false;
+      }
+    } catch(_e){}
+    portToast('That fleet is not in port.');
+    return false;
+  }
+  // While the Port is open, the active group must be one that's in port — if
+  // the one you were working on sailed away, fall back to the first one that
+  // can be worked on (and say so); with everything at sea the yard is locked
+  // until something returns.
+  function ensureYardActiveGroup(){
+    if (currentScreen !== 'port') return;
+    var ag = getActiveGroup();
+    if(ag && yardInPort(ag.id)){ portUi.yardLocked = false; return; }
+    for(var _ei=0;_ei<garage.groups.length;_ei++){
+      if(yardInPort(garage.groups[_ei].id)){
+        var g = garage.groups[_ei];
+        garage.activeGroupId = g.id;
+        syncFleetToActive();
+        if(g.fleet.length){
+          var gh = hullByUid(g.fleet[0]);
+          if(gh){ garage.selectedHull = gh.uid; garage.selectedShip = gh.classId; }
+        }
+        if(ag) portToast(ag.name + ' is at sea — showing ' + g.name + ' instead.');
+        portUi.yardLocked = false;
+        return;
+      }
+    }
+    if(!portUi.yardLocked){
+      portToast('All fleets are at sea — sail one into a harbor to work on it.', 'warn');
+      portUi.yardLocked = true;
+    }
+  }
   function setActiveGroup(gid){
     var g=getGroupById(gid); if(!g) return;
     garage.activeGroupId=gid;
@@ -4092,9 +4141,16 @@ svg#map text{user-select:none;-webkit-user-select:none}
   // becomes the active group and the dry-dock view defaults to its guide ship.
   function openPortForGroup(gid){
     var origin = (window.PT && window.PT.yardOrigin) ? window.PT.yardOrigin() : null;
-    if(!origin){
+    if (gid){
+      // A named fleet only opens its own dry dock if she's in port — even
+      // when the yard was opened from a territory.
       if (window.PT && window.PT.yardAccess){
-        var acc = window.PT.yardAccess('naval', gid || garage.activeGroupId);
+        var accG = window.PT.yardAccess('naval', gid);
+        if(!accG.ok){ if(window.PT.noteYard) window.PT.noteYard(accG.msg); return; }
+      }
+    } else if(!origin){
+      if (window.PT && window.PT.yardAccess){
+        var acc = window.PT.yardAccess('naval', garage.activeGroupId);
         if(!acc.ok){ if(window.PT.noteYard) window.PT.noteYard(acc.msg); return; }
       }
     }
@@ -4111,6 +4167,7 @@ svg#map text{user-select:none;-webkit-user-select:none}
   }
   function renameGroup(gid, newName){
     var g=getGroupById(gid); if(!g) return;
+    if(!yardEditOk(gid)) return;
     var n=String(newName||'').trim().slice(0,32);
     if(!n) return;
     g.name=n;
@@ -4120,6 +4177,7 @@ svg#map text{user-select:none;-webkit-user-select:none}
     if(garage.groups.length<=1) return;
     var idx=-1; for(var _di=0;_di<garage.groups.length;_di++) if(garage.groups[_di].id===gid){ idx=_di; break; }
     if(idx===-1) return;
+    if(!yardEditOk(gid)) return;
     garage.groups.splice(idx,1);
     if(garage.activeGroupId===gid){
       garage.activeGroupId=garage.groups[0].id;
@@ -4134,24 +4192,35 @@ svg#map text{user-select:none;-webkit-user-select:none}
     return null;
   }
   function assignHullToGroup(uid, gid){
-    var h=hullByUid(uid); var g=getGroupById(gid); if(!h||!g) return;
+    var h=hullByUid(uid); var g=getGroupById(gid); if(!h||!g) return false;
+    // Both ends have to be in port: the fleet joining, and any fleet the
+    // ship would be taken away from.
+    if(!yardEditOk(gid)) return false;
+    for(var _cg=0;_cg<garage.groups.length;_cg++){
+      if(garage.groups[_cg].id!==gid && garage.groups[_cg].fleet.indexOf(uid)!==-1){
+        if(!yardEditOk(garage.groups[_cg].id)) return false;
+      }
+    }
     // remove from all groups
     for(var _ag=0;_ag<garage.groups.length;_ag++){
       var arr=garage.groups[_ag].fleet;
       var at=arr.indexOf(uid);
       if(at!==-1) arr.splice(at,1);
     }
-    if(g.fleet.length>=MAX_FLEET) return;
+    if(g.fleet.length>=MAX_FLEET) return false;
     if(g.fleet.indexOf(uid)===-1) g.fleet.push(uid);
     // if assigned to active, sync
     if(gid===garage.activeGroupId) syncFleetToActive();
     renderPort();
+    return true;
   }
   function removeHullFromGroup(uid, gid){
-    var g=getGroupById(gid||garage.activeGroupId); if(!g) return;
+    var g=getGroupById(gid||garage.activeGroupId); if(!g) return false;
+    if(!yardEditOk(g.id)) return false;
     var at=g.fleet.indexOf(uid); if(at!==-1) g.fleet.splice(at,1);
     if(g.id===garage.activeGroupId) syncFleetToActive();
     renderPort();
+    return true;
   }
   function hullByUid(uid){
     if (!uid) return null;
@@ -4235,9 +4304,16 @@ svg#map text{user-select:none;-webkit-user-select:none}
   // the active division and the assembly view defaults to its guide vehicle.
   function openDepotForDiv(id){
     var origin = (window.PT && window.PT.yardOrigin) ? window.PT.yardOrigin() : null;
-    if(!origin){
+    if (id){
+      // A named division only opens its depot if she's in port — even when
+      // the yard was opened from a territory.
       if (window.PT && window.PT.yardAccess){
-        var acc = window.PT.yardAccess('armor', id || garage.activeTankDivId);
+        var accD = window.PT.yardAccess('armor', id);
+        if(!accD.ok){ if(window.PT.noteYard) window.PT.noteYard(accD.msg); return; }
+      }
+    } else if(!origin){
+      if (window.PT && window.PT.yardAccess){
+        var acc = window.PT.yardAccess('armor', garage.activeTankDivId);
         if(!acc.ok){ if(window.PT.noteYard) window.PT.noteYard(acc.msg); return; }
       }
     }
@@ -4344,7 +4420,7 @@ svg#map text{user-select:none;-webkit-user-select:none}
     {m:1.45, name:'Wide',     desc:'Open water between hulls — room to manoeuvre.'}
   ];
   // Port UI state (not saved): which owned hull has its refit panel open + dry dock carousel.
-  var portUi = {upgradeOpen:null, typeIdx:0, classId:'fletcher', hullUid:null, fleetView:false};
+  var portUi = {upgradeOpen:null, typeIdx:0, classId:'fletcher', hullUid:null, fleetView:false, yardLocked:false};
   function portGroupForClass(classId){
     for (var _gi=0; _gi<SHIP_TYPE_GROUPS.length; _gi++){ if (SHIP_TYPE_GROUPS[_gi].ids.indexOf(classId)!==-1) return _gi; }
     return 0;
@@ -14442,6 +14518,8 @@ if (!en.sonarValid && en.formation){
     if (_ptt) _ptt.classList.remove('hidden');
     if (name==='menu') renderMenu();
     if (name==='missions') renderMissions();
+    // Leaving the Port: let the all-at-sea notice speak again next visit.
+    if (name!=='port') portUi.yardLocked = false;
     if (name==='port') renderPort();
     if (name==='depot') renderDepot();
     if (name==='battle') resize();
@@ -14618,11 +14696,17 @@ if (!en.sonarValid && en.formation){
 
   function selectHull(uid){
     var h = hullByUid(uid);
-    if (!h || h.sunk) return;
+    if (!h || h.sunk) return false;
+    // Guide always sails — but only into a group that's in port.
+    var ag=getActiveGroup();
+    if(ag && !yardEditOk(ag.id)) return false;
+    for(var _pg=0;_pg<garage.groups.length;_pg++){
+      if((!ag || garage.groups[_pg].id!==ag.id) && garage.groups[_pg].fleet.indexOf(uid)!==-1){
+        if(!yardEditOk(garage.groups[_pg].id)) return false;
+      }
+    }
     garage.selectedHull = uid;
     garage.selectedShip = h.classId;
-    // Guide always sails — ensure assigned to active group and at front.
-    var ag=getActiveGroup();
     if(ag){
       // remove from any other group first (exclusive assignment)
       for(var _sg=0;_sg<garage.groups.length;_sg++){
@@ -14645,31 +14729,40 @@ if (!en.sonarValid && en.formation){
     // keep dry dock in sync with the new guide
     portUi.classId = h.classId; portUi.typeIdx = portGroupForClass(h.classId); portUi.hullUid = uid;
     renderPort();
+    return true;
   }
   // Add or drop a ship from the active battlegroup. The guide can't be dropped —
   // pick a different ship as the guide first.
   function toggleFleetShip(uid){
     var h = hullByUid(uid);
-    if (!h || h.sunk) return;
-    var ag=getActiveGroup(); if(!ag) return;
+    if (!h || h.sunk) return false;
+    var ag=getActiveGroup(); if(!ag) return false;
+    if(!yardEditOk(ag.id)) return false;
     var at = ag.fleet.indexOf(uid);
     if (at === -1){
-      if (ag.fleet.length >= MAX_FLEET) return;
-      // ensure exclusive — remove from other groups
+      if (ag.fleet.length >= MAX_FLEET) return false;
+      // ensure exclusive — remove from other groups (only if that group is in port)
       for(var _og=0;_og<garage.groups.length;_og++){
         if(garage.groups[_og].id!==ag.id){
           var _oat=garage.groups[_og].fleet.indexOf(uid);
-          if(_oat!==-1) garage.groups[_og].fleet.splice(_oat,1);
+          if(_oat!==-1 && !yardEditOk(garage.groups[_og].id)) return false;
+        }
+      }
+      for(var _og2=0;_og2<garage.groups.length;_og2++){
+        if(garage.groups[_og2].id!==ag.id){
+          var _oat2=garage.groups[_og2].fleet.indexOf(uid);
+          if(_oat2!==-1) garage.groups[_og2].fleet.splice(_oat2,1);
         }
       }
       ag.fleet.push(uid);
     } else {
-      if (uid === garage.selectedHull) return;
+      if (uid === garage.selectedHull) return false;
       ag.fleet.splice(at,1);
     }
     syncFleetToActive();
     fleetIsValid();
     renderPort();
+    return true;
   }
   // Station order in the fleet sets battle stations: entry 0 is the guide.
   // Ships are ordered by dragging rows (Alt+Up/Down on a focused row works too).
@@ -14677,6 +14770,7 @@ if (!en.sonarValid && en.formation){
   // bridge to station 0, same as the ★ button.
   function moveFleetShipTo(uid, to){
     var ag=getActiveGroup(); if(!ag) return;
+    if(!yardEditOk(ag.id)) return;
     var at = ag.fleet.indexOf(uid);
     if (at < 0) return;
     ag.fleet.splice(at,1);
@@ -14760,17 +14854,21 @@ if (!en.sonarValid && en.formation){
   function clearFleet(){
     fleetIsValid();
     var ag=getActiveGroup(); if(!ag) return;
+    if(!yardEditOk(ag.id)) return;
     ag.fleet = ag.fleet.slice(0,1);
     syncFleetToActive();
     renderPort();
   }
   function renameHull(uid, raw){
     var h = hullByUid(uid);
-    if (!h) return;
+    if (!h) return false;
+    var _rgid = hullGroupId(uid);
+    if(_rgid && !yardEditOk(_rgid)) return false;
     var name = String(raw==null?'':raw).replace(/\s+/g,' ').trim().slice(0,40);
-    if (!name) return;
+    if (!name) return false;
     h.name = name;
     renderPort();
+    return true;
   }
   var SHIP_TYPE_CODES = {Destroyers:'DD', 'Torpedo boats':'PT', Cruisers:'CA', Submarines:'SS', Battleships:'BB', Carriers:'CV', Escorts:'DE', Auxiliaries:'AUX', 'Landing craft':'LC'};
   function shipTypeCode(id){
@@ -14789,12 +14887,15 @@ if (!en.sonarValid && en.formation){
   }
   function repairHull(uid){
     var h = hullByUid(uid);
-    if (!h || (!h.sunk && !(h.dmg>0.01))) return;
+    if (!h || (!h.sunk && !(h.dmg>0.01))) return false;
+    var _rrgid = hullGroupId(uid);
+    if(_rrgid && !yardEditOk(_rrgid)) return false;
     var cost = repairCost(h);
-    if (garage.money < cost) return;
+    if (garage.money < cost) return false;
     garage.money -= cost;
     h.sunk = false; h.dmg = 0;
     renderPort();
+    return true;
   }
   // Total refit levels on one individual ship (keyed by hull uid).
   function upgradeCount(hullUid){
@@ -14840,8 +14941,8 @@ if (!en.sonarValid && en.formation){
       btn.setAttribute('data-fk', 'group:'+g.id);
       btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
       btn.innerHTML = '<span>'+escHtml(g.name)+'</span><span class="ct">'+g.fleet.length+'/'+MAX_FLEET+'</span>';
-      btn.title = isActive ? 'Sailing group' : 'Sail with ' + g.name;
-      btn.addEventListener('click', function(){ setActiveGroup(g.id); });
+      btn.title = isActive ? 'Sailing group' : (yardInPort(g.id) ? 'Sail with ' + g.name : g.name + ' is at sea — sail into an allied harbor first');
+      btn.addEventListener('click', function(){ if(!yardEditOk(g.id)) return; setActiveGroup(g.id); });
       row.appendChild(btn);
     });
     row.appendChild(yardBtn('+ New group', {cls:'quiet', fk:'group:new', onClick:function(){ createGroup(); portToast('Created ' + getActiveGroup().name); }}));
@@ -14853,6 +14954,7 @@ if (!en.sonarValid && en.formation){
     name.textContent = ag.name;
     bar.appendChild(name);
     bar.appendChild(yardBtn('Rename', {fk:'group:rename', onClick:function(){
+      if(!yardEditOk(ag.id)) return;
       beginInlineRename(name, ag.name, 32, function(v){ renameGroup(ag.id, v); });
     }}));
     var armed = portUi.confirmDelete===ag.id;
@@ -14861,6 +14963,7 @@ if (!en.sonarValid && en.formation){
       disabled: garage.groups.length<=1,
       title: garage.groups.length<=1 ? 'Keep at least one group' : 'Ships in ' + ag.name + ' return to the yard',
       onClick:function(){
+        if(!yardEditOk(ag.id)) return;
         if (portUi.confirmDelete!==ag.id){
           portUi.confirmDelete = ag.id;
           clearTimeout(portUi.confirmTimer);
@@ -14919,7 +15022,7 @@ if (!en.sonarValid && en.formation){
       var btns = document.createElement('span');
       btns.className = 'btns';
       if (!isGuide){
-        btns.appendChild(yardBtn('★', {cls:'icon', fk:'st:'+uid+':guide', title:'Make guide', onClick:function(){ selectHull(uid); portToast(h.name + ' now leads ' + ag.name); }}));
+        btns.appendChild(yardBtn('★', {cls:'icon', fk:'st:'+uid+':guide', title:'Make guide', onClick:function(){ if(selectHull(uid)) portToast(h.name + ' now leads ' + ag.name); }}));
       }
       btns.appendChild(yardBtn('✕', {cls:'icon danger', fk:'st:'+uid+':x', title: isGuide ? 'The guide always sails. Make another ship guide first.' : 'Return to the yard', disabled:isGuide, onClick:function(){ removeHullFromGroup(uid, ag.id); }}));
       row.appendChild(btns);
@@ -14962,9 +15065,8 @@ if (!en.sonarValid && en.formation){
       row.title = h.sunk ? 'Repair this hull before she can sail' : full ? (ag.name + ' is full (' + MAX_FLEET + ' ships)') : ('Add ' + h.name + ' to ' + ag.name);
       row.addEventListener('click', function(){
         // First ship in an empty group becomes the guide.
-        if (ag.fleet.length === 0) selectHull(h.uid);
-        else assignHullToGroup(h.uid, ag.id);
-        portToast(h.name + ' joined ' + ag.name);
+        var _joined = ag.fleet.length === 0 ? selectHull(h.uid) : assignHullToGroup(h.uid, ag.id);
+        if(_joined) portToast(h.name + ' joined ' + ag.name);
       });
       box.appendChild(row);
     });
@@ -15004,6 +15106,7 @@ if (!en.sonarValid && en.formation){
       b.innerHTML = formationGlyph(f.key, n) + '<span class="nm">'+f.name+'</span>';
       b.title = f.desc;
       b.addEventListener('click', function(){
+        if (ag && !yardEditOk(ag.id)) return;
         if (ag) ag.formation = f.key;
         garage.formation = f.key;
         renderPort();
@@ -15027,6 +15130,7 @@ if (!en.sonarValid && en.formation){
       b.textContent = o.name;
       b.title = o.desc;
       b.addEventListener('click', function(){
+        if (ag && !yardEditOk(ag.id)) return;
         if (ag) ag.spacingMul = o.m;
         garage.spacingMul = o.m;
         renderPort();
@@ -15037,6 +15141,7 @@ if (!en.sonarValid && en.formation){
   function buyHull(classId){
     var ship = SHIP_CLASSES[classId];
     if (!ship || garage.money<ship.unlockCost) return;
+    if(!yardEditOk(garage.activeGroupId)) return;
     garage.money -= ship.unlockCost;
     var firstOfClass = hullsOfClass(classId).length===0;
     var hull = {uid:'h'+(garage.nextHullUid++), classId:classId, name:defaultHullName(classId), sunk:false, dmg:0};
@@ -15058,18 +15163,21 @@ if (!en.sonarValid && en.formation){
   // Buys one refit level for one individual ship (hull uid) — sister ships
   // of the same class keep their own refits.
   function buyUpgrade(hullUid, key){
-    if (!hullByUid(hullUid)) return;
+    if (!hullByUid(hullUid)) return false;
     var def = null;
     for (var i=0;i<UPGRADE_DEFS.length;i++){ if (UPGRADE_DEFS[i].key===key) def = UPGRADE_DEFS[i]; }
-    if (!def) return;
+    if (!def) return false;
+    var _ugGid = hullGroupId(hullUid);
+    if(_ugGid && !yardEditOk(_ugGid)) return false;
     var lv = levelsForUid(hullUid);
     var lvl = lv[key];
-    if (lvl>=MAX_UPGRADE_LEVEL) return;
+    if (lvl>=MAX_UPGRADE_LEVEL) return false;
     var cost = def.costs[lvl];
-    if (garage.money<cost) return;
+    if (garage.money<cost) return false;
     garage.money -= cost;
     lv[key] = lvl+1;
     renderPort();
+    return true;
   }
 
   // ==== Port: dry dock ======================================================
@@ -15339,19 +15447,19 @@ if (!en.sonarValid && en.formation){
         if (!h.sunk && ag){
           if (!isGuide){
             acts.appendChild(yardBtn('Make guide', {fk:'hull:'+h.uid+':guide', title:'Lead ' + ag.name + ' with this ship',
-              onClick:function(){ selectHull(h.uid); portToast(h.name + ' now leads ' + ag.name); }}));
+              onClick:function(){ if(selectHull(h.uid)) portToast(h.name + ' now leads ' + ag.name); }}));
           }
           if (inActive){
             acts.appendChild(yardBtn('Leave ' + ag.name, {fk:'hull:'+h.uid+':leave', disabled:isGuide,
               title: isGuide ? 'The guide always sails. Make another ship guide first.' : 'Return to the yard',
-              onClick:function(){ removeHullFromGroup(h.uid, ag.id); portToast(h.name + ' left ' + ag.name); }}));
+              onClick:function(){ if(removeHullFromGroup(h.uid, ag.id)) portToast(h.name + ' left ' + ag.name); }}));
           } else {
             var full = ag.fleet.length >= MAX_FLEET;
             acts.appendChild(yardBtn((grp ? 'Move to ' : 'Join ') + ag.name, {fk:'hull:'+h.uid+':join', disabled:full,
               title: full ? ag.name + ' is full (' + MAX_FLEET + ' ships)' : '',
               onClick:function(){
-                if (!ag.fleet.length) selectHull(h.uid); else assignHullToGroup(h.uid, ag.id);
-                portToast(h.name + ' joined ' + ag.name);
+                var _joined2 = ag.fleet.length ? assignHullToGroup(h.uid, ag.id) : selectHull(h.uid);
+                if(_joined2) portToast(h.name + ' joined ' + ag.name);
               }}));
           }
         }
@@ -15359,7 +15467,7 @@ if (!en.sonarValid && en.formation){
           var rc = repairCost(h);
           acts.appendChild(yardBtn('Repair for ' + fmtMoney(rc), {cls:'warn', fk:'hull:'+h.uid+':repair', disabled: garage.money < rc,
             title: garage.money < rc ? 'Needs ' + fmtMoney(rc - garage.money) + ' more' : '',
-            onClick:function(){ repairHull(h.uid); portToast(h.name + ' repaired for ' + fmtMoney(rc)); flashMoney(); }}));
+            onClick:function(){ if(repairHull(h.uid)){ portToast(h.name + ' repaired for ' + fmtMoney(rc)); flashMoney(); } }}));
         }
         acts.appendChild(yardBtn('Rename', {cls:'quiet', fk:'hull:'+h.uid+':rename', onClick:function(){
           beginInlineRename(name, h.name, 40, function(v){ renameHull(h.uid, v); });
@@ -15415,9 +15523,10 @@ if (!en.sonarValid && en.formation){
         btn = yardBtn(fmtMoney(cost), {fk:'up:'+hullUid+':'+def.key, disabled:short,
           title: short ? 'Needs ' + fmtMoney(cost - garage.money) + ' more' : 'Fit level ' + (lvl+1),
           onClick:function(){
-            buyUpgrade(hullUid, def.key);
-            portToast(def.name + ' level ' + (lvl+1) + ' fitted to ' + hull.name);
-            flashMoney();
+            if(buyUpgrade(hullUid, def.key)){
+              portToast(def.name + ' level ' + (lvl+1) + ' fitted to ' + hull.name);
+              flashMoney();
+            }
           }});
       }
       row.appendChild(btn);
@@ -15625,6 +15734,7 @@ if (!en.sonarValid && en.formation){
     // Re-rendering rebuilds the buttons; put keyboard focus back where it was.
     var ae = document.activeElement;
     var fk = ae && ae.getAttribute ? ae.getAttribute('data-fk') : null;
+    ensureYardActiveGroup();
     if (!SHIP_CLASSES[portUi.classId]) portSyncToGuide();
     fleetIsValid();
     var pm = document.getElementById('portMoney');
@@ -20649,9 +20759,43 @@ function attackable(id){ var s=sideOf(id); return s==='JPN' || s==='NEU'; }
    side in tags and tips; a space with nobody in it reads neutral. Ownership
    (OWNER) is untouched — movement, commissioning, capture and victory logic
    all still run on who HOLDS the ground, not who is standing on it. */
+/* Visual home overrides for the enemy-turn replay. enemyTurn() finishes all
+   logical state (u.home, OWNER) up front; the counters then travel the map
+   afterwards. While that replay runs, VIS_HOME maps each moving unit's id to
+   the territory it is *visually* on — null while its leg is in flight — so
+   plate colours and tooltips follow the screen instead of the finished
+   bookkeeping. Logical readers (combat, AI, capture rules) keep using u.home
+   unchanged. Entries are dropped when each leg settles (visDepart/visArrive)
+   and the whole overlay is cleared with the replay (flushEnemyAnimOlds). */
+var VIS_HOME = null;
+var ENEMY_PLANNING = false;
+function visHome(u){
+  if(VIS_HOME && Object.prototype.hasOwnProperty.call(VIS_HOME, u.id)) return VIS_HOME[u.id];
+  return u.home;
+}
+/* The counter leaves its old ground: that territory's colour must follow it
+   out the moment the leg starts, not when the bookkeeping said so. */
+function visDepart(uid){
+  if(!VIS_HOME || !Object.prototype.hasOwnProperty.call(VIS_HOME, uid)) return;
+  var oldT = VIS_HOME[uid];
+  VIS_HOME[uid] = null;
+  if(oldT && T[oldT]){ try { paintOwner(oldT); } catch(_e){} }
+}
+/* The leg has settled: the unit now stands where u.home says it does. */
+function visArrive(uid){
+  if(!VIS_HOME || !Object.prototype.hasOwnProperty.call(VIS_HOME, uid)) return;
+  var oldT = VIS_HOME[uid];
+  delete VIS_HOME[uid];
+  var u = null;
+  try { u = unitById(uid); } catch(_e){}
+  try {
+    if(oldT && T[oldT]) paintOwner(oldT);
+    if(u && u.home && u.home!==oldT && T[u.home]) paintOwner(u.home);
+  } catch(_e){}
+}
 function occupantsOf(id){
   var set = {}, i, x;
-  for(i=0;i<UNITS.length;i++){ x=UNITS[i]; if(x.home===id && x.side) set[x.side]=1; }
+  for(i=0;i<UNITS.length;i++){ x=UNITS[i]; if(visHome(x)===id && x.side) set[x.side]=1; }
   var PT = window.PT, G = PT && PT.garage;
   if(G && typeof DEPLOY!=='undefined'){
     Object.keys(DEPLOY).forEach(function(k){
@@ -20687,7 +20831,7 @@ function displaySide(id){
 function occupantNames(id){
   var names = [];
   var i, x;
-  for(i=0;i<UNITS.length;i++){ x=UNITS[i]; if(x.home===id) names.push(x.name); }
+  for(i=0;i<UNITS.length;i++){ x=UNITS[i]; if(visHome(x)===id) names.push(x.name); }
   var PT = window.PT, G = PT && PT.garage;
   if(G && typeof DEPLOY!=='undefined'){
     Object.keys(DEPLOY).forEach(function(k){
@@ -20767,61 +20911,49 @@ function allyTankName(cls, k){
   var PT = window.PT, base = (PT && PT.TANK_CLASSES && PT.TANK_CLASSES[cls] && PT.TANK_CLASSES[cls].nameShort) || cls;
   return k<=1 ? base : base + ' ' + allyNumeral(k);
 }
-// Creates the allied groups/divisions on first campaign, and on a front reset
-// repairs their surviving hulls and tops them back up to template strength.
+// Creates the allied groups/divisions at template strength on first campaign
+// and on a front reset. Once they exist they are ordinary groups: same damage,
+// losses, refits and rules as your own — nothing repairs or tops them up for
+// free.
 function ensureAlliedGroups(){
   var PT = window.PT; if(!PT || !PT.garage) return;
   var G = PT.garage;
   ALLY_TEMPLATES.forEach(function(tp){
     if(tp.kind==='naval'){
       var g = null;
-      for(var i=0;i<G.groups.length;i++){ if(G.groups[i].allyUnit===tp.id){ g = G.groups[i]; break; } }
+      for(var i=0;i<G.groups.length;i++){ if(G.groups[i].id==='ag_'+tp.id){ g = G.groups[i]; break; } }
       if(!g){
-        g = {id:'ag_'+tp.id, name:tp.name, fleet:[], formation:'line', spacingMul:1, allyUnit:tp.id};
+        g = {id:'ag_'+tp.id, name:tp.name, fleet:[], formation:'line', spacingMul:1};
         G.groups.push(g);
-      }
-      (G.hulls||[]).forEach(function(h){ if(h.allyUnit===tp.id){ h.sunk = false; h.dmg = 0; } });
-      tp.roster.forEach(function(r){
-        var have = 0;
-        g.fleet.forEach(function(uid){
-          var h = PT.hullByUid(uid);
-          if(h && !h.sunk && h.classId===r.cls) have++;
+        tp.roster.forEach(function(r){
+          for(var k=0;k<r.n;k++){
+            var hull = {uid:'h'+(G.nextHullUid++), classId:r.cls, name:allyHullName(r.cls, k+1), sunk:false, dmg:0};
+            G.hulls.push(hull);
+            G.levels[hull.uid] = {hull:0, engine:0, guns:0, torpedoes:0, fireControl:0, airGroup:0};
+            if(PT.SHIP_CLASSES && PT.SHIP_CLASSES[r.cls]) G.owned[r.cls] = true;
+            if(g.fleet.length < 6) g.fleet.push(hull.uid);
+          }
         });
-        for(var k=have;k<r.n;k++){
-          var nm = allyHullName(r.cls, k+1);
-          var hull = {uid:'h'+(G.nextHullUid++), classId:r.cls, name:nm, sunk:false, dmg:0, allyUnit:tp.id};
-          G.hulls.push(hull);
-          G.levels[hull.uid] = {hull:0, engine:0, guns:0, torpedoes:0, fireControl:0, airGroup:0};
-          if(PT.SHIP_CLASSES && PT.SHIP_CLASSES[r.cls]) G.owned[r.cls] = true;
-          if(g.fleet.length < 6) g.fleet.push(hull.uid);
-        }
-      });
+      }
       if(!DEPLOY['fleet:'+g.id]) DEPLOY['fleet:'+g.id] = {loc:tp.home, mp:MOVE_POINTS};
       else { DEPLOY['fleet:'+g.id].loc = tp.home; DEPLOY['fleet:'+g.id].mp = MOVE_POINTS; }
     } else {
       var d = null;
-      for(var j=0;j<G.tankDivisions.length;j++){ if(G.tankDivisions[j].allyUnit===tp.id){ d = G.tankDivisions[j]; break; } }
+      for(var j=0;j<G.tankDivisions.length;j++){ if(G.tankDivisions[j].id==='ad_'+tp.id){ d = G.tankDivisions[j]; break; } }
       if(!d){
-        d = {id:'ad_'+tp.id, name:tp.name, tanks:[], formation:'line', spacingMul:1, allyUnit:tp.id};
+        d = {id:'ad_'+tp.id, name:tp.name, tanks:[], formation:'line', spacingMul:1};
         G.tankDivisions.push(d);
-      }
-      (G.tanks||[]).forEach(function(t){ if(t.allyUnit===tp.id){ t.destroyed = false; } });
-      tp.roster.forEach(function(r){
-        var have = 0;
-        d.tanks.forEach(function(uid){
-          var t = PT.tankByUid(uid);
-          if(t && !t.destroyed && t.classId===r.cls) have++;
+        tp.roster.forEach(function(r){
+          for(var k=0;k<r.n;k++){
+            var t = {uid:'tk'+(G.nextTankUid++), classId:r.cls, name:allyTankName(r.cls, k+1), destroyed:false};
+            G.tanks.push(t);
+            G.tankOwned[r.cls] = (G.tankOwned[r.cls]||0)+1;
+            if(!G.tankLevels) G.tankLevels = {};
+            G.tankLevels[t.uid] = {armor:0, engine:0, gun:0, gunnery:0};
+            if(d.tanks.length < 8) d.tanks.push(t.uid);
+          }
         });
-        for(var k=have;k<r.n;k++){
-          var nm = allyTankName(r.cls, k+1);
-          var t = {uid:'tk'+(G.nextTankUid++), classId:r.cls, name:nm, destroyed:false, allyUnit:tp.id};
-          G.tanks.push(t);
-          G.tankOwned[r.cls] = (G.tankOwned[r.cls]||0)+1;
-          if(!G.tankLevels) G.tankLevels = {};
-          G.tankLevels[t.uid] = {armor:0, engine:0, gun:0, gunnery:0};
-          if(d.tanks.length < 8) d.tanks.push(t.uid);
-        }
-      });
+      }
       if(!DEPLOY['div:'+d.id]) DEPLOY['div:'+d.id] = {loc:tp.home, mp:MOVE_POINTS};
       else { DEPLOY['div:'+d.id].loc = tp.home; DEPLOY['div:'+d.id].mp = MOVE_POINTS; }
     }
@@ -20980,7 +21112,7 @@ function playerUnits(){
       clsPow[h.classId]=(clsPow[h.classId]||0)+pw; power += pw;
     });
     var key = 'fleet:'+g.id, d = DEPLOY[key];
-    out.push({id:'p_'+g.id, key:key, ref:g.id, mine:true, ally:!!g.allyUnit, name:g.name, side:'ALL', kind:'naval',
+    out.push({id:'p_'+g.id, key:key, ref:g.id, mine:true, name:g.name, side:'ALL', kind:'naval',
       ships:Object.keys(counts).map(function(c){ return {cls:c, n:counts[c]}; }),
       power:power, clsPow:clsPow,
       strength:hulls.length, loc:d?d.loc:null, mp:d?d.mp:0});
@@ -20994,7 +21126,7 @@ function playerUnits(){
       clsPow[t.classId]=(clsPow[t.classId]||0)+pw; power += pw;
     });
     var key = 'div:'+dv.id, d = DEPLOY[key];
-    out.push({id:'p_'+dv.id, key:key, ref:dv.id, mine:true, ally:!!dv.allyUnit, name:dv.name, side:'ALL', kind:'armor',
+    out.push({id:'p_'+dv.id, key:key, ref:dv.id, mine:true, name:dv.name, side:'ALL', kind:'armor',
       tanks:Object.keys(counts).map(function(c){ return {cls:c, n:counts[c]}; }),
       power:power, clsPow:clsPow,
       strength:tanks.length, loc:d?d.loc:null, mp:d?d.mp:0});
@@ -21437,6 +21569,9 @@ function simReportsBlock(){ return SIM_REPORTS.map(simReportHtml).join(''); }
 // Resolve the battle launchBattle has just briefed, without the battle screen.
 function runSimBattle(pending, spec, pu){
   var PT = window.PT;
+  // Snapshot both sides' power so the map can show what the sim takes off it.
+  var trackLosses = null;
+  try { trackLosses = simPowTracker(pending, pu); } catch(_e) {}
   var rep = PT && PT.simulateBattle ? PT.simulateBattle(spec) : null;
   if(!rep){ selMsg = 'Nothing could be fielded for that battle.'; refreshAll(); return null; }
   // When the attacker is a different arm than the defender (a fleet landing on
@@ -21449,6 +21584,14 @@ function runSimBattle(pending, spec, pu){
   PT.pendingBattle = pending;
   PT.lastBattleLosses = rep.enemy.filter(function(x){ return x.lost && x.cls; }).map(function(x){ return x.cls; });
   PT.onBattleEnd(rep.success);
+  // Little bursts over the contested territory, then the colour-coded power
+  // each side lost floating up off it.
+  if(trackLosses){
+    try {
+      var _lost = trackLosses();
+      animateSimBattleFx(pending.terrId, _lost.you, _lost.foe);
+    } catch(_e) {}
+  }
   return rep;
 }
 // Every enemy attack waiting on you, fought out in order.
@@ -21480,7 +21623,12 @@ function applyEnemyLosses(units, lost){
 /* ---------- enemy attacks on your units ---------- */
 function unitById(id){ return UNITS.find(function(x){ return x.id===id; }) || null; }
 function captureFor(side, terrId){
-  OWNER[terrId] = side; paintOwner(terrId);
+  OWNER[terrId] = side;
+  // While the enemy turn is being planned there is no colour to paint yet:
+  // the replay hasn't shown the counter arriving. endTurn's refreshAll paints
+  // the visual truth once VIS_HOME is in place, so painting here would both
+  // jump the gun and duplicate that pass.
+  if(!ENEMY_PLANNING) paintOwner(terrId);
 }
 /* Ground nobody holds belongs to nobody: when battle losses empty Japanese
    land of Japanese units it reverts to neutral instead of staying red and
@@ -21521,7 +21669,10 @@ function resolveIncoming(choice){
     selMsg = (mine.length ? 'You gave up ' : att.name+' walked into undefended ')+T[inc.terrId].name+'.'+(notes.length?' '+notes.join('; ')+'.':'');
     refreshAll();
     try {
-      var wTo = unitAnchor(inc.terrId);
+      // The node now sits on its exact laid-out slot (stacking included) —
+      // landing on that instead of the bare anchor keeps the final visual
+      // position identical to what renderUnits shows after the leg.
+      var wTo = enemyCurPos(att, inc.terrId);
       enemySlideNode(att.id, att.kind, wFrom, wTo, 0, null, inc.from, inc.terrId);
     } catch(_e) {}
     return;
@@ -21577,22 +21728,35 @@ function enemyCurPos(u, loc){
   return unitAnchor(loc);
 }
 function enemyAttack(u, terrId, via, log, pus){
-  var fromPos = enemyCurPos(u, u.home);
+  var fromHome = u.home;
+  var fromPos = enemyCurPos(u, fromHome);
   var targetPos = unitAnchor(terrId);
-  u.home = via; u.mp = 0;
   var mine = pus.filter(function(p){ return p.loc===terrId; });
   if(mine.length){
+    u.home = via; u.mp = 0;
+    if(VIS_HOME) VIS_HOME[u.id] = fromHome;
     INCOMING.push({attackerId:u.id, terrId:terrId, from:via});
     ENEMY_ANIM.push({uid:u.id, kind:u.kind, from:via, to:terrId, type:'attack', fromPos:fromPos, targetPos:targetPos});
     log.push(u.name+' is attacking '+mine.map(function(p){ return p.name; }).join(' and ')+' at '+T[terrId].name+'.');
     return;
   }
-  captureFor('JPN', terrId); u.home = terrId;
-  ENEMY_ANIM.push({uid:u.id, kind:u.kind, from:via, to:terrId, type:'move', fromPos:fromPos});
+  // Undefended ground: one leg, one home update (no staging via first).
+  captureFor('JPN', terrId); u.home = terrId; u.mp = 0;
+  if(VIS_HOME) VIS_HOME[u.id] = fromHome;
+  ENEMY_ANIM.push({uid:u.id, kind:u.kind, from:fromHome, to:terrId, type:'move', fromPos:fromPos});
   log.push(u.name+' took undefended '+T[terrId].name+'.');
 }
 function enemyTurn(){
   ENEMY_ANIM = [];
+  VIS_HOME = {};
+  ENEMY_PLANNING = true;
+  try { return planEnemyTurn(); }
+  finally { ENEMY_PLANNING = false; }
+}
+/* Planning pass: every decision, capture and home change for the coming
+   turn. It mutates logical state only — colour writes are held back until
+   the replay has visual positions to paint (VIS_HOME + endTurn's refreshAll). */
+function planEnemyTurn(){
   var log = [], pus = syncPlayerUnits();
   var dist = {naval:distMap('naval', pus), armor:distMap('armor', pus)};
   var jp = UNITS.filter(function(u){ return u.side==='JPN'; });
@@ -21633,6 +21797,7 @@ function enemyTurn(){
     if(pick){
       var mFrom = enemyCurPos(u, loc);
       u.home = pick.id; u.mp = pick.r.mpLeft;
+      VIS_HOME[u.id] = loc;
       ENEMY_ANIM.push({uid:u.id, kind:u.kind, from:loc, to:pick.id, type:'move', fromPos:mFrom});
       log.push(u.name+' advanced to '+T[pick.id].name+'.');
     }
@@ -21675,21 +21840,31 @@ function endTurn(){
   selected = null; selectedUnit = null;
   selMsg = '';
   refreshAll();
-  // Replay Japan's turn with the same sail/clash language: counters slide with
-  // wake/dust, attacks lunge and clash. State is already final; this is visual.
-  // Every counter with a leg to play is parked at its old spot first, so the
-  // map doesn't jump to the final positions before the replay runs.
+  // Replay Japan's turn with the same sail/clash language: moves run exactly
+  // like the player's (counter pre-positioned on its destination slot, column
+  // sails the leg — only the colour flip is deferred), attacks park their
+  // counter on the old ground and lunge at the target.
+  // State is already final; this is visual.
   try {
     var anims = ENEMY_ANIM.slice(0, 12);
+    // Counters past the replay cap never animate — they jump with the logical
+    // state — so their colour must jump with them instead of staying behind.
+    if(VIS_HOME) for (var _bi=12; _bi<ENEMY_ANIM.length; _bi++) delete VIS_HOME[ENEMY_ANIM[_bi].uid];
     ENEMY_ANIM = [];
     ENEMY_ANIM_OLDS = {};
     for (var _ai=0; _ai<anims.length; _ai++){
       var _aa = anims[_ai];
-      if((_aa.type==='move' || _aa.type==='attack') && _aa.fromPos && _aa.fromPos.length===2){
+      if(_aa.type==='attack' && _aa.fromPos && _aa.fromPos.length===2){
         ENEMY_ANIM_OLDS[_aa.uid] = [_aa.fromPos[0], _aa.fromPos[1]];
       }
     }
     applyEnemyAnimOlds();
+    // A move counter has already jumped to its destination with renderUnits,
+    // so the ground it left lets go of its colour right now — the ground it
+    // reaches reddens when its column lands (visArrive in playMoveFx's done).
+    for (var _vi=0; _vi<anims.length; _vi++){
+      if(anims[_vi].type==='move') visDepart(anims[_vi].uid);
+    }
     playEnemyAnims(anims, function(){ flushEnemyAnimOlds(); autoFightIncoming(); });
   } catch(_e){ flushEnemyAnimOlds(); autoFightIncoming(); }
 }
@@ -21829,8 +22004,7 @@ function renderSelBox(){
     var u = selectedUnit, n = unitTotal(u);
     var noun = u.kind==='naval' ? (n===1?'ship':'ships') : (n===1?'tank':'tanks');
     if(u.mine){
-      var ally = !!u.ally;
-      h = '<div class="selName">'+esc(u.name)+'</div><div class="selSub">'+(ally?'Allied ':'')+(u.kind==='naval'?'Naval task force':'Armor division')+' · '+n+' '+noun+' · power '+fmtPower(unitPower(u))+
+      h = '<div class="selName">'+esc(u.name)+'</div><div class="selSub">'+(u.kind==='naval'?'Naval task force':'Armor division')+' · '+n+' '+noun+' · power '+fmtPower(unitPower(u))+
         (u.loc ? ' · at '+esc(T[u.loc].name) : ' · in reserve')+'</div>';
       h += '<div class="unitDetail"><div class="uShips">'+chipsOf(u)+'</div></div>';
       if(!u.loc){
@@ -21855,12 +22029,16 @@ function renderSelBox(){
           h += '<div class="selHint">Movement spent — end the turn to move again.</div>';
         }
       }
-      // The yard is entered through the territory, not the unit: pressing an
-      // allied harbor opens the Port, pressing an allied factory territory
-      // opens the Depot.
+      // The yard can be entered from the unit itself while she sits in port:
+      // the button opens the Port/Depot for that fleet or division directly.
+      // At sea there's nothing to open — the hint says where to go instead.
       if(u.loc){
         if(yardGroundOk(u.kind, u.loc)){
-          h += '<div class="selHint">Select '+esc(T[u.loc].name)+' to open the '+(u.kind==='naval'?'dry dock':'depot')+'.</div>';
+          if(u.kind==='naval'){
+            h += '<button class="atkBtn alt" data-act="port" data-key="'+u.key+'">⚓ Open Port — '+esc(FACILITIES[u.loc].harbor)+'</button>';
+          } else {
+            h += '<button class="atkBtn alt" data-act="depot" data-key="'+u.key+'">⚙ Open Depot — '+esc(FACILITIES[u.loc].factory)+'</button>';
+          }
         } else {
           h += '<div class="selHint">'+(u.kind==='naval' ? 'Sail into an allied harbor, then select it to open the dry dock.' : 'Drive into an allied factory territory, then select it to open the depot.')+'</div>';
         }
@@ -21869,12 +22047,9 @@ function renderSelBox(){
       var home = unitLoc(u);
       h = '<div class="selName">'+esc(u.name)+'</div><div class="selSub">'+(u.kind==='naval'?'Naval task force':'Armor formation')+' · '+n+' '+noun+' · power '+fmtPower(unitPower(u))+' · at '+esc(T[home].name)+'</div><div class="selOwn">'+ownTagOf(u.side)+'</div>';
       h += '<div class="unitDetail"><div class="uShips">'+chipsOf(u)+'</div>';
-      if(u.side==='ALL') h += '<div class="uLegend">Allied garrison — holds its station.</div>';
-      else h += '<div class="uLegend">Move one of your fleets or divisions next to it to attack.</div>';
+      h += '<div class="uLegend">Move one of your fleets or divisions next to it to attack.</div>';
       h += '</div>';
-      if(u.side!=='ALL'){
-        h += '<div class="uLegend">Select one of your fleets or divisions, then select this territory to sail there and fight.</div>';
-      }
+      h += '<div class="uLegend">Select one of your fleets or divisions, then select this territory to sail there and fight.</div>';
       h += '<button class="atkBtn alt" data-act="selterr" data-terr="'+home+'">View '+esc(T[home].name)+'</button>';
     }
   } else if(selected && T[selected]){
@@ -21977,10 +22152,12 @@ function resetFront(){
   UNITS.length = 0; JSON.parse(JSON.stringify(UNITS0)).forEach(function(u){ UNITS.push(u); });
   TURN = 1; DEPLOY = {}; INCOMING = []; REPORT = []; spawnSeq = 1;
   ENEMY_ANIM = []; ENEMY_ANIM_OLDS = {}; ENEMY_ANIM_PARK = null;
+  VIS_HOME = null;
   YARD_ORIGIN = null;
   Object.keys(START_DEPLOY).forEach(function(k){ DEPLOY[k] = {loc:START_DEPLOY[k], mp:MOVE_POINTS}; });
-  // Allied forces are garage groups now: (re)create, repair and top up to
-  // template strength, and post them to their home stations.
+  // Allied forces are garage groups now: (re)create at template strength if
+  // missing, and post them to their home stations — they keep whatever damage
+  // and losses they carry, exactly like your own groups.
   try { ensureAlliedGroups(); } catch(_e) {}
   selected = null; selectedUnit=null; selMsg = '';
   refreshAll();
@@ -22742,14 +22919,14 @@ function sailForceSequential(o){
     })(i);
   }
 }
-function playMoveFx(fromId, toId, kind, unitId, fromPos, toPos){
-  if(!T[fromId] || !T[toId]) return;
-  if(mapReducedMotion() || !gFx){ try { renderUnits(); paintReach(); } catch(_e) {} return; }
+function playMoveFx(fromId, toId, kind, unitId, fromPos, toPos, done){
+  if(!T[fromId] || !T[toId]){ if(done) done(); return; }
+  if(mapReducedMotion() || !gFx){ try { renderUnits(); paintReach(); } catch(_e) {} if(done) done(); return; }
   var a = fromPos || mapFxPos(fromId) || T[fromId].c, b = toPos || mapFxPos(toId) || T[toId].c;
   var node = (unitId && unitNodeOf[unitId]) || null;
   sailForceSequential({uid:unitId, kind:kind, fromId:fromId, toId:toId,
     fromPos:[a[0],a[1]], toPos:[b[0],b[1]], srcPos:fromPos?[fromPos[0],fromPos[1]]:null, node:node,
-    onDone:function(){ try { renderUnits(); paintReach(); } catch(_e) {} }});
+    onDone:function(){ try { renderUnits(); paintReach(); } catch(_e) {} if(done) done(); }});
 }
 
 /* Second click finishes the order: unit first + territory second, or territory
@@ -22796,45 +22973,45 @@ function playFightFx(terrId, fromId){
   });
   var flash = el('circle',{cx:c[0], cy:c[1], r:13, class:'fight-flash'});
   flash.style.animation = 'fightBlink 0.85s linear';
-  var x1 = el('path',{d:'M'+(c[0]-13)+','+(c[1]-13)+' L'+(c[0]+13)+','+(c[1]+13)+' M'+(c[0]+13)+','+(c[1]-13)+' L'+(c[0]-13)+','+(c[1]+13), class:'fight-x'});
   var lab = el('text',{x:c[0], y:c[1]-30, class:'fight-label'});
   lab.textContent = '⚔';
   lab.style.animation = 'fightBlink 0.85s linear';
-  gFx.appendChild(flash); gFx.appendChild(x1); gFx.appendChild(lab);
+  gFx.appendChild(flash); gFx.appendChild(lab);
   setTimeout(function(){
     if(flash.parentNode) flash.parentNode.removeChild(flash);
-    if(x1.parentNode) x1.parentNode.removeChild(x1);
     if(lab.parentNode) lab.parentNode.removeChild(lab);
   }, 900);
 }
 /* Attack impact on the map: a shell burst at the target that stands in for
    the old clash — white-hot flash, rolling fireball, shockwave, thrown
    sparks and a puff of smoke, all on the FX layer. */
-function spawnMapExplosion(x, y){
+function spawnMapExplosion(x, y, scale){
   if(!gFx || mapReducedMotion()) return;
+  var sc = scale>0 ? scale : 1;
   var made = [];
   function put(node, life){
     node.style.pointerEvents = 'none';
     gFx.appendChild(node); made.push([node, life]);
     return node;
   }
-  var flash = el('circle',{cx:x, cy:y, r:17, fill:'#fff3d0'});
+  var flash = el('circle',{cx:x, cy:y, r:17*sc, fill:'#fff3d0'});
   flash.style.transformOrigin = x+'px '+y+'px';
   flash.style.animation = 'boomFlash .18s ease-out forwards';
   put(flash, 260);
-  var ring = el('circle',{cx:x, cy:y, r:15, fill:'none', stroke:'#ff9a5c', 'stroke-width':3.2});
+  var ring = el('circle',{cx:x, cy:y, r:15*sc, fill:'none', stroke:'#ff9a5c', 'stroke-width':Math.max(1.6, 3.2*sc)});
   ring.style.transformOrigin = x+'px '+y+'px';
   ring.style.animation = 'boomRing .5s ease-out forwards';
   put(ring, 560);
   [[0,0,12,'#ffb14e',0],[-11,7,9,'#ff7a3c',.06],[9,-8,8,'#ffd873',.1]].forEach(function(f){
-    var blob = el('circle',{cx:x+f[0], cy:y+f[1], r:f[2], fill:f[3], opacity:.92});
-    blob.style.transformOrigin = (x+f[0])+'px '+(y+f[1])+'px';
+    var bx = x+f[0]*sc, by = y+f[1]*sc;
+    var blob = el('circle',{cx:bx, cy:by, r:f[2]*sc, fill:f[3], opacity:.92});
+    blob.style.transformOrigin = bx+'px '+by+'px';
     blob.style.animation = 'boomFire .5s ease-out ' + f[4] + 's forwards';
     put(blob, 560 + f[4]*1000);
   });
   for(var i=0;i<7;i++){
-    var ang = Math.random()*Math.PI*2, dist = 26 + Math.random()*22;
-    var spark = el('circle',{cx:x, cy:y, r:1.6 + Math.random()*1.8,
+    var ang = Math.random()*Math.PI*2, dist = (26 + Math.random()*22)*sc;
+    var spark = el('circle',{cx:x, cy:y, r:(1.6 + Math.random()*1.8)*Math.max(.7, sc),
       fill: Math.random()<0.5 ? '#ffd27a' : '#ff9a5c'});
     spark.style.setProperty('--bx', (Math.cos(ang)*dist).toFixed(1)+'px');
     spark.style.setProperty('--by', (Math.sin(ang)*dist).toFixed(1)+'px');
@@ -22842,10 +23019,10 @@ function spawnMapExplosion(x, y){
     put(spark, 620);
   }
   for(var s=0;s<3;s++){
-    var smoke = el('circle',{cx:x + (Math.random()*14-7), cy:y + (Math.random()*10-5),
-      r:5 + Math.random()*4, fill:'rgba(150,150,146,.8)'});
-    smoke.style.setProperty('--sx', ((Math.random()*18-9)).toFixed(1)+'px');
-    smoke.style.setProperty('--sy', (-12 - Math.random()*8).toFixed(1)+'px');
+    var smoke = el('circle',{cx:x + (Math.random()*14-7)*sc, cy:y + (Math.random()*10-5)*sc,
+      r:(5 + Math.random()*4)*sc, fill:'rgba(150,150,146,.8)'});
+    smoke.style.setProperty('--sx', ((Math.random()*18-9)*sc).toFixed(1)+'px');
+    smoke.style.setProperty('--sy', ((-12 - Math.random()*8)*sc).toFixed(1)+'px');
     smoke.style.animation = 'boomSmoke .95s ease-out ' + (s*0.12).toFixed(2) + 's forwards';
     put(smoke, 1250);
   }
@@ -22854,6 +23031,62 @@ function spawnMapExplosion(x, y){
   setTimeout(function(){
     made.forEach(function(m){ if(m[0].parentNode) m[0].parentNode.removeChild(m[0]); });
   }, life + 80);
+}
+/* Sim fights settle without a screen — give each one a beat on the map: a few
+   little shell bursts over the contested territory, then the power each side
+   lost floats up in its own colour (yours Allied blue, the foe's red-orange).
+   Call the tracker before the sim runs and the returned function after it:
+   it reports the power delta each side actually took. */
+function simPowTracker(pending, pu){
+  var youRefs = [], foeRefs = [];
+  try {
+    if(pending.defense){
+      syncPlayerUnits().forEach(function(p){ if(p.loc===pending.terrId) youRefs.push({key:p.key}); });
+      if(pending.attackerId) foeRefs.push({uid:pending.attackerId});
+    } else {
+      youRefs.push({key:pu.key});
+      // Amphibious landings fight with the embarked division, not the ships.
+      if(pending.branch==='land' && pu.kind==='naval'){
+        var ad = window.PT && window.PT.getActiveTankDiv ? window.PT.getActiveTankDiv() : null;
+        if(ad) youRefs.push({key:'div:'+ad.id});
+      }
+      defendersAt('ALL', pending.terrId).forEach(function(e){ if(e && e.id) foeRefs.push({uid:e.id}); });
+    }
+  } catch(_e) {}
+  function read(){
+    var you = 0, foe = 0;
+    youRefs.forEach(function(r){ var u = unitByKey(r.key); if(u) you += unitPower(u); });
+    foeRefs.forEach(function(r){ var u = unitById(r.uid); if(u) foe += unitPower(u); });
+    return {you:you, foe:foe};
+  }
+  var before = read();
+  return function(){
+    var after = read();
+    return {you: Math.max(0, before.you-after.you), foe: Math.max(0, before.foe-after.foe)};
+  };
+}
+function simLossFloater(x, y, txt, color){
+  if(!gFx) return;
+  var t = el('text',{x:x, y:y, class:'sim-loss'});
+  t.textContent = txt;
+  t.style.fill = color;
+  t.style.animation = 'simLossRise 1.25s ease-out forwards';
+  gFx.appendChild(t);
+  setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); }, 1400);
+}
+function animateSimBattleFx(terrId, youLost, foeLost){
+  if(!gFx || !T[terrId] || mapReducedMotion()) return;
+  var c = T[terrId].c;
+  [0, 300, 600].forEach(function(ms){
+    setTimeout(function(){
+      spawnMapExplosion(c[0] + (Math.random()*34-17), c[1] + (Math.random()*26-13), 0.55);
+    }, ms);
+  });
+  if(!(youLost>0) && !(foeLost>0)) return;
+  setTimeout(function(){
+    if(youLost>0) simLossFloater(c[0]-36, c[1]-2, '-'+Math.round(youLost), '#7ab4dd');
+    if(foeLost>0) simLossFloater(c[0]+36, c[1]-2, '-'+Math.round(foeLost), '#ff8a6a');
+  }, 820);
 }
 function paintOccupation(fromId, toId){
   try { if(fromId) paintOwner(fromId); } catch(_e) {}
@@ -22880,6 +23113,19 @@ function applyEnemyAnimOlds(){
 }
 function clearEnemyAnimOld(uid){ if(uid && ENEMY_ANIM_OLDS) delete ENEMY_ANIM_OLDS[uid]; }
 function flushEnemyAnimOlds(){
+  // The replay is over: logical positions are the only truth again, so drop
+  // any visual-home overrides and repaint the territories they held colour on.
+  if(VIS_HOME){
+    var repaint = [];
+    Object.keys(VIS_HOME).forEach(function(uid){
+      if(VIS_HOME[uid] && T[VIS_HOME[uid]]) repaint.push(VIS_HOME[uid]);
+      var u = null;
+      try { u = unitById(uid); } catch(_e){}
+      if(u && u.home && u.home!==VIS_HOME[uid] && T[u.home]) repaint.push(u.home);
+    });
+    VIS_HOME = null;
+    try { repaint.forEach(function(id){ paintOwner(id); }); } catch(_e){}
+  }
   if(!ENEMY_ANIM_OLDS || !Object.keys(ENEMY_ANIM_OLDS).length) return;
   ENEMY_ANIM_OLDS = {};
   try { renderUnits(); } catch(_e) {}
@@ -22906,12 +23152,16 @@ function enemyEase(t){ return t<0.5 ? 4*t*t*t : 1-Math.pow(-2*t+2,3)/2; }
 function enemySlideNode(uid, kind, fromPos, toPos, delay, done, fromId, toId, quiet){
   var start = function(){
     var node = unitNodeOf[uid];
-    if(mapReducedMotion() || !node || !gFx || !fromPos || !toPos){
+    if(mapReducedMotion() || !node || !fromPos || !toPos){
       clearEnemyAnimOld(uid); try { renderUnits(); } catch(_e) {}
+      visArrive(uid);
       if(done) done(); return;
     }
     var dx = toPos[0]-fromPos[0], dy = toPos[1]-fromPos[1], len = Math.hypot(dx,dy);
-    if(len < 3){ clearEnemyAnimOld(uid); try { renderUnits(); } catch(_e) {} if(done) done(); return; }
+    if(len < 3){ clearEnemyAnimOld(uid); try { renderUnits(); } catch(_e) {} visArrive(uid); if(done) done(); return; }
+    // The old ground loses its colour with the counter itself — the leg is
+    // starting now, not when the bookkeeping changed u.home.
+    visDepart(uid);
     // The counter is held at its old spot for the replay; the transit's own
     // origin clone stands in while the column sails, so hide the real one
     // rather than stack two circles on the same point.
@@ -22922,6 +23172,7 @@ function enemySlideNode(uid, kind, fromPos, toPos, delay, done, fromId, toId, qu
       onDone:function(){
         clearEnemyAnimOld(uid);
         try { renderUnits(); paintReach(); } catch(_e) {}
+        visArrive(uid);
         if(done) done();
       }});
   };
@@ -22969,23 +23220,21 @@ function playEnemyAnims(list, onDone){
 function enemySlideUnit(a, delay, done){
   var finish = function(){ if(done) done(); };
   var start = function(){
-    var node = unitNodeOf[a.uid];
+    // Player-style move: the counter is already standing on its destination
+    // slot (renderUnits ran when the replay was set up) — exactly like the
+    // player's moveUnit. playMoveFx gives it the same 'sailing' ring, live
+    // departure/arrival badges, arrival pulse and origin clone the player
+    // gets; only the colour flip is deferred (visArrive in the done below).
     var toPos = null;
     try {
       var live = allUnits().find(function(x){ return x.id===a.uid && x.pos; });
       if(live) toPos = [live.pos[0], live.pos[1]];
     } catch(_e) {}
     if(!toPos && T[a.to]) toPos = unitAnchor(a.to);
-    if(mapReducedMotion() || !node || !a.fromPos || !toPos){
-      clearEnemyAnimOld(a.uid);
-      try { renderUnits(); paintReach(); } catch(_e) {}
+    playMoveFx(a.from, a.to, a.kind, a.uid, a.fromPos, toPos, function(){
+      visArrive(a.uid);
       finish();
-      return;
-    }
-    // The counter is parked at its old spot (held back for the replay) while
-    // the hulls sail the leg; enemySlideNode hides it so the transit's origin
-    // clone can stand in, then renderUnits snaps it to the destination.
-    enemySlideNode(a.uid, a.kind, a.fromPos, toPos, 0, finish, a.from, a.to);
+    });
   };
   if(delay && delay>0) setTimeout(start, delay);
   else start();
