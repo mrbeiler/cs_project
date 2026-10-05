@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Steady</title>
+<style>
+*{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#e9d3a8;--ink:#3b2414;--panel:#f3e4c2;--accent:#c0392b}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#2a1d14;--ink:#f0dcb4;--panel:#3a2a1d}}
+:root[data-theme="dark"]{--bg:#2a1d14;--ink:#f0dcb4;--panel:#3a2a1d}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Georgia,"Times New Roman",serif;height:100vh;height:100dvh;max-height:100vh;max-height:100dvh;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:6px;padding:8px 10px calc(8px + env(safe-area-inset-bottom,0px))}
+h1{margin:0;font-size:clamp(.95rem,2.2vh + 1.5vw,1.5rem);font-weight:700;text-align:center;line-height:1.1}
+.sub{margin:0;opacity:.8;font-style:italic;font-size:clamp(.65rem,1.6vh + .5vw,.9rem);text-align:center}
+/* ---- screens ---- */
+.screen{flex:1 1 auto;min-height:0;width:min(860px,100%);display:flex;flex-direction:column;align-items:center;gap:6px}
+.screen.hidden{display:none}
+/* ---- start menu ---- */
+.gametitle{font-size:clamp(1.6rem,5vh + 2vw,2.6rem);margin:6px 0 0}
+.menustage{flex:1 1 auto;min-height:0;width:100%}
+.menubtns{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.menubtns button{font-size:clamp(1.1rem,3vh + 1vw,1.5rem);font-weight:900;letter-spacing:.06em;padding:12px 34px;min-width:170px}
+#btn-play{background:#3a7a3a;color:#fff;box-shadow:0 4px 0 #234d23}
+#btn-play:active{transform:translateY(3px);box-shadow:0 1px 0 #234d23}
+#btn-store{background:#e8c24a;color:#3b2414;box-shadow:0 4px 0 #9a7420}
+#btn-store:active{transform:translateY(3px);box-shadow:0 1px 0 #9a7420}
+/* ---- top bars ---- */
+.topbar{width:100%;display:flex;align-items:center;justify-content:space-between;gap:8px;flex:0 0 auto}
+.topbartitle{font-weight:700;font-size:clamp(.9rem,2.2vh + 1vw,1.2rem)}
+button.small{padding:5px 14px;font-size:.85rem;background:var(--panel);color:var(--ink)}
+/* single hero view takes most of the screen */
+.row{flex:1 1 auto;min-height:0;width:100%;display:flex;justify-content:center;align-items:stretch}
+figure.hero{margin:0;background:var(--panel);padding:6px 6px 4px;border-radius:10px;text-align:center;position:relative;box-shadow:0 2px 0 rgba(0,0,0,.15);flex:1 1 auto;min-width:0;min-height:0;display:flex;flex-direction:column;width:100%}
+.stage{position:relative;flex:1 1 auto;min-height:0;width:100%;border-radius:8px;overflow:hidden;border:2px solid rgba(0,0,0,.25)}
+.stage canvas{display:block;background:transparent}
+canvas.main{image-rendering:pixelated;height:100%;width:auto;transition:transform .05s linear}
+canvas.shake{animation:shake .3s linear}
+@keyframes shake{0%{transform:translate(0,0)}20%{transform:translate(-3px,1px)}40%{transform:translate(3px,-2px)}60%{transform:translate(-2px,-1px)}80%{transform:translate(2px,1px)}100%{transform:translate(0,0)}}
+figcaption{font-size:clamp(.7rem,1.8vh,.95rem);padding:2px 0 1px;line-height:1}
+/* offset duelists so both are visible: you big left, foe small right */
+.duelist{position:absolute;bottom:0;pointer-events:none}
+.duelist.player{left:4%;bottom:1%;height:95%;z-index:2}
+.duelist.foepos{right:10%;bottom:36.5%;height:30%;z-index:1}
+.duelist.showcase{left:50%;bottom:1%;height:94%;z-index:2;transform:translateX(-50%)}
+.duelist canvas{height:100%;width:auto;image-rendering:pixelated}
+.foe{pointer-events:none;transition:transform .45s ease-in,filter .12s}
+.foe.hit{filter:brightness(3) saturate(.2)}
+.foe.down{transform:rotate(88deg);transform-origin:bottom center;filter:brightness(.75) sepia(.6)}
+.foe.sway{animation:foebob 2.4s ease-in-out infinite}
+@keyframes foebob{0%,100%{margin-bottom:0}50%{margin-bottom:4px}}
+.ground{position:absolute;z-index:1;left:2%;width:44%;bottom:3%;height:6%;background:rgba(0,0,0,.28);border-radius:50%;filter:blur(1px)}
+.ground.single{left:32%;width:36%}
+.foeground{position:absolute;z-index:1;right:6%;width:24%;bottom:35.5%;height:3%;background:rgba(0,0,0,.25);border-radius:50%}
+.bang{position:absolute;z-index:5;left:38%;top:22%;transform:translate(-50%,-50%) scale(.5) rotate(-10deg);font-family:Impact,Georgia,sans-serif;font-weight:900;font-size:clamp(1.6rem,6vh,3rem);color:#ffdf2b;-webkit-text-stroke:2px #7a0e0e;text-shadow:3px 3px 0 #7a0e0e,0 0 18px rgba(255,200,0,.9);opacity:0;pointer-events:none;white-space:nowrap}
+.bang.show{animation:bangpop .55s ease-out}
+@keyframes bangpop{0%{opacity:0;transform:translate(-50%,-50%) scale(.4) rotate(-12deg)}15%{opacity:1;transform:translate(-50%,-60%) scale(1.25) rotate(-8deg)}100%{opacity:0;transform:translate(-50%,-90%) scale(1.1) rotate(-6deg)}}
+.duel{position:absolute;z-index:5;top:7%;left:0;right:0;text-align:center;font-family:Impact,Georgia,sans-serif;font-weight:900;font-size:clamp(1rem,3.6vh,1.7rem);letter-spacing:.12em;color:#fff;text-shadow:2px 2px 0 #3b2414,0 0 14px rgba(0,0,0,.6);opacity:0;pointer-events:none}
+.duel.show{animation:duelpop 1s ease-out}
+@keyframes duelpop{0%{opacity:0;transform:scale(.6)}12%{opacity:1;transform:scale(1.15)}30%{opacity:1;transform:scale(1)}80%{opacity:1}100%{opacity:0}}
+.bubble{position:absolute;z-index:6;max-width:46%;background:#ffffff;color:#3b2414;border:3px solid #3b2414;border-radius:12px;padding:8px 12px;font-size:clamp(.65rem,1.7vh + .5vw,.85rem);line-height:1.3;opacity:0;pointer-events:none;box-shadow:4px 4px 0 rgba(0,0,0,.4)}
+.bubble.show{animation:bubblepop .22s ease-out forwards}
+@keyframes bubblepop{0%{opacity:0;transform:scale(.7)}100%{opacity:1;transform:scale(1)}}
+.bubble .who{display:inline-block;font-size:.72em;font-weight:900;letter-spacing:.08em;color:#fff8e6;background:#7a0e0e;border-radius:4px;padding:1px 6px;margin-bottom:3px}
+.player-bubble .who{background:#2e5a2e}
+.bubble .txt{font-style:italic}
+.foe-bubble{top:12%;right:3%;max-width:30%;font-size:clamp(.6rem,1.5vh + .4vw,.78rem)}
+.foe-bubble::after{content:'';position:absolute;bottom:-12px;left:55%;border:6px solid transparent;border-top:9px solid #3b2414}
+.player-bubble{left:37%;top:28%;max-width:36%;font-size:clamp(.7rem,1.8vh + .5vw,.9rem)}
+.player-bubble::after{content:'';position:absolute;left:-12px;top:38%;border:6px solid transparent;border-right:9px solid #3b2414}
+.target.fade{opacity:0}
+.lineinput{display:flex;gap:8px;margin-bottom:8px}
+.lineinput input{flex:1;min-width:0;font:inherit;font-size:.85rem;padding:5px 8px;border-radius:6px;border:2px solid #3b2414;background:#fff8e6;color:#3b2414}
+.diffrow{display:flex;gap:10px;align-items:center;margin-bottom:8px}
+.diffrow input[type=range]{flex:1;accent-color:#c0392b}
+.diffrow span{font-size:.85rem;font-weight:700;min-width:76px;text-align:center;background:#fff8e6;border:2px solid #3b2414;border-radius:6px;padding:2px 8px}
+.tracer{position:absolute;z-index:4;left:36%;right:22%;bottom:31%;height:4px;background:linear-gradient(to right,#fff6c9,#fff 60%,rgba(255,246,201,0));opacity:0;pointer-events:none;box-shadow:0 0 8px #ffdf5a}
+.tracer.go{animation:trace .22s ease-out}
+@keyframes trace{0%{opacity:1;transform:scaleX(.05);transform-origin:left}100%{opacity:0;transform:scaleX(1);transform-origin:left}}
+.tracer.rev{background:linear-gradient(to left,#fff6c9,#fff 60%,rgba(255,246,201,0))}
+.tracer.rev.go{animation:traceR .25s ease-out}
+@keyframes traceR{0%{opacity:1;transform:scaleX(.05);transform-origin:right}100%{opacity:0;transform:scaleX(1);transform-origin:right}}
+.bg-opendesert{background:
+ radial-gradient(circle at 74% 16%,#fff9d8 0 6%,#ffdf5a 7% 10%,rgba(255,223,90,0) 11%),
+ radial-gradient(ellipse at center,rgba(255,255,255,.95) 0 55%,rgba(255,255,255,0) 72%),
+ radial-gradient(ellipse at center,rgba(255,255,255,.9) 0 55%,rgba(255,255,255,0) 72%),
+ linear-gradient(#c08a5e,#c08a5e),
+ linear-gradient(#b9835a,#b9835a),
+ linear-gradient(#8a5a3a,#8a5a3a),
+ linear-gradient(#9a6a44,#9a6a44),
+ linear-gradient(#5ea9e6 0 42%,#aecfee 42% 50%,#e3c188 50% 54%,#c98a5a 54% 58%,#e0b96a 58% 63%,#cfa054 63% 100%);
+ background-size:auto,26% 9%,18% 7%,18% 5%,12% 4%,22% 7%,15% 5%,auto;
+ background-position:0 0,28% 12%,58% 22%,30% 49%,60% 50%,6% 51%,68% 52%,0 0;
+ background-repeat:no-repeat}
+.bg-corral{background:
+ radial-gradient(circle at 20% 12%,#fff9d8 0 5%,#ffdf5a 6% 8%,rgba(255,223,90,0) 9%),
+ radial-gradient(ellipse at center,rgba(255,255,255,.95) 0 55%,rgba(255,255,255,0) 72%),
+ linear-gradient(#5e2018,#5e2018),
+ linear-gradient(#a63a2e,#a63a2e),
+ linear-gradient(#3a1a10,#3a1a10),
+ linear-gradient(#7a4a2a,#7a4a2a),
+ linear-gradient(#7a4a2a,#7a4a2a),
+ repeating-linear-gradient(90deg,#5a3418 0 3%,transparent 3% 9%),
+ linear-gradient(#7fb8e8 0 44%,#d8ecfa 44% 52%,#c49a62 52% 57%,#a87a4a 57% 61%,#8f653a 61% 100%);
+ background-size:auto,24% 8%,15% 2.5%,13% 9%,3% 6%,100% 2.2%,100% 2.2%,100% 10%,auto;
+ background-position:0 0,55% 12%,70.5% 44%,71.5% 46.5%,76% 49%,0 54%,0 59%,0 53%,0 0;
+ background-repeat:no-repeat}
+.bg-town{background:
+ radial-gradient(circle at 20% 14%,#fff6c9 0 5%,#ffdf5a 6% 8%,rgba(255,223,90,0) 9%),
+ radial-gradient(ellipse at center,rgba(255,255,255,.95) 0 55%,rgba(255,255,255,0) 72%),
+ linear-gradient(#4a3018 0 12%,#6b4a30 12%),
+ linear-gradient(#4a3018 0 10%,#7a5638 10%),
+ linear-gradient(#453015 0 12%,#5f4128 12%),
+ linear-gradient(#4a3018 0 10%,#75522f 10%),
+ linear-gradient(#453015 0 12%,#684628 12%),
+ linear-gradient(#241408,#241408),
+ linear-gradient(#241408,#241408),
+ linear-gradient(#241408,#241408),
+ linear-gradient(#241408,#241408),
+ linear-gradient(#241408,#241408),
+ linear-gradient(#d8b078,#d8b078),
+ linear-gradient(rgba(60,35,15,.35),rgba(60,35,15,.35)),
+ linear-gradient(rgba(60,35,15,.35),rgba(60,35,15,.35)),
+ linear-gradient(#7ec0ee 0 42%,#cfe4f5 42% 52%,#a8845a 52% 56%,#8f6c44 56% 60%,#b08a5e 60% 100%);
+ background-size:auto,22% 8%,18% 18%,14% 22%,20% 16%,15% 20%,17% 17%,3% 6%,2.5% 7%,2.5% 3.5%,2% 3%,2% 3%,100% 2.5%,100% 1%,100% 1%,auto;
+ background-position:0 0,65% 10%,2% 42%,22% 38%,39% 44%,60% 40%,78% 43%,8% 54%,26.5% 53%,13% 47%,43% 48%,64% 45%,0 57.5%,0 72%,0 80%,0 0;
+ background-repeat:no-repeat}
+.bg-graveyard{background:
+ radial-gradient(circle at 72% 18%,rgba(242,236,216,.22) 0 12%,rgba(242,236,216,0) 13%),
+ radial-gradient(circle at 72% 18%,#f2ecd8 0 7%,#cfc49a 8% 10%,rgba(207,196,154,0) 11%),
+ linear-gradient(#14141a,#14141a),
+ linear-gradient(#14141a,#14141a),
+ linear-gradient(#14141a,#14141a),
+ linear-gradient(#3a3a44,#3a3a44),
+ linear-gradient(#3a3a44,#3a3a44),
+ linear-gradient(#44444e,#44444e),
+ linear-gradient(#44444e,#44444e),
+ linear-gradient(#33333c,#33333c),
+ linear-gradient(#33333c,#33333c),
+ repeating-linear-gradient(90deg,#0c0c10 0 1.2%,transparent 1.2% 5%),
+ linear-gradient(#0c0c10,#0c0c10),
+ linear-gradient(rgba(200,200,215,0),rgba(200,200,215,.28)),
+ radial-gradient(ellipse at center,rgba(20,16,28,.9) 0 60%,rgba(20,16,28,0) 72%),
+ radial-gradient(ellipse at center,rgba(20,16,28,.9) 0 60%,rgba(20,16,28,0) 72%),
+ linear-gradient(#1a1626 0 50%,#2e2a3a 50% 56%,#3a3344 56% 60%,#4a3f52 60% 100%);
+ background-size:auto,auto,2.5% 15%,7% 1.4%,6% 1.4%,2% 10%,6% 2%,1.6% 8%,5% 1.6%,2.2% 11%,6.5% 2%,100% 9%,100% 1.2%,100% 7%,22% 6%,26% 7%,auto;
+ background-position:0 0,0 0,7% 45%,3.5% 47.5%,8% 49.5%,12% 52%,10% 54%,55% 54%,53.2% 56%,82% 51%,79.8% 53.5%,0 53%,0 53.5%,0 57%,18% 74%,58% 80%,0 0;
+ background-repeat:no-repeat}
+.target{position:absolute;z-index:4;width:11%;aspect-ratio:1/1;opacity:0;pointer-events:none;transform:translate(-50%,-50%);transition:opacity .15s}
+.target.show{opacity:1}
+.tring{position:absolute;inset:0;background:rgba(150,150,150,.45);border:2px solid rgba(80,80,80,.85);border-radius:50%}
+.tdot{display:none}
+.target.dotted .tring{background:rgba(150,150,150,.16);border:3px dotted rgba(80,80,80,.9)}
+.target.hot .tring{background:rgba(200,30,25,.55);border:3px solid #ff3b2b;box-shadow:0 0 14px rgba(255,60,40,.9)}
+.meter{position:absolute;z-index:4;left:50%;transform:translateX(-50%);top:2.5%;width:56%;height:12px;background:rgba(0,0,0,.45);border:2px solid #3b2414;border-radius:6px;opacity:0;transition:opacity .2s;overflow:hidden}
+.meter.show{opacity:1}
+.mfill{height:100%;width:0%;background:linear-gradient(90deg,#ff9a00,#ffdf2b)}
+.duelist.player{transition:transform .4s,filter .4s}
+.duelist.player.pdown{transform:rotate(-12deg);filter:grayscale(.8) brightness(.7)}
+#front.hit{filter:brightness(2.5) saturate(.3)}
+.gamebar{display:flex;flex-direction:column;align-items:center;gap:4px;flex:0 0 auto}
+/* ---- store ---- */
+.storewrap{flex:1 1 auto;min-height:0;width:100%;display:flex;flex-direction:column;gap:6px}
+.storepreview{flex:0 0 30%;min-height:130px}
+.storewrap .panel{flex:1 1 auto;min-height:0;max-height:none}
+.secttl{margin:2px 0 4px;font-size:.75rem;text-transform:uppercase;letter-spacing:.06em;opacity:.85;text-align:center}
+.bgbar{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;font-size:clamp(.7rem,1.8vh,.85rem);width:100%;margin-bottom:8px}
+.bgbar span{opacity:.8}
+.bgbar button{padding:5px 10px;border-radius:20px;font-size:clamp(.7rem,1.8vh,.85rem);border:2px solid #3b2414;background:var(--panel);color:var(--ink)}
+.bgbar button.active{background:#3b2414;color:#f3e4c2}
+.panel{background:var(--panel);border-radius:10px;padding:8px 10px 6px;width:min(860px,100%);box-shadow:0 2px 0 rgba(0,0,0,.15);flex:0 0 auto;max-height:40vh;max-height:40dvh;overflow:auto}
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:6px 8px;margin-bottom:8px}
+label{display:flex;flex-direction:column;gap:2px;font-size:.68rem;text-transform:uppercase;letter-spacing:.04em}
+select{font:inherit;font-size:.85rem;padding:4px;border-radius:6px;border:2px solid #3b2414;background:#fff8e6;color:#3b2414;max-width:100%}
+.btnrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center}
+button{font:inherit;cursor:pointer;border-radius:8px;border:2px solid #3b2414;padding:8px 16px}
+#random{background:#e8c24a;color:#3b2414;font-weight:700}
+.hint{font-size:clamp(.65rem,1.7vh,.85rem);opacity:.85;text-align:center;margin:5px 0 0}
+kbd{border:1px solid currentColor;border-radius:4px;padding:0 5px;font-size:.85em}
+@media (max-height:560px){.sub,.hint{display:none}.panel{max-height:34vh}.controls{grid-template-columns:repeat(auto-fit,minmax(100px,1fr))}}
+</style>
+</head>
+<body>
+<div class="screen" id="screen-menu">
+<h1 class="gametitle">STEADY</h1>
+<p class="sub">A cowboy quick-draw duel — dress your cowboy, pick your map, then duel the outlaw!</p>
+<div class="stage menustage bg-opendesert" id="stageMenu"><div class="ground single"></div><div class="duelist showcase"><canvas id="menuFront" width="24" height="40"></canvas></div></div>
+<div class="menubtns">
+<button id="btn-play">PLAY</button>
+<button id="btn-store">STORE</button>
+</div>
+<p class="hint">Space fires once the duel starts.</p>
+</div>
+<div class="screen hidden" id="screen-game">
+<div class="topbar"><button id="btn-gamemenu" class="small">Menu</button><span class="topbartitle">Steady</span><button id="btn-gamestore" class="small">Store</button></div>
+<div class="row">
+<figure class="hero"><div class="stage bg-opendesert" id="stageF"><div class="ground"></div><div class="foeground"></div><div class="duelist foepos"><canvas id="foeF" width="24" height="40" class="foe sway"></canvas></div><div class="duelist player" id="playerWrap"><canvas id="front" width="24" height="40" class="main"></canvas></div><div class="tracer" id="tracerF"></div><div class="target" id="targetF"><div class="tring"></div><div class="tdot"></div></div><div class="meter" id="meterF"><div class="mfill" id="mfillF"></div></div><div class="bubble foe-bubble" id="bubbleFoe"></div><div class="bubble player-bubble" id="bubbleYou"></div><div class="bang" id="bangF">BANG!</div><div class="duel" id="duelF"></div></div><figcaption>You (big, left) vs. distant outlaw (small, right)</figcaption></figure>
+</div>
+<div class="gamebar">
+<p class="hint">Duels start on their own — get inside the ring as it shrinks, track it, then FIRE! (Space or click). Shoot early and you lose!</p>
+</div>
+</div>
+<div class="screen hidden" id="screen-store">
+<div class="topbar"><button id="btn-storemenu" class="small">Menu</button><span class="topbartitle">Store — Cowboy &amp; Map</span><button id="btn-storeplay" class="small">Play</button></div>
+<div class="storewrap">
+<div class="stage storepreview bg-opendesert" id="stageStore"><div class="ground single"></div><div class="duelist showcase"><canvas id="storeFront" width="24" height="40"></canvas></div></div>
+<div class="panel">
+<p class="secttl">Map</p>
+<div class="bgbar" id="bgbar">
+<button data-bg="opendesert" class="active">Open Desert</button>
+<button data-bg="corral">Corral</button>
+<button data-bg="town">Town</button>
+<button data-bg="graveyard">Graveyard</button>
+</div>
+<p class="secttl">Cowboy</p>
+<div class="controls">
+<label>Hat style<select id="s-hatStyle"><option value="classic">Classic</option><option value="outlaw">Outlaw</option><option value="gambler">Gambler</option><option value="sombrero">Sombrero</option><option value="bowler">Bowler</option><option value="tophat">Top Hat</option><option value="straw">Straw</option><option value="flatcap">Flat Cap</option><option value="none">None (hair)</option></select></label>
+<label>Hat color<select id="s-hatColor"><option value="brown">Brown</option><option value="black">Black</option><option value="white">White</option><option value="tan">Tan</option><option value="grey">Grey</option><option value="red">Red</option></select></label>
+<label>Face<select id="s-face"><option value="clean">Clean</option><option value="mustache">Mustache</option><option value="beard">Full Beard</option><option value="scar">Scarred</option><option value="grizzled">Grizzled Gray</option><option value="mask">Bandit Mask</option><option value="handlebar">Handlebar</option><option value="eyepatch">Eyepatch</option></select></label>
+<label>Shirt style<select id="s-shirtStyle"><option value="plain">Plain</option><option value="plaid">Plaid</option><option value="striped">Striped</option><option value="yoke">Western Yoke</option></select></label>
+<label>Shirt color<select id="s-shirt"><option value="cream">Cream Shirt</option><option value="red">Red Shirt</option><option value="blue">Blue Shirt</option><option value="green">Green Shirt</option><option value="black">Black Shirt</option><option value="white">White Shirt</option><option value="purple">Purple Shirt</option><option value="orange">Orange Shirt</option><option value="teal">Teal Shirt</option><option value="maroon">Maroon Shirt</option><option value="brown">Brown Shirt</option></select></label>
+<label>Vest style<select id="s-vestStyle"><option value="standard">Standard</option><option value="open">Open</option><option value="fringe">Fringe</option><option value="none">No Vest</option></select></label>
+<label>Vest color<select id="s-vestColor"><option value="brown">Brown</option><option value="black">Black</option><option value="tan">Tan</option><option value="red">Red</option><option value="grey">Grey</option><option value="white">White</option></select></label>
+<label>Coat style<select id="s-coatStyle"><option value="none">No Coat</option><option value="duster">Long Duster</option><option value="poncho">Poncho</option><option value="jacket">Jacket</option><option value="overcoat">Overcoat</option><option value="cape">Cape</option></select></label>
+<label>Coat color<select id="s-coatColor"><option value="tan">Tan</option><option value="brown">Brown</option><option value="black">Black</option><option value="grey">Grey</option><option value="red">Red</option><option value="navy">Navy</option><option value="white">White</option></select></label>
+<label>Bandana style<select id="s-bandanaStyle"><option value="classic">Neck Scarf</option><option value="mask">Face Mask</option><option value="headband">Headband</option><option value="none">None</option></select></label>
+<label>Bandana color<select id="s-bandana"><option value="red">Red</option><option value="blue">Blue</option><option value="black">Black</option><option value="green">Green</option><option value="gold">Gold</option><option value="white">White</option><option value="purple">Purple</option><option value="orange">Orange</option><option value="teal">Teal</option><option value="brown">Brown</option><option value="none">No Bandana</option></select></label>
+<label>Pants style<select id="s-pantsStyle"><option value="plain">Plain</option><option value="chaps">Chaps</option><option value="striped">Striped</option></select></label>
+<label>Pants color<select id="s-pantsColor"><option value="blue">Classic Blue</option><option value="dark">Dark Denim</option><option value="brown">Brown</option><option value="black">Black</option><option value="grey">Grey</option><option value="olive">Olive</option><option value="white">White</option></select></label>
+<label>Boots style<select id="s-bootsStyle"><option value="plain">Plain</option><option value="tooled">Tooled</option><option value="spur">Spurred</option></select></label>
+<label>Boots color<select id="s-boots"><option value="brown">Brown Boots</option><option value="black">Black Boots</option><option value="oxblood">Oxblood Boots</option><option value="tan">Tan Boots</option><option value="grey">Grey Boots</option><option value="red">Red Boots</option><option value="white">White Boots</option><option value="navy">Navy Boots</option></select></label>
+</div>
+<p class="secttl">Taunt — your reply in the duel</p>
+<div class="lineinput"><input id="s-line" maxlength="60" placeholder="It's high noon somewhere."></div>
+<p class="secttl">Difficulty</p>
+<div class="diffrow"><input type="range" id="s-diff" min="1" max="5" step="1" value="3"><span id="diffName">Sharp</span></div>
+<div class="btnrow">
+<button id="random">Randomize</button>
+</div>
+</div>
+</div>
+</div>
+<script>
+const SKIN='#e0a57a', HAIR='#3a2a1e', EYE='#1d120a', MOUTH='#9a4a2c';
+const SHIRTS={cream:'#eadbb9',red:'#b8452f',blue:'#4a7ab5',green:'#5a7d3a',black:'#3a3632',white:'#f6f1e6',purple:'#7a4a9a',orange:'#c97a2e',teal:'#3a8a8a',maroon:'#6e2a3a',brown:'#8a5a2b'};
+const PANTS={blue:{b:'#3f62a0',d:'#2f4a7c'},dark:{b:'#2e3a52',d:'#1e283c'},brown:{b:'#6b4a2e',d:'#4a3220'},black:{b:'#2b2b2e',d:'#161617'},chaps:{b:'#3f62a0',d:'#2f4a7c',chap:'#a67c44'},grey:{b:'#6e6e72',d:'#4a4a4e'},olive:{b:'#5a5e3a',d:'#3c4028'},white:{b:'#e8e4da',d:'#b8b0a8'}};
+const BOOTS={brown:{b:'#5a3220',s:'#2a170d'},black:{b:'#2a2320',s:'#0e0c0b'},oxblood:{b:'#6e2a22',s:'#2a0e0c'},tan:{b:'#9a6a3a',s:'#4a3018'},grey:{b:'#4a4a4e',s:'#222226'},red:{b:'#8a2a22',s:'#3a0e0c'},white:{b:'#d8d0c0',s:'#4a4433'},navy:{b:'#2e3a52',s:'#141422'}};
+const BANDS={red:'#c0392b',blue:'#2f5a9a',black:'#232323',green:'#3a7a4a',gold:'#d8a93a',white:'#e8e4da',purple:'#6a3a8a',orange:'#c97a2e',teal:'#2e8a8a',brown:'#8a5a2b',none:null};
+const VESTS={brown:{b:'#5a3a22',d:'#3f2616'},black:{b:'#2e2a28',d:'#161415'},tan:{b:'#a67c44',d:'#7a5a2e'},red:{b:'#8a2a22',d:'#5a1a16'},grey:{b:'#5a5a5e',d:'#3a3a3e'},white:{b:'#d8d0c0',d:'#a89a80'},none:null};
+const HAT_COLORS={brown:'#8a5a2b',black:'#232326',white:'#d8d0c0',tan:'#c49a5a',grey:'#6e6e72',red:'#8a3a2a'};
+const COAT_COLORS={tan:'#b89a6a',brown:'#6b4a2e',black:'#2e2a28',grey:'#5a5a5e',red:'#8a3a2e',navy:'#2e3a52',white:'#d8d0c0'};
+function shade(hex,f){ const n=parseInt(hex.slice(1),16); const r=Math.max(0,Math.min(255,Math.round(((n>>16)&255)*f))), g=Math.max(0,Math.min(255,Math.round(((n>>8)&255)*f))), b=Math.max(0,Math.min(255,Math.round((n&255)*f))); return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1); }
+const state={hatStyle:'classic',hatColor:'brown',face:'clean',shirtStyle:'plain',shirt:'cream',vestStyle:'standard',vestColor:'brown',coatStyle:'none',coatColor:'tan',bandana:'red',bandanaStyle:'classic',pantsStyle:'plain',pantsColor:'blue',bootsStyle:'plain',boots:'brown'};
+const foeState={hatStyle:'outlaw',hatColor:'black',face:'scar',shirtStyle:'plain',shirt:'black',vestStyle:'standard',vestColor:'black',coatStyle:'none',coatColor:'tan',bandana:'black',bandanaStyle:'classic',pantsStyle:'plain',pantsColor:'black',bootsStyle:'plain',boots:'black'};
+let smoke=[]; let firing=false;
+let playerLine="It's high noon somewhere.";
+const FOE_LINES=["Draw, tenderfoot!","This town ain't big enough for the both of us.","You gonna bark all day, little doggy?","I've buried better gunslingers than you.","Say your prayers, drifter.","Your boots are shakin', coward.","Last chance to walk away.","I'm the fastest hand west of the Pecos."];
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function showBubble(who,text){
+  hideBubbles();
+  const el=document.getElementById(who==='foe'?'bubbleFoe':'bubbleYou');
+  el.innerHTML='<span class="who">'+(who==='foe'?'OUTLAW':'YOU')+'</span><br><span class="txt">'+esc(text)+'</span>';
+  void el.offsetWidth; el.classList.add('show');
+}
+function hideBubbles(){ document.getElementById('bubbleFoe').classList.remove('show'); document.getElementById('bubbleYou').classList.remove('show'); }
+
+const BGCLASSES=['bg-opendesert','bg-corral','bg-town','bg-graveyard'];
+let currentBg='opendesert';
+function setBg(name){
+  currentBg=name;
+  for(const id of ['stageF','stageMenu','stageStore']){
+    const st=document.getElementById(id);
+    if(!st) continue;
+    st.classList.remove(...BGCLASSES);
+    st.classList.add('bg-'+name);
+  }
+  document.querySelectorAll('#bgbar button').forEach(b=>b.classList.toggle('active',b.dataset.bg===name));
+}
+document.querySelectorAll('#bgbar button').forEach(b=>b.addEventListener('click',()=>{ setBg(b.dataset.bg); renderPreviews(); }));
+
+function showScreen(name){
+  if(firing) return;
+  for(const s of ['menu','game','store']) document.getElementById('screen-'+s).classList.toggle('hidden',s!==name);
+  clearFx();
+  if(name==='game'){ shuffleFoe(); renderIdle(); scheduleRound(900); }
+  else { resetSpin(); renderPreviews(); }
+}
+document.getElementById('btn-play').addEventListener('click',()=>showScreen('game'));
+document.getElementById('btn-store').addEventListener('click',()=>showScreen('store'));
+document.getElementById('btn-gamemenu').addEventListener('click',()=>showScreen('menu'));
+document.getElementById('btn-gamestore').addEventListener('click',()=>showScreen('store'));
+document.getElementById('btn-storemenu').addEventListener('click',()=>showScreen('menu'));
+document.getElementById('btn-storeplay').addEventListener('click',()=>showScreen('game'));
+
+/* rounds start on their own shortly after entering (and after each duel) */
+function scheduleRound(ms){
+  setTimeout(()=>{
+    if(firing) return;
+    if(document.getElementById('screen-game').classList.contains('hidden')) return;
+    fire();
+  },ms);
+}
+
+function drawFigure(id,back,pose,outfit){
+  pose=pose||{dy:0,gun:'holster',flash:0};
+  outfit=outfit||state;
+  const cv=document.getElementById(id), x=cv.getContext('2d');
+  x.clearRect(0,0,24,40); x.save(); x.translate(0,pose.dy||0);
+  const r=(a,b,w,h,c)=>{if(c==null)return; x.fillStyle=c; x.fillRect(a,b,w,h);};
+  const shirt=SHIRTS[outfit.shirt]||SHIRTS.cream;
+  const pant=PANTS[outfit.pantsColor]||PANTS.blue;
+  const boot=BOOTS[outfit.boots]||BOOTS.brown;
+  const band=BANDS[outfit.bandana], bStyle=outfit.bandanaStyle;
+  const vest=VESTS[outfit.vestColor];
+  const coat=outfit.coatStyle, vestStyle=outfit.vestStyle, pantsStyle=outfit.pantsStyle;
+  const face=outfit.face;
+  const gunOut=(pose.gun==='draw'||pose.gun==='fire');
+  const hx=pose.flipGun?5:17, drawP=(pose.drawP!=null)?pose.drawP:(gunOut?1:0);
+
+  r(8,27,8,9,pant.b); x.clearRect(11,30,2,6); r(8,27,1,9,pant.d);
+  if(pantsStyle==='chaps'){ r(8,27,2,9,'#a67c44'); r(14,27,2,9,'#a67c44'); r(8,27,1,9,'rgba(0,0,0,.2)'); r(15,27,1,9,'rgba(0,0,0,.2)'); }
+  if(pantsStyle==='striped'){ r(8,27,1,9,'rgba(255,255,255,.4)'); r(15,27,1,9,'rgba(255,255,255,.4)'); }
+  r(7,36,4,3,boot.b); r(13,36,4,3,boot.b);   r(7,39,4,1,boot.s); r(13,39,4,1,boot.s);
+  if(outfit.bootsStyle==='tooled'){ r(7,36,4,1,'rgba(255,255,255,.5)'); r(13,36,4,1,'rgba(255,255,255,.5)'); r(7,38,4,1,shade(boot.b,0.55)); r(13,38,4,1,shade(boot.b,0.55)); }
+  else if(outfit.bootsStyle==='spur'){ r(7,37,4,1,'#2a2a2a'); r(13,37,4,1,'#2a2a2a'); r(5,37,2,2,'#c0c0c0'); r(17,37,2,2,'#c0c0c0'); }
+  if(back){ r(6,38,1,1,'#e8c24a'); r(17,38,1,1,'#e8c24a'); }
+  else { r(6,37,1,2,boot.b); r(17,37,1,2,boot.b); }
+
+  r(8,17,8,9,shirt);
+  const shDark=shade(shirt,0.72), shLite='rgba(255,255,255,.35)';
+  if(outfit.shirtStyle==='plaid'){ r(10,17,1,9,shDark); r(13,17,1,9,shDark); r(8,19,8,1,shDark); r(8,22,8,1,shDark); }
+  else if(outfit.shirtStyle==='striped'){ r(10,17,1,9,shLite); r(13,17,1,9,shLite); }
+  else if(outfit.shirtStyle==='yoke'){ r(8,17,8,2,shDark); r(10,19,1,1,'#e8c24a'); r(13,19,1,1,'#e8c24a'); }
+  r(5,17,3,9,shirt); r(5,25,3,1,pant.d); r(5,26,3,3,SKIN);
+  if(drawP<=0){ r(16,17,3,9,shirt); r(16,25,3,1,pant.d); r(16,26,3,3,SKIN); }
+  else if(drawP>=1){
+    const hy = pose.gun==='fire' ? 22 : 23;
+    if(pose.flipGun){ r(4,17,4,4,shirt); r(3,20,3,3,shirt); r(2,hy,3,3,SKIN); }
+    else { r(16,17,4,4,shirt); r(18,20,3,3,shirt); r(19,hy,3,3,SKIN); }
+  }
+  else { r(16,17,3,9,shirt); r(16,25,3,1,pant.d); r(16,26,3,3,SKIN); r(hx,24,2,2,SKIN); }
+
+  if(coat==='none'){
+    if(vestStyle!=='none'&&vest){
+      if(back){
+        r(8,17,8,9,vest.b); r(11,18,2,8,vest.d); r(8,17,8,1,vest.d);
+        if(vestStyle==='open'){ r(11,18,2,8,shirt); }
+        if(vestStyle==='fringe'){ r(7,19,1,1,'#e8c24a'); r(7,21,1,1,'#e8c24a'); r(7,23,1,1,'#e8c24a'); r(16,19,1,1,'#e8c24a'); r(16,21,1,1,'#e8c24a'); r(16,23,1,1,'#e8c24a'); }
+      } else if(vestStyle==='open'){
+        r(8,17,3,3,vest.b); r(13,17,3,3,vest.b);
+        r(8,20,2,3,vest.b); r(14,20,2,3,vest.b);
+        r(8,23,1,3,vest.b); r(15,23,1,3,vest.b);
+      } else {
+        r(8,17,3,9,vest.b); r(13,17,3,9,vest.b); r(9,19,2,2,'#e8c24a'); r(14,22,1,1,'#e8c24a');
+        if(vestStyle==='fringe'){ r(7,19,1,1,'#e8c24a'); r(7,21,1,1,'#e8c24a'); r(7,23,1,1,'#e8c24a'); r(16,19,1,1,'#e8c24a'); r(16,21,1,1,'#e8c24a'); r(16,23,1,1,'#e8c24a'); }
+      }
+    }
+  }
+  const coatBase=COAT_COLORS[outfit.coatColor]||COAT_COLORS.tan, coatDark=shade(coatBase,0.7);
+  if(coat==='duster'){
+    const dc=coatBase, dd=coatDark;
+    if(back){ r(7,17,10,18,dc); r(11,18,2,17,dd); r(7,17,10,1,dd); r(11,17,2,2,'#5a3a22'); }
+    else { r(7,17,4,18,dc); r(13,17,4,18,dc); r(7,17,4,1,dd); r(13,17,4,1,dd); r(7,22,1,4,dd); r(16,22,1,4,dd); r(10,17,1,2,'#e8c24a'); }
+    r(9,15,6,2,dd);
+  } else if(coat==='overcoat'){
+    // knee-length double-breasted coat: solid front, lapels, button column
+    const dc=coatBase, dd=coatDark;
+    if(back){ r(8,17,8,12,dc); r(11,18,2,11,dd); r(8,17,8,1,dd); }
+    else { r(8,17,8,12,dc); r(9,17,2,3,dd); r(13,17,2,3,dd); r(11,20,1,1,'#e8c24a'); r(11,22,1,1,'#e8c24a'); r(11,24,1,1,'#e8c24a'); r(11,27,1,1,'#e8c24a'); }
+    r(8,15,8,2,dd);
+    r(5,17,3,9,dc); r(16,17,3,9,dc);
+    if(gunOut){ const hy=pose.gun==='fire'?22:23; if(pose.flipGun){ r(3,20,3,3,dc); r(2,hy,3,3,SKIN); } else { r(18,20,3,3,dc); r(19,hy,3,3,SKIN); } }
+    else { r(5,26,3,3,SKIN); r(16,26,3,3,SKIN); }
+  } else if(coat==='poncho'){
+    const pc=coatBase, pd=coatDark, st='#e8c24a';
+    r(4,17,16,10,pc); r(4,17,16,1,pd); r(4,24,16,1,st); r(4,22,16,1,'#eadbb9');
+    if(back){ r(10,18,4,6,pd); } else { r(11,18,2,5,pd); }
+    if(!back){ r(9,19,1,1,st); r(14,21,1,1,st); }
+  } else if(coat==='jacket'){
+    const jc=coatBase, jd=coatDark;
+    if(back){ r(8,17,8,9,jc); r(11,18,2,8,jd); r(8,17,8,1,jd); }
+    else { r(8,17,8,9,jc); r(11,17,2,9,shirt); r(9,17,2,2,jd); r(13,17,2,2,jd); r(9,20,1,1,'#e8c24a'); }
+    r(5,17,3,9,jc); if(!(pose.flipGun&&gunOut)) r(16,17,3,9,jc);
+    if(gunOut){ const hy=pose.gun==='fire'?22:23; if(pose.flipGun){ r(3,20,3,3,jc); r(2,hy,3,3,SKIN); } else { r(18,20,3,3,jc); r(19,hy,3,3,SKIN); } }
+    else { r(5,26,3,3,SKIN); r(16,26,3,3,SKIN); }
+  } else if(coat==='cape'){
+    const cc=coatBase, cd=coatDark;
+    r(4,17,16,6,cc); r(4,17,16,1,cd);
+    r(9,15,6,2,cd);
+    if(back){ r(11,18,2,3,cd); } else { r(11,19,1,1,'#e8c24a'); }
+  }
+
+  r(8,26,8,1,'#2a1a10'); if(!back) r(11,26,2,1,'#e8c24a');
+  // holster sits on the gun side so nothing gun-like dangles off-side
+  if(drawP<1){ r(hx,24,2,5,'#4a2e1a'); r(hx,24,2,1,'#222'); if(!back) r(hx,24,1,1,'#666'); }
+  else { r(hx,24,2,5,'#4a2e1a'); r(hx,28,2,1,'#2a1a10'); }
+
+  r(10,15,4,1,SKIN); r(7,11,1,2,SKIN); r(16,11,1,2,SKIN);
+  if(back){
+    r(8,9,8,6,HAIR); r(7,11,1,2,HAIR); r(16,11,1,2,HAIR); r(10,15,4,1,SKIN);
+  } else {
+    r(8,9,8,6,SKIN); r(10,11,1,1,EYE); r(13,11,1,1,EYE); r(11,13,2,1,MOUTH);
+    r(8,9,8,1,'rgba(60,30,10,.35)');
+    if(face==='mustache'){ r(10,12,4,1,'#2a1a10'); r(9,12,1,1,'#2a1a10'); r(14,12,1,1,'#2a1a10'); }
+    if(face==='beard'){ r(8,12,8,3,HAIR); r(11,13,2,1,MOUTH); }
+    if(face==='scar'){ r(13,10,1,3,'#a33a2a'); r(9,12,3,1,'rgba(60,30,10,.4)'); r(10,11,1,1,'#fff'); }
+    if(face==='grizzled'){ r(9,12,6,2,'#b8b0a4'); r(10,14,4,1,'#b8b0a4'); r(10,12,4,1,'#ddd6c8'); r(11,13,2,1,MOUTH); }
+    if(face==='mask'){ r(8,10,8,2,'#1a1a1e'); r(10,11,1,1,'#fff'); r(13,11,1,1,'#fff'); r(11,13,2,1,MOUTH); }
+    if(face==='handlebar'){ r(8,12,8,1,'#2a1a10'); r(7,11,1,2,'#2a1a10'); r(16,11,1,2,'#2a1a10'); }
+    if(face==='eyepatch'){ r(13,11,1,1,'#111'); r(9,10,4,1,'rgba(0,0,0,.35)'); r(14,9,1,2,'#111'); }
+  }
+  if(bStyle!=='none'&&band){
+    if(back){
+      if(bStyle==='headband'){ r(8,9,8,1,band); r(6,11,1,3,band); }
+      else { r(8,15,8,2,band); r(11,17,2,2,band); r(10,19,1,1,band); r(13,19,1,1,band); }
+    }
+    else {
+      if(bStyle==='mask'){ r(8,12,8,3,band); r(8,15,8,2,band); r(11,17,2,1,band); }
+      else if(bStyle==='headband'){ r(8,9,8,1,band); r(17,11,1,3,band); }
+      else { r(8,15,8,2,band); r(11,17,2,1,band); r(10,15,4,1,'rgba(255,255,255,.25)'); }
+    }
+  }
+  drawHat(x,r,back,outfit);
+
+  const d=x.getImageData(0,0,24,40), p=d.data, o=new Uint8ClampedArray(p);
+  const a=(i,j)=>i<0||j<0||i>=24||j>=40?0:p[(j*24+i)*4+3];
+  for(let j=0;j<40;j++)for(let i=0;i<24;i++){
+    if(a(i,j)===0&&(a(i-1,j)||a(i+1,j)||a(i,j-1)||a(i,j+1))){
+      const k=(j*24+i)*4;o[k]=29;o[k+1]=18;o[k+2]=10;o[k+3]=255;}
+  }
+  d.data.set(o); x.putImageData(d,0,0);
+
+  if(drawP>0&&drawP<1){ r(hx,21,2,3,'#2b2b30'); }
+  else if(gunOut){
+    const gy = pose.gun==='fire' ? 23 : 24;
+    if(pose.flipGun){
+      // left-facing gun (bandit shoots without turning around)
+      r(2,gy,3,2,'#2b2b30'); r(1,gy,2,1,'#44444e'); r(4,gy+2,1,2,'#5a3a22');
+      if(!back){ r(2,gy,1,1,'#888'); }
+      if(pose.flash){
+        const fy=gy;
+        r(0,fy-1,2,3,'#ff9a00'); r(0,fy,3,1,'#ffdf2b'); r(0,fy,1,2,'#fff');
+        x.fillStyle='rgba(255,220,80,.5)'; x.fillRect(0,fy-2,6,5);
+      }
+    } else {
+      r(19,gy,3,2,'#2b2b30'); r(21,gy,2,1,'#44444e'); r(19,gy+2,1,2,'#5a3a22');
+      if(!back){ r(20,gy,1,1,'#888'); }
+      if(pose.flash){
+        const fx=22, fy=gy;
+        r(fx,fy-1,2,3,'#ff9a00'); r(fx-1,fy,4,1,'#ffdf2b'); r(fx,fy,2,1,'#fff');
+        r(fx+1,fy-1,1,1,'#fff'); x.fillStyle='rgba(255,220,80,.5)'; x.fillRect(18,fy-2,6,5);
+      }
+    }
+  }
+  if(id==='front'){ for(const s of smoke){ x.fillStyle=`rgba(220,220,220,${Math.max(0,s.life)})`; x.fillRect(s.x|0,s.y|0,2,2); } }
+  x.restore();
+}
+function drawCowboy(id,back,pose){ drawFigure(id,back,pose,state); }
+function drawFoes(){ document.getElementById('foeF').style.transform=''; drawFigure('foeF',false,{dy:0,gun:'holster',flash:0},foeState); }
+const FOE_PRESETS=[
+ {hatStyle:'outlaw',hatColor:'black',face:'scar',shirtStyle:'plain',shirt:'black',vestStyle:'standard',vestColor:'black',coatStyle:'none',coatColor:'tan',bandana:'black',bandanaStyle:'classic',pantsStyle:'plain',pantsColor:'black',bootsStyle:'plain',boots:'black'},
+ {hatStyle:'sombrero',hatColor:'red',face:'mustache',shirtStyle:'plain',shirt:'white',vestStyle:'standard',vestColor:'red',coatStyle:'none',coatColor:'tan',bandana:'red',bandanaStyle:'mask',pantsStyle:'plain',pantsColor:'brown',bootsStyle:'spur',boots:'brown'},
+ {hatStyle:'gambler',hatColor:'tan',face:'grizzled',shirtStyle:'plain',shirt:'cream',vestStyle:'none',vestColor:'brown',coatStyle:'duster',coatColor:'tan',bandana:'gold',bandanaStyle:'classic',pantsStyle:'plain',pantsColor:'blue',bootsStyle:'plain',boots:'brown'},
+ {hatStyle:'tophat',hatColor:'black',face:'handlebar',shirtStyle:'striped',shirt:'purple',vestStyle:'none',vestColor:'black',coatStyle:'jacket',coatColor:'black',bandana:'black',bandanaStyle:'none',pantsStyle:'striped',pantsColor:'black',bootsStyle:'tooled',boots:'grey'},
+ {hatStyle:'bowler',hatColor:'black',face:'mask',shirtStyle:'plain',shirt:'grey',vestStyle:'none',vestColor:'black',coatStyle:'overcoat',coatColor:'black',bandana:'black',bandanaStyle:'classic',pantsStyle:'plain',pantsColor:'dark',bootsStyle:'plain',boots:'black'},
+ {hatStyle:'straw',hatColor:'tan',face:'beard',shirtStyle:'plaid',shirt:'red',vestStyle:'none',vestColor:'brown',coatStyle:'poncho',coatColor:'brown',bandana:'blue',bandanaStyle:'classic',pantsStyle:'chaps',pantsColor:'blue',bootsStyle:'spur',boots:'brown'}
+];
+let lastFoe=-1;
+function shuffleFoe(){
+  // curated outlaw look, re-rolled (never twice running) before the round starts
+  let i; do{ i=Math.floor(Math.random()*FOE_PRESETS.length); }while(i===lastFoe&&FOE_PRESETS.length>1);
+  lastFoe=i; Object.assign(foeState,FOE_PRESETS[i]); drawFoes();
+}
+
+function drawHat(x,r,back,outfit){
+  const h=(outfit||state).hatStyle, base=HAT_COLORS[(outfit||state).hatColor]||HAT_COLORS.brown;
+  const band='rgba(0,0,0,.45)', lite='rgba(255,255,255,.22)';
+  if(h==='classic'){ r(8,2,8,5,base); r(11,2,2,1,'rgba(0,0,0,.25)'); r(8,6,8,1,band); r(4,7,16,2,base); r(3,6,2,2,base); r(19,6,2,2,base); r(4,8,16,1,'rgba(0,0,0,.25)'); }
+  else if(h==='outlaw'){ r(8,1,8,6,base); r(8,6,8,1,band); r(11,1,2,5,lite); r(3,7,18,2,base); r(2,6,2,2,base); r(20,6,2,2,base); r(3,8,18,1,'rgba(0,0,0,.4)'); }
+  else if(h==='gambler'){ r(9,2,6,5,base); r(10,2,1,4,lite); r(9,6,6,1,band); r(5,7,14,2,base); r(5,8,14,1,'rgba(0,0,0,.2)'); }
+  else if(h==='sombrero'){ r(9,1,6,6,base); r(9,5,6,1,band); r(2,7,20,2,base); r(2,8,20,1,'rgba(0,0,0,.25)'); r(2,7,20,1,lite); }
+  else if(h==='bowler'){ r(9,3,6,4,base); r(10,3,2,4,lite); r(9,6,6,1,band); r(6,7,12,1,base); }
+  else if(h==='tophat'){ r(9,0,6,6,base); r(10,0,1,6,lite); r(9,5,6,1,band); r(5,7,14,2,base); r(5,8,14,1,'rgba(0,0,0,.4)'); }
+  else if(h==='straw'){ r(9,3,6,4,base); r(10,3,1,3,lite); r(9,6,6,1,band); r(3,7,18,2,base); r(3,8,18,1,'rgba(0,0,0,.2)'); }
+  else if(h==='flatcap'){ r(8,5,8,3,base); r(8,5,8,1,lite); r(5,8,14,1,base); r(5,8,14,1,'rgba(0,0,0,.15)'); }
+  else { r(8,8,8,2,HAIR); r(7,9,2,3,HAIR); r(15,9,2,3,HAIR); r(8,8,8,1,'#5a4433'); }
+}
+
+function renderIdle(){ drawCowboy('front',false,{dy:0,gun:'holster',flash:0}); drawFoes(); resetSpin(); }
+function renderPreviews(){
+  drawFigure('menuFront',false,{dy:0,gun:'holster',flash:0},state);
+  drawFigure('storeFront',false,{dy:0,gun:'holster',flash:0},state);
+}
+function renderAll(){ renderIdle(); renderPreviews(); }
+function resetSpin(){ document.getElementById('front').style.transform=''; }
+/* wipe one-shot fx so display:none screen swaps can't replay stale animations */
+function clearFx(){
+  for(const id of ['bangF','duelF','bubbleFoe','bubbleYou']) document.getElementById(id).classList.remove('show');
+  hideTarget(); hideBubbles();
+  const c=document.getElementById('front'); c.classList.remove('shake'); c.classList.remove('hit');
+  playerDown(false);
+}
+
+function boom(){
+  try{
+    const AC=window.AudioContext||window.webkitAudioContext; boom.ctx=boom.ctx||new AC();
+    const ctx=boom.ctx; if(ctx.state==='suspended') ctx.resume();
+    const dur=0.35, buf=ctx.createBuffer(1,ctx.sampleRate*dur,ctx.sampleRate), dd=buf.getChannelData(0);
+    for(let i=0;i<dd.length;i++) dd[i]=(Math.random()*2-1)*Math.pow(1-i/dd.length,2.2);
+    const src=ctx.createBufferSource(); src.buffer=buf;
+    const f=ctx.createBiquadFilter(); f.type='lowpass'; f.frequency.setValueAtTime(3200,ctx.currentTime); f.frequency.exponentialRampToValueAtTime(280,ctx.currentTime+dur);
+    const g=ctx.createGain(); g.gain.setValueAtTime(0.9,ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+dur);
+    src.connect(f); f.connect(g); g.connect(ctx.destination); src.start();
+    const o=ctx.createOscillator(); o.type='square'; o.frequency.setValueAtTime(170,ctx.currentTime); o.frequency.exponentialRampToValueAtTime(38,ctx.currentTime+0.12);
+    const g2=ctx.createGain(); g2.gain.setValueAtTime(0.5,ctx.currentTime); g2.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.12);
+    o.connect(g2); g2.connect(ctx.destination); o.start(); o.stop(ctx.currentTime+0.13);
+  }catch(e){}
+}
+
+function showBang(){ const el=document.getElementById('bangF'); el.classList.remove('show'); void el.offsetWidth; el.textContent=Math.random()<0.2?'POW!':'BANG!'; el.classList.add('show'); const c=document.getElementById('front'); c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake'); }
+function showDuel(text){ const el=document.getElementById('duelF'); el.classList.remove('show'); void el.offsetWidth; el.textContent=text; el.classList.add('show'); }
+function fireTracer(){ const el=document.getElementById('tracerF'); el.classList.remove('rev'); el.classList.remove('go'); void el.offsetWidth; el.classList.add('go'); }
+function foeTracer(){ const el=document.getElementById('tracerF'); el.classList.add('rev'); el.classList.remove('go'); void el.offsetWidth; el.classList.add('go'); }
+function foeHit(hit){ document.getElementById('foeF').classList.toggle('hit',hit); }
+function foeDown(down){ document.getElementById('foeF').classList.toggle('down',down); }
+function playerDown(d){ document.getElementById('playerWrap').classList.toggle('pdown',d); }
+function hideTarget(){ const t=document.getElementById('targetF'); t.classList.remove('show'); t.classList.remove('dotted'); t.classList.remove('hot'); document.getElementById('meterF').classList.remove('show'); document.getElementById('mfillF').style.width='0%'; }
+
+/* aim tracking: cursor position over the duel stage */
+const stageEl=document.getElementById('stageF');
+const aim={x:0.5,y:0.5,active:false};
+let outcome=null, outT0=0, aimPhase='idle', doomMsg=null;
+/* per-round ring odds: size, path, and pace re-rolled every duel */
+let ring={size:11,sx:0.45,sy:0.52,ex:0.82,ey:0.44,shrinkMs:1400,trackMs:2200,startW:30};
+let difficulty=3, promptTimeout=1600;
+const DIFFNAMES=['','Greenhorn','Regular','Sharp','Deadeye','Legend'];
+function rollRing(){
+  const R=(a,b)=>a+Math.random()*(b-a);
+  const d=difficulty;
+  ring.size=Math.min(16,Math.max(7,R(9,14)-(d-3)*1.2));
+  ring.sx=R(0.35,0.55); ring.sy=R(0.45,0.58);
+  ring.ex=R(0.78,0.86); ring.ey=R(0.40,0.48);
+  ring.shrinkMs=R(1000,1800)/(0.92+0.04*d);
+  ring.trackMs=R(1600,2800)/(0.85+0.075*d);
+  ring.startW=R(26,34);
+  promptTimeout=1000-120*d;
+}
+function startDoom(msg,now){
+  // hand over to the staged outlaw revenge in the frame loop
+  aimPhase='done'; outcome='lose'; outT0=now; doomMsg=msg||null; hideTarget();
+}
+function aimPos(e){ const r=stageEl.getBoundingClientRect(); aim.x=(e.clientX-r.left)/r.width; aim.y=(e.clientY-r.top)/r.height; aim.active=true; }
+function playerFire(){
+  if(!firing||aimPhase!=='fireprompt'||outcome!==null) return;
+  aimPhase='done'; outcome='win'; outT0=performance.now(); hideTarget();
+}
+function earlyFire(){
+  if(!firing||outcome!==null) return;
+  if(aimPhase!=='shrink'&&aimPhase!=='track') return;
+  aimPhase='done'; outcome='early'; outT0=performance.now(); hideTarget();
+}
+stageEl.addEventListener('pointermove',aimPos);
+stageEl.addEventListener('pointerdown',e=>{ aimPos(e); playerFire(); earlyFire(); });
+stageEl.addEventListener('pointerleave',()=>{ aim.active=false; });
+
+function spawnSmoke(){ smoke=[]; puffSmoke(14); }
+function puffSmoke(n){ for(let i=0;i<(n||3);i++) smoke.push({x:21+Math.random()*2,y:22+Math.random()*2,vx:0.2+Math.random()*0.7,vy:-0.25-Math.random()*0.45,life:0.9}); if(smoke.length>60) smoke.splice(0,smoke.length-60); }
+function updateSmoke(){ for(const s of smoke){ s.x+=s.vx; s.y+=s.vy; s.vx*=0.97; s.vy*=0.97; s.life-=0.02; } smoke=smoke.filter(s=>s.life>0); }
+
+function applyTurn(id, backBefore, p){
+  const cv=document.getElementById(id);
+  if(p<0.5){ const s=1-p*2; cv.style.transform=`scaleX(${Math.max(0.001,s)})`; drawCowboy(id,true,{dy:1,gun:'holster',flash:0}); }
+  else { const s=(p-0.5)*2; cv.style.transform=`scaleX(${Math.max(0.001,s)})`; drawCowboy(id,false,{dy:1,gun:'draw',flash:0}); }
+}
+function applyTurnAway(id, p){
+  const cv=document.getElementById(id);
+  if(p<0.5){ const s=1-p*2; cv.style.transform=`scaleX(${Math.max(0.001,s)})`; drawCowboy(id,false,{dy:1,gun:'holster',flash:0}); }
+  else { const s=(p-0.5)*2; cv.style.transform=`scaleX(${Math.max(0.001,s)})`; drawCowboy(id,true,{dy:1,gun:'holster',flash:0}); }
+}
+function applyTurnBackHolster(id, p){
+  const cv=document.getElementById(id);
+  if(p<0.5){ const s=1-p*2; cv.style.transform=`scaleX(${Math.max(0.001,s)})`; drawCowboy(id,true,{dy:0,gun:'holster',flash:0}); }
+  else { const s=(p-0.5)*2; cv.style.transform=`scaleX(${Math.max(0.001,s)})`; drawCowboy(id,false,{dy:0,gun:'holster',flash:0}); }
+}
+
+function fire(){
+  if(firing) return; firing=true;
+  foeDown(false); foeHit(false); playerDown(false); hideTarget();
+  document.getElementById('front').classList.remove('hit');
+  document.getElementById('foeF').style.transform='';
+  const start=performance.now(); let boomed=false, turned=false, lastPuff=0, foeSaid=false, youSaid=false, steadySaid=false;
+  let aimSaid=false, aimT0=0, trackT0=0, promptT0=0, outsideSince=0, drewTxt=false, foeFired=false;
+  outcome=null; outT0=0; aimPhase='idle'; doomMsg=null; rollRing();
+  smoke=[];
+  const foeLine=FOE_LINES[Math.floor(Math.random()*FOE_LINES.length)];
+  const tgt=document.getElementById('targetF'), mfill=document.getElementById('mfillF');
+  function frame(now){
+    const t=now-start;
+    if(t<1700){
+      // ENEMY speaks first
+      resetSpin();
+      drawCowboy('front',false,{dy:0,gun:'holster',flash:0});
+      if(!foeSaid){ foeSaid=true; showBubble('foe',foeLine); }
+    }
+    else if(t<3400){
+      // YOUR reply (customized in the store)
+      resetSpin();
+      drawCowboy('front',false,{dy:0,gun:'holster',flash:0});
+      if(!youSaid){ youSaid=true; showBubble('you',playerLine.trim()||"It's high noon somewhere."); }
+    }
+    else if(t<4300){
+      // count: STILL FACING FORWARD
+      resetSpin();
+      drawCowboy('front',false,{dy:0,gun:'holster',flash:0});
+      if(!steadySaid){ steadySaid=true; hideBubbles(); showDuel('STEADY…'); }
+    }
+    else if(t<4650){
+      // "TURN": spins front -> back, ends facing AWAY
+      const p=(t-4300)/350;
+      applyTurnAway('front',p);
+      if(!turned){ turned=true; showDuel('TURN!'); }
+    }
+    else if(outcome===null){
+      // AIM in three beats: SHRINK the dotted ring, TRACK it to the outlaw, FIRE on red
+      resetSpin();
+      const r=stageEl.getBoundingClientRect();
+      if(!aimSaid){
+        aimSaid=true; aimT0=now; aimPhase='shrink';
+        showDuel('GET READY!');
+        tgt.style.left=(ring.sx*100)+'%'; tgt.style.top=(ring.sy*100)+'%'; tgt.style.width=ring.startW+'%';
+        tgt.classList.add('show'); tgt.classList.add('dotted'); tgt.classList.remove('hot');
+      }
+      const radPx=Math.max(8,tgt.offsetWidth/2);
+      const insideAt=(px,py)=>{ const dx=(aim.x-px)*r.width, dy=(aim.y-py)*r.height; return aim.active&&(dx*dx+dy*dy<=radPx*radPx); };
+      if(aimPhase==='shrink'){
+        drawCowboy('front',true,{dy:0,gun:'holster',flash:0});
+        const st=(now-aimT0)/ring.shrinkMs;
+        if(st<1){ tgt.style.width=(ring.startW+(ring.size-ring.startW)*st)+'%'; }
+        else{
+          tgt.style.width=ring.size+'%';
+          if(insideAt(ring.sx,ring.sy)){
+            aimPhase='track'; trackT0=now; outsideSince=0;
+            tgt.classList.remove('dotted'); showDuel('TRACK HIM!');
+          } else {
+            aimPhase='done'; startDoom("YOU WEREN'T READY!",now);
+          }
+        }
+      }
+      else if(aimPhase==='track'){
+        const tp=Math.min(1,(now-trackT0)/ring.trackMs);
+        const tx=ring.sx+(ring.ex-ring.sx)*tp, ty=ring.sy+(ring.ey-ring.sy)*tp;
+        tgt.style.left=(tx*100)+'%'; tgt.style.top=(ty*100)+'%';
+        // both duelists slowly draw as the ring travels
+        drawCowboy('front',true,{dy:0,gun:'holster',drawP:tp,flash:0});
+        drawFigure('foeF',false,{dy:0,gun:'holster',drawP:tp,flash:0,flipGun:true},foeState);
+        if(insideAt(tx,ty)){ outsideSince=0; }
+        else{
+          if(!outsideSince) outsideSince=now;
+          if(now-outsideSince>120){ startDoom('YOU LOST HIM!',now); }
+        }
+        if(outcome===null&&tp>=1){
+          aimPhase='fireprompt'; promptT0=now;
+          tgt.classList.add('hot'); showDuel('FIRE!');
+        }
+      }
+      else if(aimPhase==='fireprompt'){
+        drawCowboy('front',true,{dy:0,gun:'draw',flash:0});
+        drawFigure('foeF',false,{dy:0,gun:'draw',flash:0,flipGun:true},foeState);
+        if(now-promptT0>promptTimeout){ startDoom(null,now); }
+      }
+    }
+    else if(outcome==='early'){
+      // FIRED TOO EARLY: wild shot misses, outlaw answers back
+      const wt=now-outT0;
+      if(wt<200){
+        resetSpin();
+        drawCowboy('front',true,{dy:0,gun:'fire',flash:1});
+        if(!boomed){ boomed=true; boom(); showBang(); fireTracer(); showDuel('TOO EARLY!'); }
+      }
+      else if(wt<700){
+        resetSpin();
+        drawCowboy('front',true,{dy:0,gun:'fire',flash:0});
+      }
+      else { startDoom(null,now); }
+    }
+    else if(outcome==='win'){
+      const wt=now-outT0;
+      if(wt<200){
+        // YOUR shot lands
+        resetSpin();
+        drawCowboy('front',true,{dy:0,gun:'fire',flash:1});
+        if(!boomed){ boomed=true; boom(); showBang(); fireTracer(); spawnSmoke(); lastPuff=now; document.getElementById('foeF').style.transform=''; drawFigure('foeF',false,{dy:0,gun:'holster',flash:0},foeState); foeHit(true); showDuel('BANG!'); setTimeout(()=>foeHit(false),140); setTimeout(()=>{foeDown(true); showDuel('GOT HIM!');},260); }
+        updateSmoke();
+      }
+      else if(wt<2000){
+        // gun stays out, smoking
+        resetSpin();
+        drawCowboy('front',true,{dy:0,gun:'fire',flash:0});
+        if(now-lastPuff>160){ lastPuff=now; puffSmoke(3); }
+        updateSmoke();
+      }
+      else if(wt<2300){
+        // puts it away, still facing away
+        resetSpin();
+        drawCowboy('front',true,{dy:0,gun:'holster',flash:0});
+        updateSmoke();
+      }
+      else if(wt<2800){
+        // turns to face forward, ends facing forward
+        const p=(wt-2300)/500;
+        applyTurnBackHolster('front',p);
+        updateSmoke();
+      }
+      else {
+        smoke=[]; foeDown(false); renderIdle(); firing=false; showScreen('menu'); return;
+      }
+    }
+    else {
+      // LOSE, staged: outlaw draws facing forward, then fires back
+      const lt=now-outT0;
+      resetSpin();
+      drawCowboy('front',true,{dy:0,gun:'holster',flash:0});
+      if(lt<350){
+        drawFigure('foeF',false,{dy:0,gun:'draw',flash:0,flipGun:true},foeState);
+        if(!drewTxt){ drewTxt=true; showDuel('HE DRAWS!'); }
+      }
+      else {
+        const fl=lt<550;
+        drawFigure('foeF',false,{dy:0,gun:fl?'fire':'draw',flash:fl?1:0,flipGun:true},foeState);
+        if(!foeFired){ foeFired=true; boom(); foeTracer(); showDuel(doomMsg||'THE OUTLAW WAS FASTER!'); const c=document.getElementById('front'); c.classList.add('hit'); c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake'); }
+        if(lt>750){ document.getElementById('front').classList.remove('hit'); playerDown(true); }
+        if(lt>2300){ playerDown(false); renderIdle(); firing=false; showScreen('menu'); return; }
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+for(const k of Object.keys(state)){
+  document.getElementById('s-'+k).addEventListener('change',e=>{ state[k]=e.target.value; if(!firing) renderAll(); });
+}
+document.getElementById('random').addEventListener('click',()=>{
+  const pick=o=>o[Math.floor(Math.random()*o.length)];
+  state.hatStyle=pick(['classic','outlaw','gambler','sombrero','bowler','tophat','straw','flatcap','none']);
+  state.hatColor=pick(Object.keys(HAT_COLORS));
+  state.face=pick(['clean','mustache','beard','scar','grizzled','mask','handlebar','eyepatch']);
+  state.shirt=pick(Object.keys(SHIRTS)); state.shirtStyle=pick(['plain','plaid','striped','yoke']);
+  state.vestStyle=pick(['standard','open','fringe','none']); state.vestColor=pick(Object.keys(VESTS).filter(v=>v!=='none'));
+  state.coatStyle=pick(['none','none','duster','overcoat','poncho','jacket','cape']); state.coatColor=pick(Object.keys(COAT_COLORS));
+  state.bandana=pick(Object.keys(BANDS)); state.bandanaStyle=pick(['classic','mask','headband','none']); state.pantsStyle=pick(['plain','chaps','striped']); state.pantsColor=pick(Object.keys(PANTS)); state.boots=pick(Object.keys(BOOTS)); state.bootsStyle=pick(['plain','tooled','spur']);
+  for(const k of Object.keys(state)) document.getElementById('s-'+k).value=state[k];
+  if(!firing) renderAll();
+});
+document.getElementById('s-line').value=playerLine;
+document.getElementById('s-line').addEventListener('input',e=>{ playerLine=e.target.value; });
+document.getElementById('diffName').textContent=DIFFNAMES[difficulty];
+document.getElementById('s-diff').addEventListener('input',e=>{ difficulty=+e.target.value; document.getElementById('diffName').textContent=DIFFNAMES[difficulty]; });
+window.addEventListener('keydown',e=>{ if(e.code==='Space'){ if(document.getElementById('screen-game').classList.contains('hidden')) return; e.preventDefault(); if(firing){ if(aimPhase==='fireprompt'){ playerFire(); } else if(aimPhase==='shrink'||aimPhase==='track'){ earlyFire(); } } else { fire(); } } });
+setBg('opendesert');
+renderAll();
+showScreen('menu');
+</script>
+</body>
+</html>

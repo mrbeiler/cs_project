@@ -13543,18 +13543,6 @@ if (!en.sonarValid && en.formation){
   }
 
   function resetBattle(){
-    // A gun battle takes the screen back from any air raid.
-    try { if(typeof airSea!=='undefined') airSea.active = false; } catch(_e) {}
-    try {
-      var _cc = document.querySelector('#screenBattle .cam-controls'); if(_cc) _cc.style.display = '';
-      ['sightToggle','aaToggle','submergeToggle'].forEach(function(id){ var b=document.getElementById(id); if(b) b.style.display=''; });
-      var _tm=document.getElementById('tacMap'); if(_tm) _tm.style.display='';
-      var _hd=document.querySelector('#screenBattle .hud-damage'); if(_hd) _hd.style.display='';
-      var _fg=document.getElementById('fireGuns'); if(_fg) _fg.style.display='';
-      var _ft=document.getElementById('fireTorpedo'); if(_ft) _ft.style.display='';
-      var _fd=document.getElementById('fireDepthCharge'); if(_fd) _fd.style.display='';
-      var _fa=document.getElementById('fireAir'); if(_fa){ _fa.style.display=''; var _abl=document.getElementById('airBtnLabel'); if(_abl) _abl.textContent='AIR'; }
-    } catch(_e2) {}
     // The sea is rolled fresh for this mission — wind heading and sea state set
     // the whole look and behaviour of the surface below.
     rollEnvironment();
@@ -14388,12 +14376,7 @@ if (!en.sonarValid && en.formation){
     if (isNavKey || e.code==='Space') e.preventDefault();
     // Land battles own the keyboard while their screen is up — or while you
     // are in command of a tank on the island in the sea battle.
-    if (currentScreen==='tank'){
-      if(typeof airLand!=='undefined' && airLand.active){ if(!e.repeat || e.code==='Space') airLandKey(e, true); return; }
-      if (!e.repeat) tankKey(e, true); return;
-    }
-    // Live air-sea raid owns the battle screen while it is up.
-    if (currentScreen==='battle' && typeof airSea!=='undefined' && airSea.active){ if(!e.repeat || e.code==='Space') airSeaKey(e, true); return; }
+    if (currentScreen==='tank'){ if (!e.repeat) tankKey(e, true); return; }
     if ((k==='l'||k==='L') && !e.repeat && state.ashore && state.ashore.live){ toggleTankCommand(); return; }
     if (state.ashore && state.ashore.active && !(k==='e'||k==='E'||k==='Escape')){ if (!e.repeat) tankKey(e, true); return; }
     // E raises the battlegroup menu, and closes it again. It works while the
@@ -14450,11 +14433,7 @@ if (!en.sonarValid && en.formation){
     var _t = e.target;
     if (_t && (_t.tagName==='INPUT' || _t.tagName==='TEXTAREA' || _t.tagName==='SELECT' || _t.isContentEditable)) return;
     var k = e.key;
-    if (currentScreen==='tank'){
-      if(typeof airLand!=='undefined' && airLand.active){ airLandKey(e, false); return; }
-      tankKey(e, false); return;
-    }
-    if (currentScreen==='battle' && typeof airSea!=='undefined' && airSea.active){ airSeaKey(e, false); return; }
+    if (currentScreen==='tank'){ tankKey(e, false); return; }
     if (state.ashore && state.ashore.active){ tankKey(e, false); return; }
     if (k==='a'||k==='A') state.inputLeft = false;
     if (k==='d'||k==='D') state.inputRight = false;
@@ -14540,13 +14519,6 @@ if (!en.sonarValid && en.formation){
   document.getElementById('recenterBtn').addEventListener('click', recenterCamera);
 
   canvas.addEventListener('pointermove', function(e){
-    if (typeof airSea!=='undefined' && airSea.active){
-      var rect = canvas.getBoundingClientRect();
-      state.aimScreenX = e.clientX - rect.left;
-      state.aimScreenY = e.clientY - rect.top;
-      state.hoveredEnemy = null; state.hoveredAlly = null; state.hoveredAirGroup = null;
-      return;
-    }
     if (state.isPanning && e.pointerId===panPointerId){
       var dxs = e.clientX - panDragStartX, dys = e.clientY - panDragStartY;
       if (Math.hypot(dxs, dys) > PAN_DRAG_SLOP) panDragMoved = true;
@@ -14557,18 +14529,6 @@ if (!en.sonarValid && en.formation){
     if (!state.isPanning) updateAimFromEvent(e);
   });
   canvas.addEventListener('pointerdown', function(e){
-    if (typeof airSea!=='undefined' && airSea.active){
-      if (e.pointerType==='mouse' && e.button===2){ e.preventDefault(); return; }
-      var rect = canvas.getBoundingClientRect();
-      state.aimScreenX = e.clientX - rect.left;
-      state.aimScreenY = e.clientY - rect.top;
-      if (e.pointerType!=='mouse' || e.button===0){
-        airSeaTryDrop();
-        try { canvas.setPointerCapture(e.pointerId); } catch(_e) {}
-        e.preventDefault();
-      }
-      return;
-    }
     if (e.pointerType==='mouse' && e.button===2){
       state.isPanning = true;
       panPointerId = e.pointerId;
@@ -14600,10 +14560,6 @@ if (!en.sonarValid && en.formation){
     }
   });
   canvas.addEventListener('pointerup', function(e){
-    if (typeof airSea!=='undefined' && airSea.active){
-      if (e.pointerId===panPointerId){ state.isPanning = false; panPointerId = null; try{updatePanUI();}catch(_e){} }
-      return;
-    }
     if (e.pointerId===panPointerId){
       state.isPanning = false;
       panPointerId = null;
@@ -14642,7 +14598,6 @@ if (!en.sonarValid && en.formation){
   // The button is the trigger: it launches the whole embarked fleet.
   // Shift-click embarks every ready squadron — or disembarks all, if all aboard.
   document.getElementById('fireAir').addEventListener('click', function(e){
-    if (typeof airSea!=='undefined' && airSea.active){ airSeaTryDrop(); return; }
     if (e.shiftKey) toggleFleetAll(); else fireAirWeapon();
   });
   // The button walks the sights like V does — except out of the aircraft
@@ -19984,9 +19939,6 @@ if (!en.sonarValid && en.formation){
     tankCtx.restore();
   }
   function resetTankBattle(){
-    try { if(typeof airLand!=='undefined') airLand.active = false; } catch(_e) {}
-    try { var _sn=document.getElementById('tankShellNote'); if(_sn) _sn.textContent='AP'; } catch(_e2) {}
-    try { var _th=document.getElementById('tankHint'); if(_th) _th.textContent='W/S drive · A/D turn hull · mouse aims turret · click or space fires · scroll zooms · right-drag pans'; } catch(_e3) {}
     var m = (tank && tank.mission) || LAND_MISSIONS[0];
     var def = currentTank();
     var _tw = tankWorldFor(sheetForTankBattle(m));
@@ -21227,7 +21179,6 @@ if (!en.sonarValid && en.formation){
   }
   if (tankCanvas){
     tankCanvas.addEventListener('pointermove', function(e){
-      if(typeof airLand!=='undefined' && airLand.active){ tankUpdateAim(e); return; }
       if (tankPanning && e.pointerId===tankPanId){
         var dxs = e.clientX-tankPanSX, dys = e.clientY-tankPanSY;
         if (Math.hypot(dxs,dys) > 6) tankPanMoved = true;
@@ -21238,16 +21189,6 @@ if (!en.sonarValid && en.formation){
       tankUpdateAim(e);
     });
     tankCanvas.addEventListener('pointerdown', function(e){
-      if(typeof airLand!=='undefined' && airLand.active){
-        if (e.pointerType==='mouse' && e.button===2){ e.preventDefault(); return; }
-        tankUpdateAim(e);
-        if (e.pointerType==='mouse' && e.button===0){
-          airLandTryDrop();
-          try{ tankCanvas.setPointerCapture(e.pointerId); }catch(_){}
-          e.preventDefault();
-        }
-        return;
-      }
       if (e.pointerType==='mouse' && e.button===2){
         tankPanning = true; tankPanId = e.pointerId; tankPanMoved = false;
         tankPanSX = e.clientX; tankPanSY = e.clientY;
@@ -21265,7 +21206,6 @@ if (!en.sonarValid && en.formation){
       }
     });
     tankCanvas.addEventListener('pointerup', function(e){
-      if(typeof airLand!=='undefined' && airLand.active){ return; }
       if (e.pointerId===tankPanId){ tankPanning = false; tankPanId = null; }
       if (e.pointerType==='mouse' && e.button===0) tankFireHeld = false;
       if (e.pointerType!=='mouse') tankFireHeld = false;
@@ -21278,7 +21218,6 @@ if (!en.sonarValid && en.formation){
     }, {passive:false});
     document.getElementById('tankFire').addEventListener('pointerdown', function(e){
       try{ e.currentTarget.setPointerCapture(e.pointerId); }catch(_){}
-      if(typeof airLand!=='undefined' && airLand.active){ airLandTryDrop(); return; }
       tankFireHeld = true;
       if (tank && !tank.gameOver){ var a = tankAimWorld() || {x:tank.player.x+Math.sin(tank.player.t)*300, y:tank.player.y-Math.cos(tank.player.t)*300}; tankTryFire(tank.player, true, a.x, a.y); }
     });
@@ -21297,951 +21236,6 @@ if (!en.sonarValid && en.formation){
   }
   if (window.ResizeObserver && tankViewport){ new ResizeObserver(function(){ if (currentScreen==='tank') tankResize(); }).observe(tankViewport); }
 
-  /* =====================================================================
-     LIVE AIR-SEA BOMBING (player bombers vs enemy ships, naval screen)
-     A playable raid: fly the lead bomber with WASD, drop with Space/click.
-     Wingmen hold formation and stick their bombs with yours. Ships steam,
-     throw flak, and sink by HP (like the sim, no compartments). Win when
-     all ships are sunk; lose when all bombers are dead/gone. Bombs per
-     bomber are limited (egress when spent); success = drew blood.
-     ===================================================================== */
-  var airSea = {active:false};
-  var _bomberArtCache = {};
-  function bomberArt(id){
-    if(!id) return null;
-    var im = _bomberArtCache[id];
-    if(im===undefined){
-      im = new Image();
-      im.src = 'sprites/plane/bomber_'+id+'.png';
-      _bomberArtCache[id] = im;
-    }
-    return (im && im.complete && im.naturalWidth) ? im : null;
-  }
-  function airSeaScaleFor(maxLenFt){
-    var s = (Math.min(cssW,cssH) * 0.34) / Math.max(1,maxLenFt);
-    return clamp(s, 0.16, 1.1);
-  }
-  function launchLiveAirSea(pending, pu, foes, landingId, transit, origin){
-    var PT = window.PT;
-    // Player bombers from the map wing (exact planes, exact stats).
-    var adv = null;
-    try {
-      var G = PT.garage;
-      for(var _ai=0;_ai<G.airDivisions.length;_ai++){ if(G.airDivisions[_ai].id===pu.ref){ adv = G.airDivisions[_ai]; break; } }
-    } catch(_e) {}
-    if(!adv) return false;
-    var crew = [];
-    try {
-      (adv.planes||[]).forEach(function(uid){
-        var pv = PT.airByUid(uid);
-        if(pv && !pv.destroyed && PLANE_CLASSES[pv.classId]) crew.push(pv);
-      });
-    } catch(_e2) {}
-    if(!crew.length) return false;
-    // Enemy ships from the exact defender roster (pure naval only for live).
-    var ships = [];
-    foes.forEach(function(u){
-      ((u.ships||[])).forEach(function(s){
-        for(var _k=0;_k<(s.n||1);_k++){
-          var tk = null, def = null, tier = null;
-          try { tk = tierKeyForShipCls(s.cls); tier = tk && ENEMY_TIERS[tk]; def = hullForShipCls(s.cls); } catch(_e) {}
-          if(!tier || !def) return;
-          ships.push({cls:s.cls, def:def, tier:tier});
-        }
-      });
-    });
-    if(!ships.length) return false;
-    // DEPLOY like the sim (landing + cost) so abort-to-sim stays consistent.
-    var _transN = (transit||[]).length, _stageN = pending.from;
-    var _extraN = (landingId===_stageN || landingId===origin) ? 0 : 1;
-    DEPLOY[pu.key] = {loc:landingId, mp:Math.max(0, (pu.mp||1)-_transN-1-_extraN)};
-    pending.landingId = landingId;
-    pending.landingName = T[landingId] ? T[landingId].name : landingId;
-    pending.branch = 'air';
-    var _dlN = [];
-    foes.forEach(function(x){
-      ((x.ships||[])).forEach(function(s){
-        for(var _q=0;_q<(s.n||1);_q++) _dlN.push({kind:'naval', cls:s.cls});
-      });
-    });
-    pending.simSpec = {branch:'air', airDivId:pu.ref, mission:{basePay:0, name:'Air strike'}, defenders:_dlN};
-    PT.pendingBattle = pending;
-    // Build live state (separate from naval `state`, same canvas globals).
-    try { if(typeof airLand!=='undefined') airLand.active = false; } catch(_e) {}
-    try { if(typeof rollEnvironment==='function') rollEnvironment(); } catch(_e2) {}
-    airSea.active = true;
-    airSea.puKey = pu.key; airSea.puRef = pu.ref; airSea.puName = pu.name;
-    airSea.terrId = pending.terrId; airSea.islandName = pending.islandName;
-    airSea.landingId = landingId; airSea.origin = origin; airSea.transit = (transit||[]).slice();
-    airSea.time = 0; airSea.gameOver = false; airSea.result = null; airSea.endTimer = 0;
-    airSea.kills = 0; airSea.earn = 0; airSea.lostCls = [];
-    airSea.shake = 0;
-    // Bombers in formation, entering from the west, heading east.
-    var maxLen = 0;
-    ships.forEach(function(s){ maxLen = Math.max(maxLen, s.def.lengthFt); });
-    scale = airSeaScaleFor(Math.max(300, maxLen));
-    camZoom = 1;
-    airSea.bombers = [];
-    crew.forEach(function(pv, idx){
-      var d = PLANE_CLASSES[pv.classId];
-      var row = Math.floor(idx/2), side = (idx%2===0) ? -1 : 1;
-      var bx = -900*scale - row*220*scale, by = (side*row*160 + (idx%2? 60:-60))*scale;
-      airSea.bombers.push({uid:pv.uid, classId:pv.classId, name:pv.name||d.nameShort,
-        x:bx, y:by, heading:Math.PI/2, speedKn:d.speed*0.85, targetKn:d.speed*0.85,
-        maxKn:d.speed*1.1, minKn:Math.max(140, d.speed*0.6),
-        hp:d.hp, maxHp:d.hp, bombs:5, reload:0, reloadMax:Math.max(1.2, d.reload*0.25),
-        bombDmg:d.bomb, dead:false, egress:false, egressT:0, lead:idx===0, flash:0});
-      bomberArt(pv.classId);
-    });
-    // Ships around the centre, steaming slowly with S-turns, firing flak.
-    airSea.ships = [];
-    ships.forEach(function(s, idx){
-      var ang = (idx/Math.max(1,ships.length))*Math.PI*2;
-      var sx = Math.cos(ang)*700*scale, sy = Math.sin(ang)*500*scale;
-      airSea.ships.push({cls:s.cls, def:s.def, tier:s.tier,
-        x:sx, y:sy, heading:Math.random()*Math.PI*2, speedKn:9+Math.random()*4,
-        hp:s.tier.hp, maxHp:s.tier.hp, dead:false, sinking:false,
-        turrets:makeTurrets(s.def),
-        torpMounts:(s.def.torpedoMounts && s.def.torpedoMounts.length) ? makeTorpMounts(s.def) : [],
-        secTurrets:(s.def.secondaryGuns && s.def.secondaryGuns.length) ? makeTurretsFor(s.def.secondaryGuns) : [],
-        aaTurrets:(s.def.aaGuns && s.def.aaGuns.length) ? makeTurretsFor(s.def.aaGuns) : [],
-        flakT:1+Math.random()*1.5, turnT:3+Math.random()*4, turnDir:(Math.random()<0.5?-1:1),
-        smokeT:0});
-    });
-    airSea.bombs = []; airSea.flak = []; airSea.parts = [];
-    airSea.keys = {w:false,a:false,s:false,d:false};
-    airSea.dropQueued = false;
-    airSea.camX = airSea.bombers[0].x; airSea.camY = airSea.bombers[0].y;
-    camViewX = airSea.camX; camViewY = airSea.camY;
-    state.aimScreenX = null; state.aimScreenY = null;
-    // Screen + HUD (reuse battle screen, hide ship-only chrome).
-    showScreen('battle'); resize();
-    scale = airSeaScaleFor(Math.max(300, maxLen));
-    camZoom = 1; camViewX = airSea.camX; camViewY = airSea.camY;
-    try {
-      document.getElementById('shipName').textContent = pu.name;
-      document.getElementById('shipSub').textContent = 'Live air-sea raid — ' + T[pending.terrId].name + ' → land at ' + T[landingId].name;
-      document.getElementById('controlsHint').textContent = 'W/S speed · A/D turn · Space or click drops bombs (wing sticks with you) · wheel zooms';
-      var cc = document.querySelector('#screenBattle .cam-controls'); if(cc) cc.style.display = 'none';
-      ['sightToggle','aaToggle','submergeToggle'].forEach(function(id){ var b=document.getElementById(id); if(b) b.style.display='none'; });
-      var tm=document.getElementById('tacMap'); if(tm) tm.style.display='none';
-      var ao=document.getElementById('airOps'); if(ao) ao.classList.remove('active');
-      var gs=document.getElementById('groupStrip'); if(gs){ gs.classList.remove('active'); gs.innerHTML=''; }
-      var hd=document.querySelector('#screenBattle .hud-damage'); if(hd) hd.style.display='none';
-      var fg=document.getElementById('fireGuns'); if(fg) fg.style.display='none';
-      var ft=document.getElementById('fireTorpedo'); if(ft) ft.style.display='none';
-      var fd=document.getElementById('fireDepthCharge'); if(fd) fd.style.display='none';
-      var fa=document.getElementById('fireAir'); if(fa){ fa.classList.add('equipped'); fa.style.display=''; document.getElementById('airBtnLabel').textContent='DROP'; }
-    } catch(_e) {}
-    document.getElementById('gameoverOverlay').style.display = 'none';
-    airSeaHud();
-    return true;
-  }
-  function airSeaLead(){
-    for(var i=0;i<airSea.bombers.length;i++){ var b=airSea.bombers[i]; if(!b.dead && !b.egress && b.lead) return b; }
-    for(var j=0;j<airSea.bombers.length;j++){ var b2=airSea.bombers[j]; if(!b2.dead && !b2.egress) return b2; }
-    return null;
-  }
-  function airSeaTryDrop(){
-    if(!airSea.active || airSea.gameOver) return;
-    var lead = airSeaLead(); if(!lead || lead.reload>0 || lead.bombs<=0) return;
-    // Lead + every wingman in formation with a ready rack stick together.
-    var droppers = [];
-    airSea.bombers.forEach(function(b){
-      if(!b.dead && !b.egress && b.bombs>0 && b.reload<=0) droppers.push(b);
-    });
-    if(!droppers.length) return;
-    droppers.forEach(function(b, idx){
-      b.bombs--; b.reload = b.reloadMax;
-      var fwd = (b.speedKn*1.68781*scale) * 0.9;
-      var fx = Math.sin(b.heading), fy = -Math.cos(b.heading);
-      var ox = (idx===0) ? 0 : (Math.random()-0.5)*160*scale;
-      var oy = (idx===0) ? 0 : (Math.random()-0.5)*160*scale;
-      airSea.bombs.push({x:b.x+ox, y:b.y+oy, sx:b.x+ox, sy:b.y+oy,
-        tx:b.x+ox+fx*fwd, ty:b.y+oy+fy*fwd, t:0, fall:0.9, dmg:b.bombDmg, from:b.uid});
-    });
-    lead.flash = 1;
-  }
-  function airSeaDamageBomber(b, dmg){
-    if(!b || b.dead || b.egress) return;
-    b.hp -= dmg;
-    if(b.hp<=0){
-      b.hp = 0; b.dead = true;
-      airSea.parts.push({x:b.x, y:b.y, vx:0, vy:0, age:0, max:0.5, size:14, col:'255,200,120'});
-      airSea.parts.push({x:b.x, y:b.y, vx:0, vy:0, age:0, max:1.2, size:10, col:'60,58,55'});
-    }
-  }
-  function airSeaDamageShip(s, dmg){
-    if(!s || s.dead) return;
-    s.hp -= dmg;
-    if(s.hp<=0){
-      s.hp = 0; s.dead = true;
-      airSea.kills++;
-      var pay = 15000;
-      try { var tk = tierKeyForShipCls(s.cls); pay = (KILL_BONUS[tk]||15000); } catch(_e) {}
-      airSea.earn += pay;
-      airSea.lostCls.push(s.cls);
-      airSea.parts.push({x:s.x, y:s.y, vx:0, vy:0, age:0, max:0.6, size:22, col:'255,180,100'});
-      airSea.parts.push({x:s.x, y:s.y, vx:0, vy:0, age:0, max:1.4, size:16, col:'50,50,48'});
-      airSea.shake = Math.min(12, airSea.shake+6);
-    }
-  }
-  function updateAirSea(dt){
-    if(!airSea.active || airSea.gameOver){
-      if(airSea.active && airSea.gameOver && airSea.endTimer>0){
-        airSea.endTimer -= dt;
-        for(var _pi=0;_pi<airSea.parts.length;_pi++){ var _pp=airSea.parts[_pi]; _pp.age+=dt; }
-        airSea.parts = airSea.parts.filter(function(q){ return q.age<q.max; });
-        if(airSea.endTimer<=0) airSeaShowOver();
-      }
-      return;
-    }
-    airSea.time += dt;
-    var lead = airSeaLead();
-    // Lead flies direct; wingmen hold a loose vee and stick with the drop.
-    airSea.bombers.forEach(function(b){
-      if(b.dead || b.egress) return;
-      b.reload = Math.max(0, b.reload-dt);
-      b.flash = Math.max(0, b.flash-dt*4);
-      if(b.lead || b===lead){
-        var turn = ((airSea.keys.a?1:0)-(airSea.keys.d?1:0));
-        // A/D turn (A left, D right) like the helm.
-        b.heading += -turn*1.7*dt;
-        var want = b.targetKn!=null ? b.targetKn : (PLANE_CLASSES[b.classId].speed||280);
-        if(airSea.keys.w) want = b.maxKn;
-        if(airSea.keys.s) want = b.minKn;
-        b.targetKn = want;
-        b.speedKn += clamp(want-b.speedKn, -90*dt, 90*dt);
-        var px = b.speedKn*1.68781*scale;
-        b.x += Math.sin(b.heading)*px*dt;
-        b.y -= Math.cos(b.heading)*px*dt;
-      } else if(lead){
-        var lx = lead.x, ly = lead.y;
-        var idx = airSea.bombers.indexOf(b);
-        var side = (idx%2===0)?-1:1, rank = Math.ceil(idx/2);
-        var gx = 50*scale, gy = 60*scale;
-        var fx = Math.sin(lead.heading), fy = -Math.cos(lead.heading);
-        var rx = Math.cos(lead.heading), ry = Math.sin(lead.heading);
-        var tx = lx - fx*rank*gy*3 + rx*side*rank*gx*3;
-        var ty = ly - fy*rank*gy*3 + ry*side*rank*gx*3;
-        var wantH = Math.atan2(tx-b.x, -(ty-b.y));
-        var dh = angleDiffRad(wantH, b.heading);
-        b.heading += clamp(dh, -2.2*dt, 2.2*dt);
-        var dist = Math.hypot(tx-b.x, ty-b.y);
-        var wsp = clamp(lead.speedKn + dist*0.4, lead.speedKn*0.6, b.maxKn*1.25);
-        b.speedKn += clamp(wsp-b.speedKn, -120*dt, 120*dt);
-        var pw = b.speedKn*1.68781*scale;
-        b.x += Math.sin(b.heading)*pw*dt;
-        b.y -= Math.cos(b.heading)*pw*dt;
-      }
-      // Out of bombs → egress straight ahead, then gone (survived).
-      if(b.bombs<=0 && !b.egress){
-        b.egress = true; b.egressT = 4;
-      }
-      if(b.egress){
-        b.egressT -= dt;
-        var ex = b.speedKn*1.68781*scale;
-        b.x += Math.sin(b.heading)*ex*dt;
-        b.y -= Math.cos(b.heading)*ex*dt;
-        if(b.egressT<=0){ b.egress = true; b.gone = true; }
-      }
-    });
-    airSea.bombers = airSea.bombers.filter(function(b){ return !b.gone; });
-    if(airSea.dropQueued){ airSea.dropQueued = false; airSeaTryDrop(); }
-    // Ships steam slowly with S-turns; flak answers the raid.
-    airSea.ships.forEach(function(s){
-      if(s.dead) return;
-      s.turnT -= dt;
-      if(s.turnT<=0){ s.turnT = 3.5+Math.random()*3.5; s.turnDir = (Math.random()<0.5?-1:1)*(0.4+Math.random()*0.6); }
-      s.heading += s.turnDir*0.12*dt;
-      var sp = s.speedKn*1.68781*scale;
-      s.x += Math.sin(s.heading)*sp*dt;
-      s.y -= Math.cos(s.heading)*sp*dt;
-      // Smoke when hurt.
-      if(s.hp < s.maxHp*0.5){
-        s.smokeT -= dt;
-        if(s.smokeT<=0){
-          s.smokeT = 0.25+Math.random()*0.3;
-          airSea.parts.push({x:s.x+(Math.random()-0.5)*10, y:s.y+(Math.random()-0.5)*10, vx:(Math.random()-0.5)*8, vy:-10-Math.random()*8, age:0, max:1.1, size:4+Math.random()*3, col:'70,66,62'});
-        }
-      }
-      // Flak: each ship engages the nearest live bomber in range.
-      s.flakT -= dt;
-      if(s.flakT<=0){
-        s.flakT = 1.6+Math.random()*0.8;
-        var best=null, bd=1e9;
-        airSea.bombers.forEach(function(b){
-          if(b.dead || b.egress) return;
-          var d = Math.hypot(b.x-s.x, b.y-s.y);
-          if(d<bd){ bd=d; best=b; }
-        });
-        var rangePx = 2400*scale;
-        if(best && bd<rangePx){
-          var bx = best.x+(Math.random()-0.5)*90*scale, by = best.y+(Math.random()-0.5)*90*scale;
-          airSea.flak.push({x:bx, y:by, age:0, max:0.5});
-          if(Math.random()<0.12) airSeaDamageBomber(best, 1+Math.random()*1.2);
-        }
-      }
-    });
-    // Bombs fall forward with the release velocity, then burst on the water.
-    for(var _bi=airSea.bombs.length-1;_bi>=0;_bi--){
-      var bm = airSea.bombs[_bi];
-      bm.t += dt;
-      var f = clamp(bm.t/bm.fall, 0, 1);
-      bm.x = lerp(bm.sx, bm.tx, f); bm.y = lerp(bm.sy, bm.ty, f);
-      if(f>=1){
-        var hit = false;
-        for(var _si=0;_si<airSea.ships.length;_si++){
-          var sh = airSea.ships[_si];
-          if(sh.dead) continue;
-          var hf = hitTestShip(bm.x, bm.y, sh.x, sh.y, sh.heading, sh.def.lengthFt*scale, sh.def.beamFt*scale);
-          if(hf!==null){
-            airSeaDamageShip(sh, bm.dmg*(0.9+Math.random()*0.2));
-            airSea.parts.push({x:bm.x, y:bm.y, vx:0, vy:0, age:0, max:0.5, size:16, col:'255,170,90'});
-            hit = true; break;
-          }
-        }
-        if(!hit) airSea.parts.push({x:bm.x, y:bm.y, vx:0, vy:0, age:0, max:0.5, size:10, col:'220,235,238'});
-        airSea.bombs.splice(_bi,1);
-      }
-    }
-    for(var _fi=airSea.flak.length-1;_fi>=0;_fi--){ airSea.flak[_fi].age+=dt; if(airSea.flak[_fi].age>airSea.flak[_fi].max) airSea.flak.splice(_fi,1); }
-    for(var _pj=airSea.parts.length-1;_pj>=0;_pj--){ var _pt=airSea.parts[_pj]; _pt.age+=dt; _pt.x+=(_pt.vx||0)*dt; _pt.y+=(_pt.vy||0)*dt; if(_pt.age>=_pt.max) airSea.parts.splice(_pj,1); }
-    // Camera rides the lead.
-    var nl = airSeaLead();
-    if(nl){ airSea.camX += (nl.x-airSea.camX)*Math.min(1,dt*5); airSea.camY += (nl.y-airSea.camY)*Math.min(1,dt*5); }
-    camViewX = airSea.camX; camViewY = airSea.camY;
-    if(airSea.shake>0) airSea.shake = Math.max(0, airSea.shake-dt*20);
-    airSeaHud();
-    // End: all ships sunk (win) or no bombers left flying (win if drew blood).
-    var shipsLeft = airSea.ships.some(function(s){ return !s.dead; });
-    var flyers = airSea.bombers.some(function(b){ return !b.dead && !b.egress; });
-    if(!shipsLeft || !flyers){
-      var ok = airSea.kills>0;
-      // Egressing survivors with bombs left? No — egress only when spent.
-      airSea.gameOver = true; airSea.result = ok?'success':'fail'; airSea.endTimer = 1.2;
-    }
-  }
-  function airSeaHud(){
-    if(!airSea.active) return;
-    try {
-      var lead = airSeaLead();
-      var alive = airSea.bombers.filter(function(b){ return !b.dead && !b.egress; }).length;
-      var totalBombs = 0;
-      airSea.bombers.forEach(function(b){ if(!b.dead && !b.egress) totalBombs += b.bombs; });
-      document.getElementById('hudSpeed').textContent = lead ? Math.round(Math.abs(lead.speedKn))+' KT' : '—';
-      var hdg = lead ? ((Math.round(lead.heading*180/Math.PI)%360+360)%360) : 0;
-      document.getElementById('hudHeading').textContent = String(hdg).padStart(3,'0')+'°';
-      var tc = document.getElementById('torpCount'); if(tc) tc.textContent = lead ? lead.bombs : 0;
-      var abc = document.getElementById('airBtnCount'); if(abc) abc.textContent = alive;
-      var abl = document.getElementById('airBtnLabel'); if(abl) abl.textContent = 'DROP';
-    } catch(_e) {}
-  }
-  function airSeaShowOver(){
-    try {
-      var PT = window.PT;
-      var alive = airSea.bombers.filter(function(b){ return !b.dead; }).length;
-      var deadN = airSea.bombers.filter(function(b){ return b.dead; }).length;
-      // Write back like the sim: planes lost, ships lost, pay, landing already set.
-      airSea.bombers.forEach(function(b){
-        if(b.dead){ try { var pv = PT.airByUid(b.uid); if(pv) pv.destroyed = true; } catch(_e) {} }
-      });
-      var payout = airSea.earn + (airSea.ships.every(function(s){ return s.dead; }) ? AIR_WIN_PAY : 0);
-      try { PT.garage.money += payout; } catch(_e2) {}
-      try { PT.lastBattleLosses = airSea.lostCls.slice(); } catch(_e3) {}
-      var tgtN = airSea.ships.length;
-      document.getElementById('gameoverTitle').textContent = airSea.result==='success' ? 'AIR RAID COMPLETE' : 'WING LOST';
-      document.getElementById('finalStats').textContent = 'Ships sunk: '+airSea.kills+' / '+tgtN+' · Bombers lost: '+deadN+' · Bombers home: '+alive+' · Earned '+fmtMoney(payout)+' · Landed at '+T[airSea.landingId].name;
-      document.getElementById('gameoverOverlay').style.display = 'flex';
-      if(PT && PT.onBattleEnd) PT.onBattleEnd(airSea.result==='success');
-    } catch(_e) {}
-  }
-  function renderAirSea(tsec){
-    if(!airSea.active) return;
-    drawOcean(tsec);
-    drawWake();
-    // Ships (no sinking anim — gone on kill with a blast).
-    for(var i=0;i<airSea.ships.length;i++){
-      (function(s){
-        if(s.dead) return;
-        var sx = (s.x-camViewX)*camZoom + cssW/2, sy = (s.y-camViewY)*camZoom + cssH/2;
-        var lenPx = s.def.lengthFt*scale*camZoom;
-        if(sx<-lenPx-80||sx>cssW+lenPx+80||sy<-lenPx-80||sy>cssH+lenPx+80) return;
-        var sf = clamp(Math.abs(s.speedKn)/(s.def.topSpeedKts||20), 0, 1);
-        drawShip(s.def, sx, sy, s.heading, 1, sf, s.turrets, s.torpMounts, 0, s.secTurrets, s.aaTurrets, 1, 0, null);
-        var frac = clamp(s.hp/s.maxHp, 0, 1);
-        if(frac<0.999) drawHpBar(sx, sy, Math.max(30, lenPx), frac);
-      })(airSea.ships[i]);
-    }
-    drawProjectiles(); drawDepthCharges(); drawOrdnance();
-    // Player bombs (falling with shadow closing).
-    for(var _b=0;_b<airSea.bombs.length;_b++){
-      (function(bm){
-        var sx = (bm.x-camViewX)*camZoom + cssW/2, sy = (bm.y-camViewY)*camZoom + cssH/2;
-        if(sx<-40||sx>cssW+40||sy<-40||sy>cssH+40) return;
-        var f = clamp(bm.t/bm.fall, 0, 1);
-        var shx = sx - Math.sin(0)*0, shy = sy;
-        ctx.fillStyle = 'rgba(6,10,12,0.35)';
-        ctx.beginPath(); ctx.arc(sx, sy, Math.max(1, 3.2*scale*camZoom*(0.5+f*0.5)), 0, Math.PI*2); ctx.fill();
-        ctx.fillStyle = '#1c2022';
-        ctx.beginPath(); ctx.arc(sx, sy-6*camZoom*(1-f), Math.max(0.9, 2.6*scale*camZoom*(1.5-f*0.6)), 0, Math.PI*2); ctx.fill();
-      })(airSea.bombs[_b]);
-    }
-    // Bombers.
-    for(var _p=0;_p<airSea.bombers.length;_p++){
-      (function(b){
-        if(b.dead) return;
-        var sx = (b.x-camViewX)*camZoom + cssW/2, sy = (b.y-camViewY)*camZoom + cssH/2;
-        if(sx<-60||sx>cssW+60||sy<-60||sy>cssH+60) return;
-        var img = bomberArt(b.classId);
-        var w = 26*camZoom, h = w*0.7;
-        ctx.save(); ctx.translate(sx, sy); ctx.rotate(b.heading);
-        if(b.lead){
-          ctx.strokeStyle = 'rgba(255,206,92,0.9)'; ctx.lineWidth = 1.5;
-          ctx.beginPath(); ctx.arc(0, 0, 12*camZoom, 0, Math.PI*2); ctx.stroke();
-        }
-        if(img) ctx.drawImage(img, -w/2, -h/2, w, h);
-        else { ctx.fillStyle = '#8f9aa4'; ctx.fillRect(-w/2, -h*0.16, w, h*0.32); ctx.fillRect(-w*0.08, -h/2, w*0.16, h); }
-        if(b.flash>0.03){
-          ctx.fillStyle = 'rgba(255,220,150,'+Math.min(1,b.flash).toFixed(2)+')';
-          ctx.beginPath(); ctx.arc(0, 0, 6*camZoom, 0, Math.PI*2); ctx.fill();
-        }
-        ctx.restore();
-        if(b.lead){
-          ctx.fillStyle = 'rgba(232,202,146,0.95)'; ctx.font = 'bold 11px Oswald, Arial'; ctx.textAlign='center';
-          ctx.fillText(b.bombs+'×BOMB', sx, sy-18*camZoom);
-        }
-      })(airSea.bombers[_p]);
-    }
-    // Flak bursts.
-    for(var _f=0;_f<airSea.flak.length;_f++){
-      (function(fk){
-        var sx = (fk.x-camViewX)*camZoom + cssW/2, sy = (fk.y-camViewY)*camZoom + cssH/2;
-        var t = fk.age/fk.max, r = Math.max(1.2, 5*camZoom*(0.5+t*1.4));
-        ctx.globalAlpha = (1-t)*0.8;
-        ctx.fillStyle = t<0.25 ? 'rgba(255,226,168,1)' : 'rgba(58,58,56,1)';
-        ctx.beginPath(); ctx.arc(sx, sy, r, 0, Math.PI*2); ctx.fill();
-        ctx.globalAlpha = 1;
-      })(airSea.flak[_f]);
-    }
-    // Particles.
-    for(var _s=0;_s<airSea.parts.length;_s++){
-      (function(pt){
-        var sx = (pt.x-camViewX)*camZoom + cssW/2, sy = (pt.y-camViewY)*camZoom + cssH/2;
-        var a = 1-pt.age/pt.max;
-        ctx.fillStyle = 'rgba('+pt.col+','+Math.max(0,a).toFixed(2)+')';
-        ctx.beginPath(); ctx.arc(sx, sy, Math.max(0.5, pt.size*(1+pt.age)*camZoom*0.5), 0, Math.PI*2); ctx.fill();
-      })(airSea.parts[_s]);
-    }
-    drawHits(); drawSparks();
-    // Aim reticle at mouse (drop reference only — bombs fall ahead with momentum).
-    if(state.aimScreenX!==null && !airSea.gameOver){
-      var rl = 10;
-      ctx.strokeStyle = 'rgba(232,202,146,0.9)'; ctx.lineWidth = 1.4;
-      ctx.beginPath(); ctx.arc(state.aimScreenX, state.aimScreenY, 9, 0, Math.PI*2); ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(state.aimScreenX-rl, state.aimScreenY); ctx.lineTo(state.aimScreenX-4, state.aimScreenY);
-      ctx.moveTo(state.aimScreenX+4, state.aimScreenY); ctx.lineTo(state.aimScreenX+rl, state.aimScreenY);
-      ctx.moveTo(state.aimScreenX, state.aimScreenY-rl); ctx.lineTo(state.aimScreenX, state.aimScreenY-4);
-      ctx.moveTo(state.aimScreenX, state.aimScreenY+4); ctx.lineTo(state.aimScreenX, state.aimScreenY+rl);
-      ctx.stroke();
-    }
-  }
-  function airSeaKey(e, down){
-    if(!airSea.active || airSea.gameOver) return false;
-    var k = e.key;
-    if(k==='w'||k==='W'||k==='ArrowUp') airSea.keys.w = down;
-    if(k==='s'||k==='S'||k==='ArrowDown') airSea.keys.s = down;
-    if(k==='a'||k==='A'||k==='ArrowLeft') airSea.keys.a = down;
-    if(k==='d'||k==='D'||k==='ArrowRight') airSea.keys.d = down;
-    if(e.code==='Space'){ if(down) airSeaTryDrop(); }
-    return true;
-  }
-
-  /* =====================================================================
-     LIVE AIR-LAND BOMBING (player bombers vs enemy tanks, tank screen)
-     Same raid language as air-sea, over the tank map: WASD flies the lead,
-     Space/click sticks bombs with the wing. Tanks maneuver and reply with
-     small-arms at close, low bombers. Win when all armor is knocked out.
-     ===================================================================== */
-  var airLand = {active:false};
-  function launchLiveAirLand(pending, pu, foes, landingId, transit, origin){
-    var PT = window.PT;
-    var adv = null;
-    try {
-      var G = PT.garage;
-      for(var _ai=0;_ai<G.airDivisions.length;_ai++){ if(G.airDivisions[_ai].id===pu.ref){ adv = G.airDivisions[_ai]; break; } }
-    } catch(_e) {}
-    if(!adv) return false;
-    var crew = [];
-    try {
-      (adv.planes||[]).forEach(function(uid){
-        var pv = PT.airByUid(uid);
-        if(pv && !pv.destroyed && PLANE_CLASSES[pv.classId]) crew.push(pv);
-      });
-    } catch(_e2) {}
-    if(!crew.length) return false;
-    var tanks = [];
-    var parked = [];
-    foes.forEach(function(u){
-      ((u.tanks||[])).forEach(function(s){
-        for(var _k=0;_k<(s.n||1);_k++){
-          var tk = null;
-          try { tk = tankTierForTankCls(s.cls); } catch(_e) {}
-          if(!tk || !TANK_TIERS[tk]) return;
-          tanks.push({cls:s.cls, tier:TANK_TIERS[tk]});
-        }
-      });
-      // Enemy wings caught on the ground: parked bombers, static targets.
-      ((u.planes||[])).forEach(function(s){
-        for(var _q2=0;_q2<(s.n||1);_q2++){
-          if(!PLANE_CLASSES[s.cls]) return;
-          parked.push({cls:s.cls});
-        }
-      });
-    });
-    if(!tanks.length && !parked.length) return false;
-    var _transN = (transit||[]).length, _stageN = pending.from;
-    var _extraN = (landingId===_stageN || landingId===origin) ? 0 : 1;
-    DEPLOY[pu.key] = {loc:landingId, mp:Math.max(0, (pu.mp||1)-_transN-1-_extraN)};
-    pending.landingId = landingId;
-    pending.landingName = T[landingId] ? T[landingId].name : landingId;
-    pending.branch = 'air';
-    var _dlN = [];
-    foes.forEach(function(x){
-      ((x.tanks||[])).forEach(function(s){
-        for(var _q=0;_q<(s.n||1);_q++) _dlN.push({kind:'armor', cls:s.cls});
-      });
-      ((x.planes||[])).forEach(function(s){
-        for(var _q2=0;_q2<(s.n||1);_q2++) _dlN.push({kind:'air', cls:s.cls});
-      });
-    });
-    pending.simSpec = {branch:'air', airDivId:pu.ref, mission:{basePay:0, name:'Air strike'}, defenders:_dlN};
-    PT.pendingBattle = pending;
-    try { if(typeof airSea!=='undefined') airSea.active = false; } catch(_e) {}
-    airLand.active = true;
-    airLand.puKey = pu.key; airLand.puRef = pu.ref; airLand.puName = pu.name;
-    airLand.terrId = pending.terrId;
-    airLand.landingId = landingId; airLand.origin = origin;
-    airLand.time = 0; airLand.gameOver = false; airLand.result = null; airLand.endTimer = 0;
-    airLand.kills = 0; airLand.earn = 0; airLand.lostCls = []; airLand.shake = 0;
-    // Ground like a theater tank battle (same sheet/seed as the sim would use).
-    var _lmFor = null;
-    try { _lmFor = PT.landMissionById(LAND_MISSION[T[pending.terrId].region]||'tank_ambush'); } catch(_e) {}
-    var _sheet = 'lunga', _seedT = pending.terrId;
-    try {
-      if(_lmFor && _lmFor.terrain==='jungle') _sheet = 'lunga';
-      else if(_lmFor && _lmFor.terrain==='airfield') _sheet = 'iwo';
-      else _sheet = 'shuri';
-    } catch(_e3) {}
-    var _tw = tankWorldFor(_sheet);
-    TANK_WORLD.w = _tw.w; TANK_WORLD.h = _tw.h;
-    var _seed = 1942;
-    try { _seed = theaterMapSeed(pending.terrId, _sheet); } catch(_e4) {}
-    try { if(!tank) tank = {}; } catch(_eT) {}
-    tank.ground = null;
-    try { tank.ground = PT_GROUND.build(_sheet, _seed, TANK_WORLD.w, TANK_WORLD.h, {island:true}); } catch(_e5) {}
-    if(!tank.ground){
-      showScreen('menu'); airLand.active = false; return false;
-    }
-    try { tank.embedded = false; } catch(_e6) {}
-    // Bombers enter from the west, tanks hold the east.
-    airLand.bombers = [];
-    crew.forEach(function(pv, idx){
-      var d = PLANE_CLASSES[pv.classId];
-      var bx = 160 + (idx%3)*90, by = TANK_WORLD.h/2 + (Math.floor(idx/3)-1)*140 + (idx%2? 40:-40);
-      airLand.bombers.push({uid:pv.uid, classId:pv.classId, name:pv.name||d.nameShort,
-        x:bx, y:by, heading:Math.PI/2, speed:170, targetSp:170, maxSp:d.speed, minSp:110,
-        hp:d.hp, maxHp:d.hp, bombs:5, reload:0, reloadMax:Math.max(1.2, d.reload*0.25),
-        bombDmg:d.bomb, dead:false, egress:false, egressT:0, lead:idx===0, flash:0});
-      bomberArt(pv.classId);
-    });
-    airLand.tanks = [];
-    airLand.parked = [];
-    var _rnd = tankSeedRand(pending.terrId.length*7919+7);
-    tanks.forEach(function(t, idx){
-      var ex = 0, ey = 0, ok = false, tries = 0;
-      while(!ok && tries<60){
-        tries++;
-        ex = TANK_WORLD.w*0.45 + _rnd()*TANK_WORLD.w*0.48;
-        ey = 150 + _rnd()*(TANK_WORLD.h-300);
-        ok = true;
-        try { if(!tank.ground.open(ex,ey)) ok = false; } catch(_e) {}
-        for(var _o=0;_o<airLand.tanks.length;_o++){
-          if(Math.hypot(ex-airLand.tanks[_o].x, ey-airLand.tanks[_o].y)<180){ ok = false; break; }
-        }
-      }
-      try { var _np = tank.ground.nudge(ex,ey); ex=_np.x; ey=_np.y; } catch(_e2) {}
-      airLand.tanks.push({cls:t.cls, tier:t.tier, x:ex, y:ey, h:-Math.PI/2+(_rnd()-0.5), sp:0,
-        hp:t.tier.hp, maxHp:t.tier.hp, reload:1+_rnd()*2, mgT:1+_rnd()*2, dead:false,
-        len:t.tier.static?30:42, wid:t.tier.static?22:24, flank:(_rnd()<0.5?-1:1), strafeT:2+_rnd()*3});
-    });
-    // Parked enemy wings (airfield strafing): static, no return fire.
-    parked.forEach(function(ap){
-      var d = PLANE_CLASSES[ap.cls];
-      var ex = 0, ey = 0, ok = false, tries = 0;
-      while(!ok && tries<60){
-        tries++;
-        ex = TANK_WORLD.w*0.45 + _rnd()*TANK_WORLD.w*0.48;
-        ey = 150 + _rnd()*(TANK_WORLD.h-300);
-        ok = true;
-        try { if(!tank.ground.open(ex,ey)) ok = false; } catch(_e) {}
-        for(var _o=0;_o<airLand.tanks.length;_o++){
-          if(Math.hypot(ex-airLand.tanks[_o].x, ey-airLand.tanks[_o].y)<150){ ok = false; break; }
-        }
-        for(var _p2=0;_p2<airLand.parked.length;_p2++){
-          if(Math.hypot(ex-airLand.parked[_p2].x, ey-airLand.parked[_p2].y)<120){ ok = false; break; }
-        }
-      }
-      try { var _np2 = tank.ground.nudge(ex,ey); ex=_np2.x; ey=_np2.y; } catch(_e2) {}
-      airLand.parked.push({cls:ap.cls, x:ex, y:ey, h:_rnd()*Math.PI*2,
-        hp:d.hp, maxHp:d.hp, dead:false});
-      bomberArt(ap.cls);
-    });
-    airLand.bombs = []; airLand.parts = []; airLand.flashes = [];
-    airLand.keys = {w:false,a:false,s:false,d:false};
-    airLand.camX = airLand.bombers[0].x; airLand.camY = airLand.bombers[0].y;
-    tankZoom = 1; tankPanX = 0; tankPanY = 0;
-    tankAimSX = null; tankAimSY = null; tankFireHeld = false;
-    tankKeys = {w:false,a:false,s:false,d:false};
-    showScreen('tank'); tankResize();
-    tankZoom = 1;
-    try {
-      document.getElementById('tankName').textContent = pu.name;
-      document.getElementById('tankSub').textContent = 'Live air-land raid — '+T[pending.terrId].name+' → land at '+T[landingId].name;
-      document.getElementById('tankObjective').textContent = 'Bomb '+(airLand.tanks.length+airLand.parked.length)+' vehicles — W/S speed · A/D turn · Space/click drops bombs';
-      var _tf = document.getElementById('tankFire'); if(_tf){ _tf.querySelector('#tankShellNote').textContent = 'BOMB'; }
-      var _th = document.getElementById('tankHint'); if(_th) _th.textContent = 'W/S speed · A/D turn · Space or click drops bombs (wing sticks with you) · wheel zooms';
-      var _tgs = document.getElementById('tankGroupStrip'); if(_tgs){ _tgs.classList.remove('active'); _tgs.innerHTML=''; }
-    } catch(_e) {}
-    document.getElementById('tankGameoverOverlay').style.display = 'none';
-    airLandHud();
-    return true;
-  }
-  function airLandLead(){
-    for(var i=0;i<airLand.bombers.length;i++){ var b=airLand.bombers[i]; if(!b.dead && !b.egress && b.lead) return b; }
-    for(var j=0;j<airLand.bombers.length;j++){ var b2=airLand.bombers[j]; if(!b2.dead && !b2.egress) return b2; }
-    return null;
-  }
-  function airLandTryDrop(){
-    if(!airLand.active || airLand.gameOver) return;
-    var lead = airLandLead(); if(!lead || lead.reload>0 || lead.bombs<=0) return;
-    var droppers = [];
-    airLand.bombers.forEach(function(b){ if(!b.dead && !b.egress && b.bombs>0 && b.reload<=0) droppers.push(b); });
-    if(!droppers.length) return;
-    droppers.forEach(function(b){
-      b.bombs--; b.reload = b.reloadMax;
-      var fwd = b.speed*0.9;
-      var fx = Math.sin(b.heading), fy = -Math.cos(b.heading);
-      airLand.bombs.push({x:b.x, y:b.y, sx:b.x, sy:b.y, tx:b.x+fx*fwd*0.9, ty:b.y+fy*fwd*0.9, t:0, fall:0.9, dmg:b.bombDmg});
-    });
-    lead.flash = 1;
-  }
-  function airLandDamageBomber(b, dmg){
-    if(!b || b.dead || b.egress) return;
-    b.hp -= dmg;
-    if(b.hp<=0){ b.hp=0; b.dead=true; airLand.parts.push({x:b.x,y:b.y,vx:0,vy:0,age:0,max:0.6,size:12,col:'255,190,110'}); }
-  }
-  function airLandDamageTank(t, dmg){
-    if(!t || t.dead) return;
-    t.hp -= dmg;
-    if(t.hp<=0){
-      t.hp=0; t.dead=true; airLand.kills++;
-      var pay = 9000;
-      try { pay = t.tier.pay||9000; } catch(_e) {}
-      airLand.earn += pay;
-      airLand.lostCls.push(t.cls);
-      airLand.parts.push({x:t.x,y:t.y,vx:0,vy:0,age:0,max:0.5,size:20,col:'255,170,90'});
-      airLand.shake = Math.min(10, airLand.shake+5);
-    }
-  }
-  function airLandDamageParked(p, dmg){
-    if(!p || p.dead) return;
-    p.hp -= dmg;
-    if(p.hp<=0){
-      p.hp=0; p.dead=true; airLand.kills++;
-      airLand.earn += 12000;
-      airLand.lostCls.push(p.cls);
-      airLand.parts.push({x:p.x,y:p.y,vx:0,vy:0,age:0,max:0.5,size:18,col:'255,170,90'});
-      airLand.shake = Math.min(10, airLand.shake+4);
-    }
-  }
-  function updateAirLand(dt){
-    if(!airLand.active) return;
-    if(airLand.gameOver){
-      if(airLand.endTimer>0){
-        airLand.endTimer -= dt;
-        for(var _pi=0;_pi<airLand.parts.length;_pi++){ var _pp=airLand.parts[_pi]; _pp.age+=dt; }
-        airLand.parts = airLand.parts.filter(function(q){ return q.age<q.max; });
-        if(airLand.endTimer<=0) airLandShowOver();
-      }
-      return;
-    }
-    airLand.time += dt;
-    var lead = airLandLead();
-    airLand.bombers.forEach(function(b){
-      if(b.dead || b.egress) return;
-      b.reload = Math.max(0, b.reload-dt);
-      b.flash = Math.max(0, b.flash-dt*4);
-      if(b.lead || b===lead){
-        var turn = ((airLand.keys.a?1:0)-(airLand.keys.d?1:0));
-        b.heading += -turn*1.8*dt;
-        var want = b.targetSp!=null ? b.targetSp : 170;
-        if(airLand.keys.w) want = b.maxSp;
-        if(airLand.keys.s) want = b.minSp;
-        b.targetSp = want;
-        b.speed += clamp(want-b.speed, -110*dt, 110*dt);
-        b.x += Math.sin(b.heading)*b.speed*dt;
-        b.y -= Math.cos(b.heading)*b.speed*dt;
-      } else if(lead){
-        var idx = airLand.bombers.indexOf(b);
-        var side = (idx%2===0)?-1:1, rank = Math.ceil(idx/2);
-        var tx = lead.x - Math.sin(lead.heading)*rank*90 + Math.cos(lead.heading)*side*rank*70;
-        var ty = lead.y + Math.cos(lead.heading)*rank*90 + Math.sin(lead.heading)*side*rank*70;
-        var wantH = Math.atan2(tx-b.x, -(ty-b.y));
-        b.heading += clamp(angleDiffRad(wantH, b.heading), -2.4*dt, 2.4*dt);
-        var dist = Math.hypot(tx-b.x, ty-b.y);
-        var wsp = clamp(lead.speed + dist*0.5, lead.speed*0.6, b.maxSp*1.25);
-        b.speed += clamp(wsp-b.speed, -140*dt, 140*dt);
-        b.x += Math.sin(b.heading)*b.speed*dt;
-        b.y -= Math.cos(b.heading)*b.speed*dt;
-      }
-      b.x = clamp(b.x, 20, TANK_WORLD.w-20); b.y = clamp(b.y, 20, TANK_WORLD.h-20);
-      if(b.bombs<=0 && !b.egress){ b.egress = true; b.egressT = 4; }
-      if(b.egress){
-        b.egressT -= dt;
-        b.x += Math.sin(b.heading)*b.speed*dt;
-        b.y -= Math.cos(b.heading)*b.speed*dt;
-        if(b.egressT<=0) b.gone = true;
-      }
-    });
-    airLand.bombers = airLand.bombers.filter(function(b){ return !b.gone; });
-    // Tanks crawl, then reply with small-arms at close, low bombers.
-    airLand.tanks.forEach(function(t){
-      if(t.dead) return;
-      if(!t.tier.static){
-        t.strafeT -= dt;
-        if(t.strafeT<=0){ t.strafeT = 3+Math.random()*3; t.flank *= -1; }
-        var wantH = -Math.PI/2 + t.flank*0.4;
-        t.h += clamp(angleDiffRad(wantH, t.h), -1.2*dt, 1.2*dt);
-        t.sp += clamp(t.tier.speed*0.3 - t.sp, -40*dt, 40*dt);
-        var nx = t.x + Math.sin(t.h)*t.sp*dt, ny = t.y - Math.cos(t.h)*t.sp*dt;
-        nx = clamp(nx, 30, TANK_WORLD.w-30); ny = clamp(ny, 30, TANK_WORLD.h-30);
-        if(tank.ground){
-          var _u = {x:nx, y:ny, h:t.h, sp:t.sp};
-          try { tank.ground.applyMove(_u, t.x, t.y, dt, t.len, t.wid); nx=_u.x; ny=_u.y; t.sp=_u.sp; } catch(_e) {}
-        }
-        t.x = nx; t.y = ny;
-      }
-      t.mgT -= dt;
-      if(t.mgT<=0){
-        t.mgT = 1.4+Math.random()*1.2;
-        var best=null, bd=1e9;
-        airLand.bombers.forEach(function(b){
-          if(b.dead || b.egress) return;
-          var d = Math.hypot(b.x-t.x, b.y-t.y);
-          if(d<bd){ bd=d; best=b; }
-        });
-        if(best && bd<430 && Math.random()<0.14) airLandDamageBomber(best, 0.8+Math.random()*0.9);
-      }
-    });
-    for(var _bi=airLand.bombs.length-1;_bi>=0;_bi--){
-      var bm = airLand.bombs[_bi];
-      bm.t += dt;
-      var f = clamp(bm.t/bm.fall, 0, 1);
-      bm.x = lerp(bm.sx, bm.tx, f); bm.y = lerp(bm.sy, bm.ty, f);
-      if(f>=1){
-        var R = 70, hitAny = false;
-        for(var _ti=0;_ti<airLand.tanks.length;_ti++){
-          var tk = airLand.tanks[_ti];
-          if(tk.dead) continue;
-          var d = Math.hypot(bm.x-tk.x, bm.y-tk.y);
-          if(d < R){
-            airLandDamageTank(tk, bm.dmg*(0.9+Math.random()*0.2)*(1-d/R*0.5));
-            hitAny = true;
-          }
-        }
-        for(var _pi2=0;_pi2<airLand.parked.length;_pi2++){
-          var pk = airLand.parked[_pi2];
-          if(pk.dead) continue;
-          var dp = Math.hypot(bm.x-pk.x, bm.y-pk.y);
-          if(dp < R){
-            airLandDamageParked(pk, bm.dmg*(0.9+Math.random()*0.2)*(1-dp/R*0.5));
-            hitAny = true;
-          }
-        }
-        airLand.parts.push({x:bm.x,y:bm.y,vx:0,vy:0,age:0,max:hitAny?0.5:0.4,size:hitAny?16:10,col:hitAny?'255,170,90':'214,230,232'});
-        airLand.bombs.splice(_bi,1);
-      }
-    }
-    for(var _pj=airLand.parts.length-1;_pj>=0;_pj--){ var _pt=airLand.parts[_pj]; _pt.age+=dt; if(_pt.age>=_pt.max) airLand.parts.splice(_pj,1); }
-    for(var _fj=airLand.flashes.length-1;_fj>=0;_fj--){ airLand.flashes[_fj].age+=dt; if(airLand.flashes[_fj].age>=airLand.flashes[_fj].max) airLand.flashes.splice(_fj,1); }
-    if(tank.ground){ try { tank.ground.tick(dt); } catch(_e) {} }
-    var nl = airLandLead();
-    if(nl){ airLand.camX += (nl.x-airLand.camX)*Math.min(1,dt*5); airLand.camY += (nl.y-airLand.camY)*Math.min(1,dt*5); }
-    tank.shake = Math.max(0, (tank.shake||0)-dt*20);
-    if(airLand.shake>0) tank.shake = Math.min(12, tank.shake+airLand.shake*dt*8), airLand.shake = Math.max(0, airLand.shake-dt*10);
-    airLandHud();
-    var tanksLeft = airLand.tanks.some(function(t){ return !t.dead; }) || airLand.parked.some(function(p){ return !p.dead; });
-    var flyers = airLand.bombers.some(function(b){ return !b.dead && !b.egress; });
-    if(!tanksLeft || !flyers){
-      airLand.gameOver = true; airLand.result = airLand.kills>0?'success':'fail'; airLand.endTimer = 1.2;
-    }
-  }
-  function airLandHud(){
-    if(!airLand.active) return;
-    try {
-      var lead = airLandLead();
-      var alive = airLand.bombers.filter(function(b){ return !b.dead && !b.egress; }).length;
-      var tgtN = airLand.tanks.length + (airLand.parked||[]).length;
-      document.getElementById('tankHull').textContent = lead ? Math.round(clamp(lead.hp/lead.maxHp,0,1)*100)+'%' : '—';
-      var fill = document.getElementById('tankHpFill');
-      if(fill){
-        var fr = lead ? clamp(lead.hp/lead.maxHp,0,1) : 0;
-        fill.style.width = Math.round(fr*100)+'%';
-        fill.style.background = fr>0.5 ? '#7fae5a' : (fr>0.25 ? '#c99a3f' : '#b5493c');
-      }
-      document.getElementById('tankKills').textContent = airLand.kills+' / '+tgtN;
-      document.getElementById('tankReload').textContent = lead ? (lead.reload<=0 ? (lead.bombs>0 ? 'READY' : 'EMPTY') : lead.reload.toFixed(1)+'s') : '—';
-      var sn = document.getElementById('tankShellNote'); if(sn) sn.textContent = lead ? (lead.bombs+'×B') : '—';
-    } catch(_e) {}
-  }
-  function airLandShowOver(){
-    try {
-      var PT = window.PT;
-      var alive = airLand.bombers.filter(function(b){ return !b.dead; }).length;
-      var deadN = airLand.bombers.filter(function(b){ return b.dead; }).length;
-      airLand.bombers.forEach(function(b){
-        if(b.dead){ try { var pv = PT.airByUid(b.uid); if(pv) pv.destroyed = true; } catch(_e) {} }
-      });
-      var cleared = airLand.tanks.every(function(t){ return t.dead; }) && (airLand.parked||[]).every(function(p){ return p.dead; });
-      var payout = airLand.earn + (cleared ? AIR_WIN_PAY : 0);
-      try { PT.garage.money += payout; } catch(_e2) {}
-      try { PT.lastBattleLosses = airLand.lostCls.slice(); } catch(_e3) {}
-      document.getElementById('tankGameoverTitle').textContent = airLand.result==='success' ? 'AIR RAID COMPLETE' : 'WING LOST';
-      document.getElementById('tankFinalStats').textContent = 'Targets destroyed: '+airLand.kills+' / '+(airLand.tanks.length+(airLand.parked||[]).length)+' · Bombers lost: '+deadN+' · Bombers home: '+alive+' · Earned '+fmtMoney(payout)+' · Landed at '+T[airLand.landingId].name;
-      document.getElementById('tankGameoverOverlay').style.display = 'flex';
-      if(PT && PT.onBattleEnd) PT.onBattleEnd(airLand.result==='success');
-    } catch(_e) {}
-  }
-  function renderAirLand(tsec){
-    if(!airLand.active || !tankCtx) return;
-    var def = {color:'#6b7245', dark:'#4c5230'};
-    var cx = airLand.camX + tankPanX, cy = airLand.camY + tankPanY;
-    if(tank.ground){
-      var G3 = tank.ground;
-      var gpt = (function(){
-        var _cx = (0-cx)*tankZoom + tankW/2, _cy = (0-cy)*tankZoom + tankH/2;
-        return {x:_cx, y:_cy};
-      })();
-      // Ocean under the sheet when island ground runs to water (same as tank).
-      try { drawTankOcean(tsec, cx, cy); } catch(_e) {}
-      tankCtx.imageSmoothingEnabled = true;
-      try { tankCtx.drawImage(G3.base, gpt.x, gpt.y, TANK_WORLD.w*tankZoom, TANK_WORLD.h*tankZoom); } catch(_e2) {}
-    } else {
-      tankCtx.fillStyle = '#12303c'; tankCtx.fillRect(0,0,tankW,tankH);
-    }
-    function _s(wx, wy){
-      var sx = (wx-cx)*tankZoom + tankW/2, sy = (wy-cy)*tankZoom + tankH/2;
-      if(tank.shake>0.05){ sx += (Math.random()-0.5)*2*tank.shake; sy += (Math.random()-0.5)*2*tank.shake; }
-      return {x:sx, y:sy};
-    }
-    // Tanks (reuse tank hull drawing, simplified).
-    airLand.tanks.forEach(function(t){
-      if(t.dead && t.wreckT>6) return;
-      if(t.dead) t.wreckT = (t.wreckT||0)+0.016;
-      var p = _s(t.x, t.y);
-      if(p.x<-80||p.x>tankW+80||p.y<-80||p.y>tankH+80) return;
-      if(t.dead){
-        tankCtx.save(); tankCtx.translate(p.x,p.y); tankCtx.rotate(t.h); tankCtx.globalAlpha = 0.92;
-        tankCtx.fillStyle = '#1d1c18'; tankCtx.fillRect(-t.wid/2*tankZoom, -t.len/2*tankZoom, t.wid*tankZoom, t.len*tankZoom);
-        tankCtx.restore(); return;
-      }
-      tankCtx.save(); tankCtx.translate(p.x,p.y); tankCtx.rotate(t.h);
-      var s = tankZoom, len = t.len*s, wid = t.wid*s;
-      tankCtx.fillStyle = 'rgba(0,0,0,0.35)'; tankCtx.fillRect(-wid/2+2, -len/2+3, wid, len);
-      tankCtx.fillStyle = '#23231f';
-      tankCtx.fillRect(-wid/2, -len/2, wid*0.24, len); tankCtx.fillRect(wid*0.26, -len/2, wid*0.24, len);
-      tankCtx.fillStyle = t.tier.color || '#6b5a48';
-      tankCtx.fillRect(-wid*0.28, -len/2, wid*0.56, len);
-      tankCtx.restore();
-      if(!t.dead && t.hp<t.maxHp){
-        var fr = clamp(t.hp/t.maxHp,0,1);
-        tankCtx.fillStyle = 'rgba(8,12,10,0.7)'; tankCtx.fillRect(p.x-16, p.y-t.len/2*tankZoom-12, 32, 4);
-        tankCtx.fillStyle = fr>0.5 ? '#7fae5a' : '#b5493c'; tankCtx.fillRect(p.x-16, p.y-t.len/2*tankZoom-12, 32*fr, 4);
-      }
-    });
-    // Parked enemy wings (airfield strafing): static bombers on the ground.
-    (airLand.parked||[]).forEach(function(ap){
-      if(ap.dead) return;
-      var p = _s(ap.x, ap.y);
-      if(p.x<-60||p.x>tankW+60||p.y<-60||p.y>tankH+60) return;
-      var img = bomberArt(ap.cls), w = 30*tankZoom, h = w*0.7;
-      tankCtx.save(); tankCtx.translate(p.x,p.y); tankCtx.rotate(ap.h||0);
-      tankCtx.fillStyle = 'rgba(0,0,0,0.3)'; tankCtx.fillRect(-w/2+2, -h/2+3, w, h);
-      if(img) tankCtx.drawImage(img, -w/2, -h/2, w, h);
-      else { tankCtx.fillStyle = '#7a6a4a'; tankCtx.fillRect(-w/2,-h*0.16,w,h*0.32); }
-      tankCtx.restore();
-      if(ap.hp<ap.maxHp){
-        var fr = clamp(ap.hp/ap.maxHp,0,1);
-        tankCtx.fillStyle = 'rgba(8,12,10,0.7)'; tankCtx.fillRect(p.x-16, p.y-16, 32, 4);
-        tankCtx.fillStyle = fr>0.5 ? '#7fae5a' : '#b5493c'; tankCtx.fillRect(p.x-16, p.y-16, 32*fr, 4);
-      }
-    });
-    // Bombs falling (dot + closing shadow).
-    airLand.bombs.forEach(function(bm){
-      var p = _s(bm.x, bm.y), f = clamp(bm.t/bm.fall,0,1);
-      tankCtx.fillStyle = 'rgba(6,10,12,0.35)';
-      tankCtx.beginPath(); tankCtx.arc(p.x, p.y, Math.max(1,3.2*tankZoom*(0.5+f*0.5)), 0, Math.PI*2); tankCtx.fill();
-      tankCtx.fillStyle = '#1c2022';
-      tankCtx.beginPath(); tankCtx.arc(p.x, p.y-6*tankZoom*(1-f), Math.max(0.9,2.6*tankZoom*(1.5-f*0.6)), 0, Math.PI*2); tankCtx.fill();
-    });
-    // Bombers over everything.
-    airLand.bombers.forEach(function(b){
-      if(b.dead) return;
-      var p = _s(b.x, b.y);
-      if(p.x<-60||p.x>tankW+60||p.y<-60||p.y>tankH+60) return;
-      var img = bomberArt(b.classId), w = 30*tankZoom, h = w*0.7;
-      tankCtx.save(); tankCtx.translate(p.x,p.y); tankCtx.rotate(b.heading);
-      if(b.lead){
-        tankCtx.strokeStyle = 'rgba(255,206,92,0.9)'; tankCtx.lineWidth = 1.5;
-        tankCtx.beginPath(); tankCtx.arc(0,0,13*tankZoom,0,Math.PI*2); tankCtx.stroke();
-      }
-      if(img) tankCtx.drawImage(img, -w/2, -h/2, w, h);
-      else { tankCtx.fillStyle = '#8f9aa4'; tankCtx.fillRect(-w/2,-h*0.16,w,h*0.32); }
-      tankCtx.restore();
-      if(b.lead){
-        tankCtx.fillStyle = 'rgba(232,202,146,0.95)'; tankCtx.font='bold 11px Oswald, Arial'; tankCtx.textAlign='center';
-        tankCtx.fillText(b.bombs+'×BOMB', p.x, p.y-20*tankZoom);
-      }
-    });
-    if(tank.ground){
-      try {
-        var cpt = _s(0,0);
-        tankCtx.drawImage(tank.ground.canopy, cpt.x, cpt.y, TANK_WORLD.w*tankZoom, TANK_WORLD.h*tankZoom);
-      } catch(_e) {}
-    }
-    airLand.parts.forEach(function(pt){
-      var p = _s(pt.x, pt.y), a = 1-pt.age/pt.max;
-      tankCtx.fillStyle = 'rgba('+pt.col+','+Math.max(0,a).toFixed(2)+')';
-      tankCtx.beginPath(); tankCtx.arc(p.x, p.y, Math.max(0.5,pt.size*(1+pt.age)*tankZoom*0.5), 0, Math.PI*2); tankCtx.fill();
-    });
-    if(tankAimSX!==null && !airLand.gameOver){
-      tankCtx.strokeStyle = 'rgba(232,202,146,0.9)'; tankCtx.lineWidth = 1.4;
-      tankCtx.beginPath(); tankCtx.arc(tankAimSX, tankAimSY, 9, 0, Math.PI*2); tankCtx.stroke();
-    }
-  }
-  function airLandKey(e, down){
-    if(!airLand.active || airLand.gameOver) return false;
-    var k = e.key;
-    if(k==='w'||k==='W'||k==='ArrowUp') airLand.keys.w = down;
-    if(k==='s'||k==='S'||k==='ArrowDown') airLand.keys.s = down;
-    if(k==='a'||k==='A'||k==='ArrowLeft') airLand.keys.a = down;
-    if(k==='d'||k==='D'||k==='ArrowRight') airLand.keys.d = down;
-    if(e.code==='Space'){ if(down) airLandTryDrop(); }
-    return true;
-  }
-
   showScreen('menu');
 
   var lastT = null;
@@ -22255,27 +21249,16 @@ if (!en.sonarValid && en.formation){
     // That only applies to speeding up, though: for sub-1x settings we instead shrink dt
     // itself, which only makes each step finer and can't cause any skipping.
     var ts_ = state.timeScale || 1;
-    if (currentScreen==='tank' && typeof airLand!=='undefined' && airLand.active){
-      updateAirLand(dt);
-    } else if (currentScreen==='tank'){
+    if (currentScreen==='tank'){
       updateTank(dt);
-    } else if (currentScreen==='battle' && typeof airSea!=='undefined' && airSea.active){
-      updateAirSea(dt);
     } else if (ts_ <= 1){
       update(dt * ts_);
     } else {
       var steps = Math.max(1, Math.round(ts_));
       for (var s=0; s<steps; s++){ update(dt); }
     }
-    if (currentScreen==='battle' && typeof airSea!=='undefined' && airSea.active){
-      renderAirSea(ts/1000);
-    } else {
-      render(ts/1000);
-    }
-    if (currentScreen==='tank'){
-      if(typeof airLand!=='undefined' && airLand.active) renderAirLand(ts/1000);
-      else renderTank(ts/1000);
-    }
+    render(ts/1000);
+    if (currentScreen==='tank') renderTank(ts/1000);
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
@@ -25703,9 +24686,8 @@ function launchBattle(pu, terrId, fromId, extra){
     }
   }
   if(pu.kind==='air'){
-    // Air strikes: live bombing when the raid is pure (all ships or all
-    // tanks) and Live mode is on; otherwise the sim settles it instantly.
-    // The wing strikes, then lands where briefed (home or a friendly
+    // Air strikes are always resolved by the sim — there is no air battle
+    // screen. The wing strikes, then lands where briefed (home or a friendly
     // forward base) — never onto the target itself.
     var _foes = [];
     if(pending.defense && pending.attackerId){
@@ -25721,11 +24703,7 @@ function launchBattle(pu, terrId, fromId, extra){
         for(var _qi=0;_qi<(s.n||1);_qi++) _dl.push({kind:x.kind, cls:s.cls});
       });
     });
-    if(!_dl.length){
-      selMsg = 'No forces at '+T[terrId].name+' — nothing to bomb. Fleets must be at sea or in harbor; armor must hold the ground.';
-      try { AIR_STRIKE_PENDING = null; } catch(_e) {}
-      refreshAll(); return;
-    }
+    if(!_dl.length){ refreshAll(); return; }
     // Strike + landing cost: transit (if any) + 1 for the strike, +1 more when
     // landing somewhere other than where the strike was flown from / home.
     if(!pending.defense){
@@ -25747,33 +24725,6 @@ function launchBattle(pu, terrId, fromId, extra){
     }
     pending.branch = 'air';
     pending.simSpec = {branch:'air', airDivId:pu.ref, mission:{basePay:0, name:'Air strike'}, defenders:_dl};
-    // Live air-sea: pure ship defense, player attack, Live mode → fly it.
-    // Any throw falls back to the sim so the raid still starts.
-    var _liveSea = false;
-    try {
-      _liveSea = !pending.defense && BATTLE_MODE!=='sim' && _foes.length>0 &&
-        _foes.every(function(x){ return x.kind==='naval'; }) &&
-        typeof launchLiveAirSea==='function';
-    } catch(_e4) {}
-    if(_liveSea){
-      try {
-        if(launchLiveAirSea(pending, pu, _foes, pending.landingId||fromId, pending.transit||[], pending.origin||fromId)) return;
-      } catch(_eLiveSea) {}
-    }
-    // Live air-land: armor (+parked air) defense, player attack, Live → fly it.
-    // Parked wings are strafed on the ground; naval presence stays sim-only.
-    var _liveLand = false;
-    try {
-      _liveLand = !pending.defense && BATTLE_MODE!=='sim' && _foes.length>0 &&
-        _foes.every(function(x){ return x.kind==='armor' || x.kind==='air'; }) &&
-        _foes.some(function(x){ return x.kind==='armor'; }) &&
-        typeof launchLiveAirLand==='function';
-    } catch(_e5) {}
-    if(_liveLand){
-      try {
-        if(launchLiveAirLand(pending, pu, _foes, pending.landingId||fromId, pending.transit||[], pending.origin||fromId)) return;
-      } catch(_eLiveLand) {}
-    }
     runSimBattle(pending, pending.simSpec, pu);
     return;
   }
@@ -27548,22 +26499,7 @@ function confirmAirLanding(landingId){
     } catch(_e) {}
     try {
       var __n = document.getElementById('bpNote');
-      if(__n){
-        __n.textContent += ' Strike + landing costs '+cost+' of '+pu.mp+' use points — bombers finish at '+info.landingName+'.';
-        // Say upfront whether Fight flies live or sims (ships → sea live,
-        // armor (+parked air) → land live, else sim).
-        var _liveKind = null;
-        try {
-          var _ff = defendersAt('ALL', pend.targetId).filter(function(x){ return !x.mine; });
-          if(_ff.length && BATTLE_MODE!=='sim'){
-            if(_ff.every(function(x){ return x.kind==='naval'; })) _liveKind = 'sea';
-            else if(_ff.every(function(x){ return x.kind==='armor' || x.kind==='air'; }) && _ff.some(function(x){ return x.kind==='armor'; })) _liveKind = 'land';
-          }
-        } catch(_e3) {}
-        if(_liveKind==='sea') __n.textContent += ' Fight flies the air-sea raid live — WASD flies, Space/click drops.';
-        else if(_liveKind==='land') __n.textContent += ' Fight flies the air-land raid live — WASD flies, Space/click drops (parked wings strafed).';
-        else if(BATTLE_MODE!=='sim') __n.textContent += ' Naval-led/mixed defense — Fight resolves in the Simulate.';
-      }
+      if(__n) __n.textContent += ' Strike + landing costs '+cost+' of '+pu.mp+' use points — bombers finish at '+info.landingName+'.';
     } catch(_e2) {}
   };
   bpShow(info, function(){
