@@ -81,15 +81,9 @@ figcaption{font-size:clamp(.7rem,1.8vh,.95rem);padding:2px 0 1px;line-height:1}
 .diffrow span{font-size:.85rem;font-weight:700;min-width:76px;text-align:center;background:#fff8e6;border:2px solid #3b2414;border-radius:6px;padding:2px 8px}
 .difftips{margin:-2px 0 8px;font-size:.72rem;font-style:italic;opacity:.75;line-height:1.35}
 .lvlscroll{flex:1 1 auto;min-height:0;overflow-y:auto;width:100%;max-width:420px;margin:0 auto;padding:2px 6px 14px}
-.lvlmark{display:flex;flex-direction:column;align-items:stretch;gap:4px;flex:0 0 auto;width:100%;padding:5px;border-radius:8px;font-size:.62rem;font-weight:900;letter-spacing:.06em;color:#f3e4c2;background:#3b2414;text-align:center;position:relative}
-.lvlmark svg{width:100%;height:46px;display:block;border-radius:5px}
-.lvlmark.corral{background:#6e4420}
-.lvlmark.town{background:#4a2d1a}
-.lvlmark.graveyard{background:#241d33}
-.lvlmark.desert{background:#8a5a22}
-.lvlgrid{display:flex;flex-direction:column;gap:7px;position:relative;z-index:0}
-.lvlgrid::before{content:'';position:absolute;top:4px;bottom:4px;left:50%;width:3px;transform:translateX(-50%);z-index:-1;background:repeating-linear-gradient(#3b2414 0 7px,transparent 7px 14px);border-radius:2px}
-.lvl{align-self:center;flex:0 0 auto;width:66px;font-size:1.05rem;font-weight:900;padding:9px 0;background:#e8c24a;color:#3b2414}
+.mapwrap{position:relative;width:100%;margin:2px auto 0}
+.birdmap{display:block;width:100%;height:auto;border-radius:10px}
+.lvl{position:absolute;transform:translate(-50%,-50%);width:38px;height:38px;border-radius:50%;padding:0;font-size:1rem;font-weight:900;background:#e8c24a;color:#3b2414;border:3px solid #3b2414;box-shadow:0 2px 0 #3b2414;z-index:2}
 .lvl.v-town{background:#d2894f}
 .lvl.v-graveyard{background:#a99ccb}
 .lvl.v-opendesert{background:#f2d08a}
@@ -181,7 +175,7 @@ kbd{border:1px solid currentColor;border-radius:4px;padding:0 5px;font-size:.85e
 <body>
 <div class="screen" id="screen-menu">
 <h1 class="gametitle">STEADY</h1>
-<p class="sub">A cowboy quick-draw duel — clear level after level as the outlaw gets faster. Dress for it in the store!</p>
+<p class="sub">A cowboy quick-draw duel — climb 99 levels through town, corral and graveyard, then face the endless desert. Wins raise difficulty, losses ease it.</p>
 <div class="stage menustage bg-corral" id="stageMenu"><div class="ground single"></div><div class="duelist showcase"><canvas id="menuFront" width="24" height="40"></canvas></div></div>
 <div class="menubtns">
 <button id="btn-play">PLAY</button>
@@ -200,7 +194,7 @@ kbd{border:1px solid currentColor;border-radius:4px;padding:0 5px;font-size:.85e
 </div>
 <div class="screen hidden" id="screen-levels">
 <div class="topbar"><button id="btn-lvlmenu" class="small">Menu</button><span class="topbartitle">Duel Trail</span><button id="btn-lvlstore" class="small">Store</button></div>
-<p class="hint" id="lvlMsg">Clear duels to open the trail ahead.</p>
+<p class="hint" id="lvlMsg">Clear duels to open the trail ahead — town, corral, graveyard, then the endless desert.</p>
 <div class="lvlscroll" id="lvlScroll"></div>
 </div>
 <div class="screen hidden" id="screen-store">
@@ -317,8 +311,9 @@ function drawGunSpin(id,ph){
   function fistAt(fx,fy){ x.fillStyle=SKIN; x.fillRect(fx,fy,3,3); }
   // arm cloth follows the outfit so the raised arm always matches what he wears
   const coatBase=(COAT_COLORS[state.coatColor]||COAT_COLORS.tan);
-  let arm=(SHIRTS[state.shirt]||SHIRTS.cream); const cuff=(PANTS[state.pantsColor]||PANTS.blue).d;
+  let arm=(SHIRTS[state.shirt]||SHIRTS.cream);
   if(state.coatStyle==='overcoat'||state.coatStyle==='jacket'||state.coatStyle==='poncho'||state.coatStyle==='cape') arm=coatBase;
+  const cuff=shade(arm,0.72);
   function raisedArm(lift){
     x.clearRect(16,14,4,16);
     x.fillStyle='#4a2e1a'; x.fillRect(17,24,2,5); x.fillStyle='#2a1a10'; x.fillRect(17,28,2,1);
@@ -393,7 +388,7 @@ function lockDuelBtns(locked){
 }
 function bailDuel(){
   // walk away during the talking beats: kill the duel loop dead, reset the stage
-  duelGen++; firing=false; duelLocked=false; levelMode=false;
+  duelGen++; firing=false; duelLocked=false; levelMode=false; isDesert=false;
   outcome=null; aimPhase='idle'; doomMsg=null;
   lockDuelBtns(false); aimUi('idle');
   foeDown(false); foeHit(false);
@@ -412,12 +407,12 @@ function showScreen(name){
   else { resetSpin(); renderPreviews(); }
   if(name==='menu') menuSpinLoop();
 }
-document.getElementById('btn-play').addEventListener('click',()=>{ document.getElementById('lvlMsg').textContent='Clear duels to open the trail ahead.'; showScreen('levels'); });
+document.getElementById('btn-play').addEventListener('click',()=>{ document.getElementById('lvlMsg').textContent='Clear duels to open the trail ahead — town, corral, graveyard, then the endless desert.'; showScreen('levels'); });
 document.getElementById('btn-store').addEventListener('click',()=>showScreen('store'));
 document.getElementById('btn-gamemenu').addEventListener('click',()=>showScreen('menu'));
 document.getElementById('btn-gamestore').addEventListener('click',()=>showScreen('store'));
 document.getElementById('btn-storemenu').addEventListener('click',()=>showScreen('menu'));
-document.getElementById('btn-storeplay').addEventListener('click',()=>{ document.getElementById('lvlMsg').textContent='Clear duels to open the trail ahead.'; showScreen('levels'); });
+document.getElementById('btn-storeplay').addEventListener('click',()=>{ document.getElementById('lvlMsg').textContent='Clear duels to open the trail ahead — town, corral, graveyard, then the endless desert.'; showScreen('levels'); });
 document.getElementById('btn-lvlmenu').addEventListener('click',()=>showScreen('menu'));
 document.getElementById('btn-lvlstore').addEventListener('click',()=>showScreen('store'));
 
@@ -434,7 +429,9 @@ function drawFigure(id,back,pose,outfit){
   pose=pose||{dy:0,gun:'holster',flash:0};
   outfit=outfit||state;
   const cv=document.getElementById(id), x=cv.getContext('2d');
-  x.clearRect(0,0,24,40); x.save(); x.translate(0,pose.dy||0);
+  x.clearRect(0,0,24,40); x.save();
+  if(pose.mirror){ x.translate(24,0); x.scale(-1,1); }
+  x.translate(0,pose.dy||0);
   const r=(a,b,w,h,c)=>{if(c==null)return; x.fillStyle=c; x.fillRect(a,b,w,h);};
   const shirt=SHIRTS[outfit.shirt]||SHIRTS.cream;
   const pant=PANTS[outfit.pantsColor]||PANTS.blue;
@@ -460,15 +457,15 @@ function drawFigure(id,back,pose,outfit){
   if(outfit.shirtStyle==='plaid'){ r(10,17,1,9,shDark); r(13,17,1,9,shDark); r(8,19,8,1,shDark); r(8,22,8,1,shDark); }
   else if(outfit.shirtStyle==='striped'){ r(10,17,1,9,shLite); r(13,17,1,9,shLite); }
   else if(outfit.shirtStyle==='yoke'){ r(8,17,8,2,shDark); r(10,19,1,1,'#e8c24a'); r(13,19,1,1,'#e8c24a'); }
-  r(5,17,3,9,shirt); r(5,25,3,1,pant.d); r(5,26,3,3,SKIN);
-  if(drawP<=0){ r(16,17,3,9,shirt); r(16,25,3,1,pant.d); r(16,26,3,3,SKIN); }
+  r(5,17,3,9,shirt); r(5,25,3,1,shDark); r(5,26,3,3,SKIN);
+  if(drawP<=0){ r(16,17,3,9,shirt); r(16,25,3,1,shDark); r(16,26,3,3,SKIN); }
   else if(drawP>=1){
     const hy = pose.gun==='fire' ? 22 : 23;
     if(pose.flipGun){ r(4,17,4,4,shirt); r(3,20,3,3,shirt); r(2,hy,3,3,SKIN); }
     else { r(16,17,4,4,shirt); r(18,20,3,3,shirt); r(19,hy,3,3,SKIN); }
   }
-  else if(drawP<0.75){ r(16,17,3,9,shirt); r(16,25,3,1,pant.d); r(16,26,3,3,SKIN); r(hx,drawP<0.5?24:23,2,2,SKIN); }
-  else { r(16,17,3,9,shirt); r(16,25,3,1,pant.d); r(16,26,3,3,SKIN);
+  else if(drawP<0.75){ r(16,17,3,9,shirt); r(16,25,3,1,shDark); r(16,26,3,3,SKIN); r(hx,drawP<0.5?24:23,2,2,SKIN); }
+  else { r(16,17,3,9,shirt); r(16,25,3,1,shDark); r(16,26,3,3,SKIN);
     if(pose.flipGun){ r(4,17,4,4,shirt); r(3,20,3,3,shirt); r(3,22,3,2,SKIN); }
     else { r(16,17,4,4,shirt); r(18,20,3,3,shirt); r(18,22,3,2,SKIN); } }
 
@@ -595,7 +592,7 @@ function drawFigure(id,back,pose,outfit){
   x.restore();
 }
 function drawCowboy(id,back,pose){ drawFigure(id,back,pose,state); }
-function drawFoes(){ document.getElementById('foeF').style.transform=''; drawFigure('foeF',false,{dy:0,gun:'holster',flash:0},foeState); }
+function drawFoes(){ document.getElementById('foeF').style.transform=''; drawFigure('foeF',false,{dy:0,gun:'holster',flash:0,mirror:true},foeState); }
 const FOE_PRESETS=[
  {hatStyle:'outlaw',hatColor:'black',face:'scar',shirtStyle:'plain',shirt:'black',vestStyle:'standard',vestColor:'black',coatStyle:'none',coatColor:'tan',bandana:'black',bandanaStyle:'classic',pantsStyle:'plain',pantsColor:'black',bootsStyle:'plain',boots:'black'},
  {hatStyle:'sombrero',hatColor:'red',face:'mustache',shirtStyle:'plain',shirt:'white',vestStyle:'standard',vestColor:'red',coatStyle:'none',coatColor:'tan',bandana:'red',bandanaStyle:'mask',pantsStyle:'plain',pantsColor:'brown',bootsStyle:'spur',boots:'brown'},
@@ -668,58 +665,233 @@ function hideTarget(){ const t=document.getElementById('targetF'); t.classList.r
 /* aim tracking: cursor position over the duel stage */
 const stageEl=document.getElementById('stageF');
 const aim={x:0.5,y:0.5,active:false};
-let outcome=null, outT0=0, aimPhase='idle', doomMsg=null;
+let outcome=null, outT0=0, aimPhase='idle', doomMsg=null, hotNow=false;
 /* per-round ring odds: size, path, and pace re-rolled every duel */
 let ring={size:11,sx:0.45,sy:0.52,ex:0.82,ey:0.44,shrinkMs:1400,trackMs:2200,startW:30};
 let difficulty=50, promptTimeout=1600;
-let level=1, levelMode=false, baseDiff=50;
-function levelDiff(lv){ return Math.min(200, baseDiff+(lv-1)*5); }
+let level=1, levelMode=false, isDesert=false, desertDepth=1;
+try{ desertDepth=Math.max(1,+(localStorage.getItem('steadyDesert')||1)); }catch(e){}
 function unlocked(){
-  try{ return Math.max(1,Math.min(40,+(localStorage.getItem('steadyUnlock')||1))); }catch(e){ return 1; }
+  try{ return Math.max(1,Math.min(100,+(localStorage.getItem('steadyUnlock')||1))); }catch(e){ return 1; }
+}
+function desertBest(){
+  try{ return Math.max(0,+(localStorage.getItem('steadyDesertBest')||0)); }catch(e){ return 0; }
 }
 function saveBest(lv){
   try{
     const b=Math.max(lv,+(localStorage.getItem('steadyBest')||0)); localStorage.setItem('steadyBest',b);
-    if(lv<40) localStorage.setItem('steadyUnlock',Math.max(unlocked(),lv+1));
+    if(lv<100) localStorage.setItem('steadyUnlock',Math.max(unlocked(),Math.min(100,lv+1)));
   }catch(e){}
 }
-const MAPSCENES={
-corral:'<svg viewBox="0 0 120 36" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="120" height="36" fill="#9ecfee"/><circle cx="104" cy="7" r="5" fill="#ffe9a3"/><rect y="24" width="120" height="12" fill="#c99a5b"/><rect x="0" y="18" width="120" height="2" fill="#7a4a26"/><rect x="0" y="22" width="120" height="2" fill="#7a4a26"/><rect x="6" y="14" width="3" height="14" fill="#5e3a1e"/><rect x="34" y="14" width="3" height="14" fill="#5e3a1e"/><rect x="62" y="14" width="3" height="14" fill="#5e3a1e"/><rect x="90" y="14" width="3" height="14" fill="#5e3a1e"/><rect x="20" y="24" width="2" height="6" fill="#7a4a26"/><rect x="22" y="24" width="16" height="7" fill="#f4efe2"/><rect x="26" y="25" width="4" height="3" fill="#3b2a1a"/><rect x="32" y="28" width="3" height="2" fill="#3b2a1a"/><rect x="23" y="30" width="2" height="5" fill="#3b2a1a"/><rect x="28" y="30" width="2" height="5" fill="#3b2a1a"/><rect x="33" y="30" width="2" height="5" fill="#3b2a1a"/><rect x="36" y="21" width="6" height="6" fill="#f4efe2"/><rect x="36" y="19" width="2" height="2" fill="#e8dcc0"/><rect x="40" y="19" width="2" height="2" fill="#e8dcc0"/><rect x="76" y="24" width="15" height="7" fill="#7a4a26"/><rect x="70" y="21" width="6" height="6" fill="#7a4a26"/><rect x="70" y="19" width="2" height="2" fill="#e8dcc0"/><rect x="74" y="19" width="2" height="2" fill="#e8dcc0"/><rect x="77" y="30" width="2" height="5" fill="#3b2414"/><rect x="82" y="30" width="2" height="5" fill="#3b2414"/><rect x="87" y="30" width="2" height="5" fill="#3b2414"/><rect x="50" y="31" width="3" height="3" fill="#5e8a3a"/><rect x="100" y="31" width="3" height="3" fill="#5e8a3a"/></svg>',
-town:'<svg viewBox="0 0 120 36" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="120" height="36" fill="#e6b96e"/><circle cx="18" cy="6" r="4" fill="#fff3c8"/><rect y="26" width="120" height="10" fill="#a5753f"/><rect y="24" width="120" height="2" fill="#8a5a2e"/><rect x="4" y="10" width="30" height="16" fill="#8a5a3a"/><rect x="2" y="8" width="34" height="3" fill="#5e3a22"/><rect x="10" y="4" width="18" height="4" fill="#e8c24a"/><rect x="16" y="18" width="6" height="8" fill="#3b2414"/><rect x="7" y="14" width="5" height="5" fill="#ffe9a3"/><rect x="26" y="14" width="5" height="5" fill="#ffe9a3"/><rect x="38" y="12" width="24" height="14" fill="#7d7468"/><rect x="37" y="10" width="26" height="3" fill="#5a5348"/><rect x="41" y="14" width="3" height="12" fill="#5a5348"/><rect x="56" y="14" width="3" height="12" fill="#5a5348"/><rect x="46" y="18" width="8" height="8" fill="#3b2414"/><rect x="66" y="6" width="36" height="20" fill="#9a6a42"/><rect x="66" y="14" width="36" height="2" fill="#5e3a22"/><rect x="70" y="9" width="5" height="4" fill="#ffe9a3"/><rect x="79" y="9" width="5" height="4" fill="#ffe9a3"/><rect x="88" y="9" width="5" height="4" fill="#ffe9a3"/><rect x="70" y="18" width="5" height="5" fill="#ffe9a3"/><rect x="79" y="18" width="5" height="5" fill="#ffe9a3"/><rect x="88" y="18" width="5" height="5" fill="#3b2414"/><rect x="106" y="8" width="10" height="8" fill="#7a5a3a"/><rect x="105" y="6" width="12" height="2" fill="#5e3a22"/><rect x="107" y="16" width="2" height="10" fill="#5e3a22"/><rect x="113" y="16" width="2" height="10" fill="#5e3a22"/></svg>',
-graveyard:'<svg viewBox="0 0 120 36" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="120" height="36" fill="#141021"/><rect x="48" y="4" width="1.5" height="1.5" fill="#cfd6ff"/><rect x="70" y="8" width="1.5" height="1.5" fill="#cfd6ff"/><rect x="90" y="3" width="1.5" height="1.5" fill="#cfd6ff"/><rect x="108" y="10" width="1.5" height="1.5" fill="#cfd6ff"/><rect x="58" y="14" width="1.5" height="1.5" fill="#cfd6ff"/><circle cx="20" cy="9" r="9" fill="#e8e4c8" opacity="0.25"/><circle cx="20" cy="9" r="6" fill="#e8e4c8"/><rect x="18" y="7" width="2" height="2" fill="#c9c49a"/><rect x="22" y="10" width="1.5" height="1.5" fill="#c9c49a"/><rect y="25" width="120" height="11" fill="#241d33"/><rect x="0" y="19" width="120" height="1.5" fill="#0c0916"/><rect x="5" y="15" width="2" height="9" fill="#0c0916"/><rect x="30" y="15" width="2" height="9" fill="#0c0916"/><rect x="55" y="15" width="2" height="9" fill="#0c0916"/><rect x="80" y="15" width="2" height="9" fill="#0c0916"/><rect x="105" y="15" width="2" height="9" fill="#0c0916"/><rect x="40" y="18" width="7" height="8" fill="#8f86a8"/><circle cx="43.5" cy="18" r="3.5" fill="#8f86a8"/><rect x="42" y="20" width="1.5" height="4" fill="#5a5370"/><rect x="62" y="20" width="6" height="6" fill="#8f86a8"/><circle cx="65" cy="20" r="3" fill="#8f86a8"/><rect x="98" y="14" width="2" height="12" fill="#6e6488"/><rect x="94" y="17" width="10" height="2" fill="#6e6488"/><rect x="8" y="12" width="3" height="14" fill="#0c0916"/><rect x="8" y="12" width="8" height="2" fill="#0c0916" transform="rotate(-25 8 12)"/><rect y="22" width="120" height="4" fill="#8f86a8" opacity="0.35"/></svg>',
-opendesert:'<svg viewBox="0 0 120 36" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="120" height="20" fill="#f2c063"/><rect y="20" width="120" height="16" fill="#e8a94e"/><circle cx="60" cy="15" r="9" fill="#ffdf5a"/><rect x="0" y="10" width="30" height="16" fill="#a5552e"/><rect x="0" y="10" width="30" height="3" fill="#c06a3a"/><rect x="92" y="14" width="28" height="12" fill="#a5552e"/><rect x="92" y="14" width="28" height="3" fill="#c06a3a"/><rect y="26" width="120" height="10" fill="#d99a4e"/><rect x="14" y="29" width="12" height="1.5" fill="#b57a38"/><rect x="40" y="32" width="14" height="1.5" fill="#b57a38"/><rect x="90" y="32" width="12" height="1.5" fill="#b57a38"/><rect x="44" y="14" width="4" height="12" fill="#4e7d3a"/><rect x="40" y="17" width="4" height="2" fill="#4e7d3a"/><rect x="40" y="15" width="2" height="4" fill="#4e7d3a"/><rect x="48" y="19" width="4" height="2" fill="#4e7d3a"/><rect x="50" y="17" width="2" height="4" fill="#4e7d3a"/><rect x="76" y="19" width="3" height="7" fill="#4e7d3a"/><rect x="80" y="28" width="5" height="4" fill="#efe8d2"/><rect x="81" y="29" width="1.5" height="1.5" fill="#3b2a1a"/><rect x="83.5" y="29" width="1.5" height="1.5" fill="#3b2a1a"/><circle cx="102" cy="29" r="3" fill="none" stroke="#8a5a2e" stroke-width="1"/><rect x="99" y="29" width="6" height="1" fill="#8a5a2e"/></svg>'};
+const REGIONS=['town','corral','graveyard'];
+function levelMap(lv){ return REGIONS[Math.min(2,Math.floor((lv-1)/33))]; }
+const MAPW=400, MAPH=3480;
+const MAPBASE={corral:'#79a24e',town:'#c49a5f',graveyard:'#5f6e58',opendesert:'#e0aa5e'};
+function trailXY(i){
+  const t=i/98;
+  return [Math.round((MAPW/2+Math.sin(t*Math.PI*9)*70)*10)/10, Math.round((MAPH-170-t*(MAPH-340))*10)/10];
+}
+function trailD(){
+  let d='';
+  for(let s=0;s<=320;s++){ const p=trailXY(s/320*98); d+=(s?'L':'M')+p[0]+' '+p[1]; }
+  return d;
+}
+function prng(seed){ return function(){ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; }; }
+function edgeDots(r,n,c,rad,yT,yB){
+  let s='';
+  for(let k=0;k<n;k++){ const x=r()<0.5?10+r()*88:302+r()*88; s+='<circle cx="'+x.toFixed(1)+'" cy="'+(yT+10+r()*(yB-yT-20)).toFixed(1)+'" r="'+rad+'" fill="'+c+'"/>'; }
+  return s;
+}
+const steer=(x,y,c,sp)=>'<ellipse cx="'+x+'" cy="'+y+'" rx="15" ry="8" fill="'+c+'"/><circle cx="'+(x+15)+'" cy="'+(y-4)+'" r="5.5" fill="'+c+'"/>'+(sp?'<circle cx="'+(x-6)+'" cy="'+(y-1)+'" r="3" fill="#00000033"/>':'');
+const pine=(x,y,rad)=>'<circle cx="'+x+'" cy="'+y+'" r="'+rad+'" fill="#3f6e34"/><circle cx="'+(x-rad*0.35)+'" cy="'+(y-rad*0.3)+'" r="'+(rad*0.55).toFixed(1)+'" fill="#4e7d3a"/>';
+const rockE=(x,y,rad,c)=>'<ellipse cx="'+x+'" cy="'+y+'" rx="'+rad+'" ry="'+(rad*0.7).toFixed(1)+'" fill="'+(c||'#8d8d94')+'"/>';
+const crossS=(x,y,c)=>'<rect x="'+(x-1.5)+'" y="'+(y-8)+'" width="3" height="16" fill="'+c+'"/><rect x="'+(x-6)+'" y="'+(y-4)+'" width="12" height="3" fill="'+c+'"/>';
+const cactusS=(x,y,h)=>'<rect x="'+(x-3)+'" y="'+(y-h)+'" width="6" height="'+h+'" fill="#4e7d3a"/><rect x="'+(x-12)+'" y="'+(y-h+6)+'" width="9" height="4" fill="#4e7d3a"/><rect x="'+(x-12)+'" y="'+(y-h+2)+'" width="4" height="8" fill="#4e7d3a"/><rect x="'+(x+3)+'" y="'+(y-h+10)+'" width="9" height="4" fill="#4e7d3a"/><rect x="'+(x+8)+'" y="'+(y-h+6)+'" width="4" height="8" fill="#4e7d3a"/>';
+const roofS=(x,y,w,h,c,side)=>'<rect x="'+(x-w/2)+'" y="'+(y-h/2)+'" width="'+w+'" height="'+h+'" fill="'+c+'" stroke="#3b2414" stroke-width="2.5"/><rect x="'+(x-w/2+9)+'" y="'+(y-h/2+9)+'" width="'+(w-18)+'" height="'+(h-18)+'" fill="none" stroke="#3b2414" stroke-width="1.5" opacity="0.55"/>'+(side==='E'?'<rect x="'+(x+w/2-10)+'" y="'+(y-7)+'" width="10" height="14" fill="#3b2414"/>':'<rect x="'+(x-w/2)+'" y="'+(y-7)+'" width="10" height="14" fill="#3b2414"/>');
+const churchS=(x,y)=>'<rect x="'+(x-29)+'" y="'+(y-21)+'" width="58" height="42" fill="#e8e0cc" stroke="#3b2414" stroke-width="2.5"/><rect x="'+(x-9)+'" y="'+(y-35)+'" width="18" height="16" fill="#e8e0cc" stroke="#3b2414" stroke-width="2.5"/>'+crossS(x,y-39,'#3b2414');
+const cabinS=(x,y,w,c,side)=>'<rect x="'+(x-w/2)+'" y="'+(y-19)+'" width="'+w+'" height="38" fill="'+c+'" stroke="#3b2414" stroke-width="2.5"/>'+(side==='E'?'<rect x="'+(x+w/2-10)+'" y="'+(y-7)+'" width="10" height="14" fill="#3b2414"/>':'<rect x="'+(x-w/2)+'" y="'+(y-7)+'" width="10" height="14" fill="#3b2414"/>');
+const wagonS=(x,y)=>'<rect x="'+(x-13)+'" y="'+(y-6)+'" width="26" height="12" fill="#7a4a26"/><circle cx="'+(x-7)+'" cy="'+(y+9)+'" r="5" fill="#2e2620"/><circle cx="'+(x+7)+'" cy="'+(y+9)+'" r="5" fill="#2e2620"/><rect x="'+(x+15)+'" y="'+(y-6)+'" width="12" height="12" fill="#a5763a" stroke="#3b2414" stroke-width="1.5"/>';
+const wellS=(x,y)=>'<circle cx="'+x+'" cy="'+y+'" r="10" fill="#8d8d94" stroke="#3b2414" stroke-width="2"/><circle cx="'+x+'" cy="'+y+'" r="6" fill="#7d9ab5"/>';
+const barnS=(x,y)=>'<rect x="'+(x-13)+'" y="'+(y-10)+'" width="26" height="20" fill="#8a5a3a" stroke="#3b2414" stroke-width="2.5"/><rect x="'+(x-13)+'" y="'+(y-14)+'" width="26" height="5" fill="#5e3a22"/>';
+const paddockS=(x,y)=>'<rect x="'+(x-64)+'" y="'+(y-55)+'" width="128" height="110" fill="none" stroke="#7a4a26" stroke-width="4"/><rect x="'+(x-64)+'" y="'+(y-1.5)+'" width="128" height="3" fill="#7a4a26"/>'+steer(x-14,y+24,'#f4efe2',true)+steer(x+22,y-24,'#7a4a26',false);
+const troughS=(x,y)=>'<rect x="'+(x-17)+'" y="'+(y-6)+'" width="34" height="12" fill="#7d9ab5" stroke="#5e3a1e" stroke-width="2.5"/>';
+const hayS=(x,y)=>'<circle cx="'+x+'" cy="'+y+'" r="12" fill="#d9a94e" stroke="#a5753f" stroke-width="2"/><circle cx="'+x+'" cy="'+y+'" r="6" fill="none" stroke="#a5753f" stroke-width="1.5"/>';
+const dirtS=(x,y)=>'<ellipse cx="'+x+'" cy="'+y+'" rx="26" ry="11" fill="#b08a52"/>';
+const cryptS=(x,y)=>'<rect x="'+(x-36)+'" y="'+(y-24)+'" width="72" height="48" fill="#7d7a8c" stroke="#3b2414" stroke-width="2.5"/><rect x="'+(x-28)+'" y="'+(y-16)+'" width="56" height="32" fill="none" stroke="#3b2414" stroke-width="1.5" opacity="0.6"/><rect x="'+(x-8)+'" y="'+y+'" width="16" height="24" fill="#2e2a3a"/>';
+const obeliskS=(x,y)=>'<rect x="'+(x-5)+'" y="'+(y-16)+'" width="10" height="32" fill="#8f86a8" stroke="#3b2414" stroke-width="1.5"/><polygon points="'+(x-5)+','+(y-16)+' '+(x+5)+','+(y-16)+' '+x+','+(y-24)+'" fill="#8f86a8" stroke="#3b2414" stroke-width="1.5"/>';
+const famPlotS=(x,y)=>'<rect x="'+(x-50)+'" y="'+(y-20)+'" width="100" height="40" fill="none" stroke="#2e2620" stroke-width="2.5"/>'+crossS(x-25,y,'#6e6488')+crossS(x,y+2,'#6e6488')+crossS(x+25,y,'#6e6488');
+const plotPairS=(x,y)=>'<ellipse cx="'+x+'" cy="'+(y+8)+'" rx="14" ry="9" fill="#42503c"/><ellipse cx="'+(x+34)+'" cy="'+(y+8)+'" rx="14" ry="9" fill="#42503c"/><rect x="'+(x-8)+'" y="'+(y-12)+'" width="16" height="11" fill="#b9b3c9" stroke="#3b2414" stroke-width="1.5"/><rect x="'+(x+26)+'" y="'+(y-12)+'" width="16" height="11" fill="#b9b3c9" stroke="#3b2414" stroke-width="1.5"/>';
+const deadTreeS=(x,y)=>'<rect x="'+(x-3)+'" y="'+(y-28)+'" width="6" height="56" fill="#2e2620"/><path d="M'+x+' '+(y-16)+' L'+(x-19)+' '+(y-36)+' M'+x+' '+(y-6)+' L'+(x+19)+' '+(y-24)+'" stroke="#2e2620" stroke-width="3" fill="none"/>';
+const crossTrioS=(x,y,c)=>crossS(x-18,y,c)+crossS(x,y-3,c)+crossS(x+18,y,c);
+const crowS=(x,y)=>'<ellipse cx="'+x+'" cy="'+y+'" rx="4" ry="2.5" fill="#141021"/>';
+const bushS=(x,y)=>'<circle cx="'+x+'" cy="'+y+'" r="5.5" fill="#3d4a38"/>';
+const mesaS=(x,y,rx)=>'<ellipse cx="'+x+'" cy="'+y+'" rx="'+rx+'" ry="'+(rx*0.34).toFixed(1)+'" fill="#a5552e"/><ellipse cx="'+x+'" cy="'+(y-rx*0.18).toFixed(1)+'" rx="'+rx+'" ry="'+(rx*0.15).toFixed(1)+'" fill="#c06a3a"/>';
+const skullS=(x,y)=>'<circle cx="'+x+'" cy="'+y+'" r="7" fill="#efe8d2"/><rect x="'+(x-4)+'" y="'+(y+3)+'" width="8" height="5" fill="#efe8d2"/><rect x="'+(x-3)+'" y="'+(y-2)+'" width="2.5" height="2.5" fill="#3b2a1a"/><rect x="'+(x+1.5)+'" y="'+(y-2)+'" width="2.5" height="2.5" fill="#3b2a1a"/>';
+const bonesS=(x,y)=>'<g transform="translate('+x+','+y+') rotate(30)"><rect x="-12" y="-2.5" width="24" height="5" fill="#efe8d2"/><circle cx="-12" cy="0" r="4" fill="#efe8d2"/><circle cx="12" cy="0" r="4" fill="#efe8d2"/></g>';
+const tumbleS=(x,y)=>'<circle cx="'+x+'" cy="'+y+'" r="8" fill="none" stroke="#8a5a2e" stroke-width="1.5"/><rect x="'+(x-8)+'" y="'+y+'" width="16" height="1.5" fill="#8a5a2e"/>';
+const pondS=(x,y)=>'<ellipse cx="'+x+'" cy="'+y+'" rx="32" ry="17" fill="#c98f4e"/><ellipse cx="'+x+'" cy="'+y+'" rx="23" ry="12" fill="#7d9ab5"/><ellipse cx="'+(x-7)+'" cy="'+(y-3)+'" rx="8" ry="3.5" fill="#a8c8dd"/>';
+const palmS=(x,y)=>'<g transform="translate('+x+','+y+')"><ellipse rx="11" ry="4" fill="#4e7d3a"/><ellipse rx="11" ry="4" fill="#4e7d3a" transform="rotate(60)"/><ellipse rx="11" ry="4" fill="#4e7d3a" transform="rotate(120)"/><circle r="3.5" fill="#5e3a1e"/></g>';
+const REGION_PROPS={
+corral:[{x0:80,x1:80,f:paddockS},{x0:300,x1:314,f:barnS},{x0:325,x1:350,f:(x,y)=>steer(x,y,'#3b2a1a',false)},{x0:50,x1:80,f:(x,y)=>steer(x,y,'#e8dcc0',true)},{x0:315,x1:340,f:troughS},{x0:320,x1:350,f:(x,y)=>steer(x,y,'#8a5a3a',false)},{x0:45,x1:70,f:hayS},{x0:50,x1:76,f:dirtS}],
+graveyard:[{x0:300,x1:330,f:cryptS},{x0:36,x1:50,f:obeliskS},{x0:45,x1:60,f:plotPairS},{x0:330,x1:355,f:deadTreeS},{x0:60,x1:80,f:famPlotS},{x0:320,x1:350,f:(x,y)=>crossTrioS(x,y,'#6e6488')},{x0:315,x1:335,f:plotPairS},{x0:45,x1:70,f:deadTreeS},{x0:315,x1:335,f:(x,y)=>crossTrioS(x,y,'#5a4a3a')}]};
+function townProps(yT,yB,seed){
+  const r=prng(seed);
+  const cols=['#8a5a3a','#6e452c','#9a6a42','#7d7468','#a5753f','#5e3a22'];
+  let s=edgeDots(r,26,'#a5753f',2.1,yT,yB);
+  const yA=yT+150, yB2=yB-140;
+  const n=Math.max(6,Math.floor((yB2-yA)/92)), H=(yB2-yA)/n;
+  let ci=Math.floor(r()*cols.length), left=r()<0.5;
+  for(let i=0;i<n;i++){
+    const w=Math.round(58+r()*22), h=Math.round(40+r()*16);
+    const x=Math.round(left?20+w/2+r()*4:380-w/2-r()*4);
+    const y=Math.round(yA+H*(i+0.5)+(r()-0.5)*H*0.2);
+    ci=(ci+1+Math.floor(r()*(cols.length-1)))%cols.length;
+    const side=left?'E':'W';
+    s+=i%3===2?cabinS(x,y,w,cols[ci],side):roofS(x,y,w,h,cols[ci],side);
+    left=!left;
+  }
+  s+=churchS(64,Math.round(yT+70))+wellS(336,Math.round(yB-60))+wagonS(62,Math.round(yB-100));
+  for(let k=0;k<6;k++){ const lf=r()<0.5; s+=pine(Math.round(lf?14+r()*50:336+r()*50),Math.round(yT+20+r()*(yB-yT-40)),Math.round(8+r()*4)); }
+  return s;
+}
+function regionProps(ground,yT,yB,seed){
+  const defs=REGION_PROPS[ground], r=prng(seed);
+  const dots={corral:'#5d8439',graveyard:'#4a5a44'}[ground];
+  let s=edgeDots(r,26,dots,2.1,yT,yB);
+  const yA=yT+60, yB2=yB-60;
+  const n=defs.length, H=(yB2-yA)/n;
+  defs.forEach((pd,i)=>{
+    const y=Math.round(yA+H*(i+0.5)+(r()-0.5)*H*0.3);
+    const x=Math.round(pd.x0+r()*(pd.x1-pd.x0));
+    s+=pd.f(x,y);
+  });
+  for(let k=0;k<5;k++){
+    const left=r()<0.5, x=Math.round(left?14+r()*60:326+r()*60), y=Math.round(yT+20+r()*(yB-yT-40));
+    s+=ground==='graveyard'?bushS(x,y):pine(x,y,Math.round(8+r()*4));
+  }
+  if(ground==='graveyard'){ for(let k=0;k<3;k++){ const left=r()<0.5; s+=crowS(Math.round(left?30+r()*60:310+r()*60),Math.round(yT+20+r()*(yB-yT-40))); } }
+  return s;
+}
+function desertProps(){
+  let s=edgeDots(prng(99),12,'#c98f4e',2,24,120);
+  s+=mesaS(70,96,40)+mesaS(322,56,54);
+  s+=cactusS(40,78,26)+cactusS(362,66,22);
+  s+=skullS(200,102)+bonesS(352,95);
+  s+=rockE(180,40,8)+rockE(244,100,6,'#7a7a82');
+  s+=tumbleS(48,55);
+  s+=pondS(340,72)+palmS(304,94);
+  return s;
+}
+function trailXatY(y){
+  const t=(MAPH-170-y)/(MAPH-340);
+  return MAPW/2+Math.sin(t*Math.PI*9)*70;
+}
+function palisade(x0,x1,yT,yB,kind,gt,gb){
+  const stone=kind==='stone';
+  const post=(x,y,w,c)=>'<rect x="'+(x-w/2)+'" y="'+(y-w/2)+'" width="'+w+'" height="'+w+'" fill="'+(c||'#3b2414')+'"/>';
+  const rail=stone?'#8d8d94':'#7a4a26', edge=stone?'#5a5a62':'#7a4a26', ww=stone?10:4;
+  let s='';
+  if(stone){
+    s+='<rect x="'+(x0-5)+'" y="'+yT+'" width="10" height="'+(yB-yT)+'" fill="'+rail+'" stroke="'+edge+'" stroke-width="2"/>';
+    s+='<rect x="'+(x1-5)+'" y="'+yT+'" width="10" height="'+(yB-yT)+'" fill="'+rail+'" stroke="'+edge+'" stroke-width="2"/>';
+    for(let y=yT+16;y<yB;y+=46){
+      s+='<rect x="'+(x0-7)+'" y="'+(y-3)+'" width="14" height="6" fill="#a8a8b0" stroke="'+edge+'" stroke-width="1"/>';
+      s+='<rect x="'+(x1-7)+'" y="'+(y-3)+'" width="14" height="6" fill="#a8a8b0" stroke="'+edge+'" stroke-width="1"/>';
+    }
+  } else {
+    const railV=(x)=>{ let r='<rect x="'+(x-2)+'" y="'+yT+'" width="4" height="'+(yB-yT)+'" fill="'+rail+'"/>'; for(let y=yT+12;y<yB;y+=38){ r+=post(x,y,8); } return r; };
+    s+=railV(x0)+railV(x1);
+  }
+  const hbar=(y,gx)=>{
+    let r='<rect x="'+x0+'" y="'+(y-ww/2)+'" width="'+(gx-28-x0)+'" height="'+ww+'" fill="'+rail+'"'+(stone?' stroke="'+edge+'" stroke-width="2"/>':'/>');
+    r+='<rect x="'+(gx+28)+'" y="'+(y-ww/2)+'" width="'+(x1-gx-28)+'" height="'+ww+'" fill="'+rail+'"'+(stone?' stroke="'+edge+'" stroke-width="2"/>':'/>');
+    r+=post(gx-28,y,stone?12:8,stone?'#6e6e76':null)+post(gx+28,y,stone?12:8,stone?'#6e6e76':null);
+    if(!stone) r+='<rect x="'+(gx-28)+'" y="'+(y-14)+'" width="56" height="4" fill="#5e3a1e"/>';
+    return r;
+  };
+  s+=hbar(yT+6,gt)+hbar(yB-6,gb);
+  s+=post(x0,yT,stone?10:8)+post(x1,yT,stone?10:8)+post(x0,yB,stone?10:8)+post(x1,yB,stone?10:8);
+  return s;
+}
+const mapLabel=(x,y,txt,fs)=>'<text x="'+x+'" y="'+y+'" text-anchor="middle" dominant-baseline="middle" font-size="'+fs+'" font-weight="900" letter-spacing="2" font-family="Georgia,serif" fill="#fff8e6" stroke="#00000077" stroke-width="4" paint-order="stroke">'+txt+'</text>';
+function mapDecor(ground,r,yT,yB,g){
+  if(ground==='opendesert') return desertProps();
+  return regionProps(ground,yT,yB,g*1000+7);
+}
 function buildLevels(){
   const box=document.getElementById('lvlScroll'); box.innerHTML='';
-  const sd=document.getElementById('s-diff'); if(sd) sd.value=baseDiff;
-  difficulty=baseDiff; diffLabel();
+  const sd=document.getElementById('s-diff'); if(sd) sd.value=difficulty;
+  diffLabel();
   const unl=unlocked();
-  const grid=document.createElement('div'); grid.className='lvlgrid'; box.appendChild(grid);
-  const items=[];
-  let nextNode=null;
-  for(let g=0;g<8;g++){
-    const a=g*5+1, b=g*5+5, ground=MAP_ORDER[g%MAP_ORDER.length];
-    const m=document.createElement('span');
-    m.className='lvlmark '+(ground==='opendesert'?'desert':ground);
-    m.title='Levels '+a+'-'+b+' · '+MAPNAMES[ground]+(g>3?' · Round '+(Math.floor(g/4)+1):'');
-    m.innerHTML=MAPSCENES[ground]+'<span>LEVELS '+a+'–'+b+' · '+MAPNAMES[ground]+(g>3?' · ROUND '+(Math.floor(g/4)+1):'')+'</span>';
-    items.push(m);
-    for(let l=a;l<=b;l++){
-      const n=document.createElement('button'); n.className='lvl v-'+ground; n.textContent=l;
-      n.title='Level '+l+' · diff '+levelDiff(l);
-      if(l<unl) n.classList.add('cleared');
-      if(l===unl){ n.classList.add('next'); nextNode=n; }
-      if(l>unl) n.disabled=true;
-      else n.addEventListener('click',()=>startLevel(l));
-      items.push(n);
-    }
+  const Y=[]; for(let i=0;i<99;i++) Y.push(trailXY(i)[1]);
+  let svg='<svg class="birdmap" viewBox="0 0 '+MAPW+' '+MAPH+'" xmlns="http://www.w3.org/2000/svg"><defs>'
+    +'<linearGradient id="gradTC" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#79a24e"/><stop offset="1" stop-color="#c49a5f"/></linearGradient>'
+    +'<linearGradient id="gradCG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5f6e58"/><stop offset="1" stop-color="#79a24e"/></linearGradient>'
+    +'<linearGradient id="gradGD" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e0aa5e"/><stop offset="1" stop-color="#5f6e58"/></linearGradient></defs>';
+  const labels=[], bounds=[];
+  for(let g=0;g<3;g++){
+    const a=g*33+1, b=g*33+33, ground=REGIONS[g];
+    const yT=g<2?(Y[b-1]+Y[b])/2:120, yB=g>0?(Y[a-2]+Y[a-1])/2:MAPH-20;
+    bounds.push([yT,yB]);
+    svg+='<rect x="0" y="'+yT.toFixed(1)+'" width="400" height="'+(yB-yT).toFixed(1)+'" fill="'+MAPBASE[ground]+'"/>';
+    labels.push(mapLabel(200,((yT+yB)/2).toFixed(1),MAPNAMES[ground]+' · '+a+'–'+b,23));
   }
-  for(let i=items.length-1;i>=0;i--) grid.appendChild(items[i]);
+  svg+='<rect x="0" y="24" width="400" height="96" fill="'+MAPBASE.opendesert+'"/>';
+  svg+='<rect x="0" y="'+(bounds[0][0]-45).toFixed(1)+'" width="400" height="90" fill="url(#gradTC)"/>';
+  svg+='<rect x="0" y="'+(bounds[1][0]-45).toFixed(1)+'" width="400" height="90" fill="url(#gradCG)"/>';
+  svg+='<rect x="0" y="90" width="400" height="60" fill="url(#gradGD)"/>';
+  for(let g=0;g<3;g++){ svg+=REGIONS[g]==='town'?townProps(bounds[g][0],bounds[g][1],g*1000+7):regionProps(REGIONS[g],bounds[g][0],bounds[g][1],g*1000+7); }
+  const p99=trailXY(98), gxTop=p99[0]+(200-p99[0])*(p99[1]-126)/(p99[1]-78);
+  svg+='<path d="M'+p99[0]+' '+p99[1]+'L200 78" fill="none" stroke="#6e4a26" stroke-width="15" stroke-linejoin="round" stroke-linecap="round"/>';
+  svg+='<path d="M'+p99[0]+' '+p99[1]+'L200 78" fill="none" stroke="#e3b96e" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>';
+  svg+='<path d="M'+p99[0]+' '+p99[1]+'L200 78" fill="none" stroke="#fff8e6" stroke-width="2" stroke-dasharray="9 9"/>';
+  svg+=palisade(10,390,bounds[1][0],bounds[1][1],'fence',trailXatY(bounds[1][0]+6),trailXatY(bounds[1][1]-6));
+  svg+=palisade(10,390,bounds[2][0],bounds[2][1],'stone',gxTop,trailXatY(bounds[2][1]-6));
+  svg+=desertProps();
+  labels.push(mapLabel(200,36,'OPEN DESERT · ENDLESS · DEPTH '+desertDepth,20));
+  const d=trailD();
+  svg+='<path d="'+d+'" fill="none" stroke="#6e4a26" stroke-width="15" stroke-linejoin="round" stroke-linecap="round"/>';
+  svg+='<path d="'+d+'" fill="none" stroke="#e3b96e" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>';
+  svg+='<path d="'+d+'" fill="none" stroke="#fff8e6" stroke-width="2" stroke-dasharray="9 9"/>';
+  const p0=trailXY(0);
+  svg+='<text x="'+p0[0]+'" y="'+(p0[1]+42)+'" text-anchor="middle" font-size="16" font-weight="900" letter-spacing="3" font-family="Georgia,serif" fill="#fff8e6" stroke="#00000077" stroke-width="3" paint-order="stroke">START</text>';
+  for(const lb of labels) svg+=lb;
+  svg+='</svg>';
+  const wrap=document.createElement('div'); wrap.className='mapwrap'; wrap.innerHTML=svg; box.appendChild(wrap);
+  let nextNode=null;
+  for(let l=1;l<=99;l++){
+    const p=trailXY(l-1), ground=REGIONS[Math.min(2,Math.floor((l-1)/33))];
+    const n=document.createElement('button'); n.className='lvl v-'+ground; n.textContent=l;
+    n.title='Level '+l+' · diff '+difficulty;
+    n.style.left=(p[0]/MAPW*100)+'%'; n.style.top=(p[1]/MAPH*100)+'%';
+    if(l<unl) n.classList.add('cleared');
+    if(l===unl){ n.classList.add('next'); nextNode=n; }
+    if(l>unl) n.disabled=true;
+    else n.addEventListener('click',()=>startLevel(l));
+    wrap.appendChild(n);
+  }
+  const dn=document.createElement('button'); dn.className='lvl v-opendesert'; dn.textContent='∞';
+  dn.style.left='50%'; dn.style.top=(70/MAPH*100)+'%';
+  if(unl>=100){
+    dn.title='Endless desert · depth '+desertDepth+' · best '+desertBest()+' · diff '+difficulty;
+    if(desertBest()>0) dn.classList.add('cleared');
+    dn.addEventListener('click',()=>startDesert());
+    nextNode=dn;
+  } else {
+    dn.title='Clear level 99 to enter the endless desert';
+    dn.disabled=true;
+  }
+  wrap.appendChild(dn);
   if(nextNode){
-    try{ box.scrollTop=Math.max(0,nextNode.offsetTop-box.clientHeight/2+nextNode.offsetHeight/2); }catch(e){}
+    try{ box.scrollTop=wrap.offsetTop+nextNode.offsetTop-box.clientHeight/2; }catch(e){}
   }
 }
 function startLevel(l){
-  level=l; levelMode=true; difficulty=levelDiff(l); setLevelUi();
+  level=l; levelMode=true; isDesert=false; setLevelUi();
+  showScreen('game');
+}
+function startDesert(){
+  levelMode=true; isDesert=true; if(desertDepth<1) desertDepth=1; setLevelUi();
   showScreen('game');
 }
 const DIFFNAMES=['','Greenhorn','Regular','Sharp','Deadeye','Legend','Mythic','Nightmare','Hellfire','Reaper','El Muerto'];
@@ -747,6 +919,16 @@ function rollRing(){
   ring.ey=Math.min(0.9,Math.max(0.1,fc.y+R(-0.02,0.02)));
   // the ring drifts along the first stretch of its path while it closes
   ring.mx=ring.sx+(ring.ex-ring.sx)*0.35; ring.my=ring.sy+(ring.ey-ring.sy)*0.35;
+  // the ring travels THROUGH the outlaw and off the far edge — it never stops on him
+  const dx=ring.ex-ring.mx, dy=ring.ey-ring.my, dl=Math.hypot(dx,dy);
+  let ux=1, uy=0; if(dl>0.001){ ux=dx/dl; uy=dy/dl; }
+  let tk=Infinity;
+  if(ux>0.001) tk=Math.min(tk,(1.06-ring.ex)/ux); else if(ux<-0.001) tk=Math.min(tk,(-0.06-ring.ex)/ux);
+  if(uy>0.001) tk=Math.min(tk,(1.06-ring.ey)/uy); else if(uy<-0.001) tk=Math.min(tk,(-0.06-ring.ey)/uy);
+  if(!isFinite(tk)||tk<0.05) tk=0.6;
+  ring.ox=+(ring.ex+ux*tk).toFixed(3); ring.oy=+(ring.ey+uy*tk).toFixed(3);
+  const runL=Math.hypot(ring.ox-ring.mx,ring.oy-ring.my)||1;
+  ring.foeF=Math.max(0.05,Math.min(1,Math.hypot(dx,dy)/runL));
   ring.startW=+(R(29,32)*(1-0.35*k)).toFixed(2);
   ring.shrinkMs=Math.round(R(0.93,1.07)*(1500-950*k)*(1-0.36*j));   // 1500ms -> ~350ms
   ring.trackMs=Math.round(R(0.93,1.07)*(2600-1600*k)*(1-0.35*j)*trackPace());   // 2600ms -> ~650ms
@@ -757,8 +939,16 @@ function trackPace(){
   // constant ring speed: scale the track time by actual path length so short
   // paths don't crawl and long paths don't rush (clamped to sane extremes)
   const r0=stageEl.getBoundingClientRect(), asp=(r0.height||1)/(r0.width||1);
-  const len=Math.hypot(ring.ex-ring.mx,(ring.ey-ring.my)*asp)||0.38;
+  const len=Math.hypot(ring.ox-ring.mx,(ring.oy-ring.my)*asp)||0.38;
   return Math.max(0.5,Math.min(1.5,len/0.38));
+}
+function overOutlaw(r){
+  // cursor on the outlaw's body — margins trimmed so transparent sprite edges don't count
+  if(!aim.active) return false;
+  const f=document.getElementById('foeF').getBoundingClientRect(), m=0.2;
+  const x0=f.left+f.width*m-r.left, x1=f.right-f.width*m-r.left;
+  const y0=f.top+f.height*m-r.top, y1=f.bottom-f.height*m-r.top;
+  return aim.px>=x0&&aim.px<=x1&&aim.py>=y0&&aim.py<=y1;
 }
 function foeCenter(){
   // actual rendered outlaw position — keeps the ring honest on every map and screen size
@@ -782,13 +972,13 @@ function aimUi(phase){
   stageEl.classList.toggle('hot', phase==='fireprompt');
 }
 function playerFire(){
-  if(!firing||aimPhase!=='fireprompt'||outcome!==null) return;
-  aimPhase='done'; outcome='win'; outT0=performance.now(); hideTarget(); aimUi('done');
+  if(!firing||outcome!==null) return;
+  // a shot only counts while the ring burns red: cursor inside it AND on the outlaw
+  if(aimPhase==='track'&&hotNow){ aimPhase='done'; outcome='win'; outT0=performance.now(); hideTarget(); aimUi('done'); }
 }
 function earlyFire(){
   if(!firing||outcome!==null) return;
-  if(aimPhase!=='shrink'&&aimPhase!=='track') return;
-  aimPhase='done'; outcome='early'; outT0=performance.now(); hideTarget(); aimUi('done');
+  if(aimPhase==='shrink'||(aimPhase==='track'&&!hotNow)){ aimPhase='done'; outcome='early'; outT0=performance.now(); hideTarget(); aimUi('done'); }
 }
 stageEl.addEventListener('pointermove',aimPos);
 stageEl.addEventListener('pointerdown',e=>{ aimPos(e); playerFire(); earlyFire(); });
@@ -821,7 +1011,8 @@ function fire(){
   document.getElementById('front').classList.remove('hit');
   document.getElementById('foeF').style.transform='';
   const start=performance.now(); let boomed=false, turned=false, lastPuff=0, foeSaid=false, youSaid=false, steadySaid=false;
-  let aimSaid=false, aimT0=0, trackT0=0, promptT0=0, outsideSince=0, drewTxt=false, foeFired=false;
+  let aimSaid=false, aimT0=0, trackT0=0, promptT0=0, outsideSince=0, drewTxt=false, foeFired=false, winWas=false, winT0=0, winDur=1;
+  hotNow=false;
   outcome=null; outT0=0; aimPhase='idle'; doomMsg=null; rollRing(); aimUi('idle');
   smoke=[];
   const foeLine=FOE_LINES[Math.floor(Math.random()*FOE_LINES.length)];
@@ -854,7 +1045,8 @@ function fire(){
       if(!turned){ turned=true; showDuel('TURN!'); }
     }
     else if(outcome===null){
-      // AIM in three beats: SHRINK the dotted ring, TRACK it to the outlaw, FIRE on red
+      // AIM in three beats: SHRINK the dotted ring, TRACK it clean through the outlaw
+      // and off screen, and fire only while it burns red (cursor inside it AND on him)
       resetSpin();
       const r=stageEl.getBoundingClientRect();
       if(!aimSaid){
@@ -883,27 +1075,39 @@ function fire(){
       }
       else if(aimPhase==='track'){
         const tp=Math.min(1,(now-trackT0)/ring.trackMs);
-        const tx=ring.mx+(ring.ex-ring.mx)*tp, ty=ring.my+(ring.ey-ring.my)*tp;
+        const tx=ring.mx+(ring.ox-ring.mx)*tp, ty=ring.my+(ring.oy-ring.my)*tp;
         tgt.style.left=(tx*100)+'%'; tgt.style.top=(ty*100)+'%';
-        // both duelists slowly draw as the ring travels
-        drawCowboy('front',true,{dy:0,gun:'holster',drawP:tp,flash:0});
-        drawFigure('foeF',false,{dy:0,gun:'holster',drawP:tp,flash:0,flipGun:true},foeState);
+        // both duelists finish the draw as the ring reaches the outlaw
+        const dp=Math.min(1,tp/(ring.foeF||1));
+        const fr=document.getElementById('foeF').getBoundingClientRect();
+        const fcx=fr.left+fr.width/2-r.left, fcy=fr.top+fr.height*0.3-r.top, foeR=fr.width*0.3;
+        const windowOpen=Math.hypot(tx*r.width-fcx,ty*r.height-fcy)<=radPx+foeR;
+        if(windowOpen&&!winWas){
+          winWas=true; winT0=now; showDuel('FIRE!');
+          document.getElementById('meterF').classList.add('show');
+          const pathPx=Math.hypot((ring.ox-ring.mx)*r.width,(ring.oy-ring.my)*r.height)||1;
+          winDur=Math.max(1,2*(radPx+foeR)/(pathPx/ring.trackMs));
+        }
+        if(winWas){
+          drawCowboy('front',true,{dy:0,gun:'draw',flash:0});
+          drawFigure('foeF',false,{dy:0,gun:'draw',flash:0,mirror:true},foeState);
+        } else {
+          drawCowboy('front',true,{dy:0,gun:'holster',drawP:dp,flash:0});
+          drawFigure('foeF',false,{dy:0,gun:'holster',drawP:dp,flash:0,mirror:true},foeState);
+        }
+        // red ONLY while the cursor sits inside the ring AND on the outlaw
+        const hot=insideAt(tx,ty)&&overOutlaw(r);
+        hotNow=hot;
+        tgt.classList.toggle('hot',hot);
+        stageEl.classList.toggle('hot',hot);
+        if(winWas){ mfill.style.width=Math.min(100,(now-winT0)/winDur*100)+'%'; }
         if(insideAt(tx,ty)){ outsideSince=0; }
         else{
           if(!outsideSince) outsideSince=now;
           if(now-outsideSince>(ring.graceMs||150)){ startDoom('YOU LOST HIM!',now); }
         }
-        if(outcome===null&&tp>=1){
-          aimPhase='fireprompt'; promptT0=now; aimUi('fireprompt');
-          tgt.classList.add('hot'); showDuel('FIRE!');
-        }
-      }
-      else if(aimPhase==='fireprompt'){
-        drawCowboy('front',true,{dy:0,gun:'draw',flash:0});
-        drawFigure('foeF',false,{dy:0,gun:'draw',flash:0,flipGun:true},foeState);
-        document.getElementById('meterF').classList.add('show');
-        mfill.style.width=Math.min(100,(now-promptT0)/promptTimeout*100)+'%';
-        if(now-promptT0>promptTimeout){ startDoom(null,now); }
+        if(outcome===null&&winWas&&!windowOpen){ startDoom(null,now); }   // ring left him — he was faster
+        else if(outcome===null&&tp>=1){ startDoom(null,now); }            // safety: clean off-screen exit
       }
     }
     else if(outcome==='early'){
@@ -950,7 +1154,10 @@ function fire(){
       }
       else {
         smoke=[]; foeDown(false); firing=false;
-        if(levelMode){ levelMode=false; saveBest(level); document.getElementById('lvlMsg').textContent='Level '+level+' cleared — pick your next duel.'; renderIdle(); showScreen('levels'); }
+        if(levelMode){ levelMode=false; difficulty=Math.min(200,difficulty+5);
+          if(isDesert){ isDesert=false; desertDepth++; try{ localStorage.setItem('steadyDesert',desertDepth); localStorage.setItem('steadyDesertBest',Math.max(desertDepth,desertBest())); }catch(e){} document.getElementById('lvlMsg').textContent='Desert depth '+desertDepth+' — difficulty up to '+difficulty+'.'; }
+          else { saveBest(level); document.getElementById('lvlMsg').textContent=(level>=99?'Graveyard cleared — the endless desert awaits! ':'Level '+level+' cleared — ')+'difficulty up to '+difficulty+'.'; }
+          renderIdle(); showScreen('levels'); }
         else { renderIdle(); showScreen('menu'); }
         return;
       }
@@ -961,16 +1168,19 @@ function fire(){
       resetSpin();
       drawCowboy('front',true,{dy:0,gun:'holster',flash:0});
       if(lt<350){
-        drawFigure('foeF',false,{dy:0,gun:'draw',flash:0,flipGun:true},foeState);
+        drawFigure('foeF',false,{dy:0,gun:'draw',flash:0,mirror:true},foeState);
         if(!drewTxt){ drewTxt=true; showDuel('HE DRAWS!'); }
       }
       else {
         const fl=lt<550;
-        drawFigure('foeF',false,{dy:0,gun:fl?'fire':'draw',flash:fl?1:0,flipGun:true},foeState);
+        drawFigure('foeF',false,{dy:0,gun:fl?'fire':'draw',flash:fl?1:0,mirror:true},foeState);
         if(!foeFired){ foeFired=true; boom(); foeTracer(); showDuel(doomMsg||'THE OUTLAW WAS FASTER!'); const c=document.getElementById('front'); c.classList.add('hit'); c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake'); }
         if(lt>750){ document.getElementById('front').classList.remove('hit'); playerDown(true); }
         if(lt>2300){ playerDown(false); renderIdle(); firing=false;
-          if(levelMode){ levelMode=false; document.getElementById('lvlMsg').textContent='Level '+level+' lost — steady yourself and retry.'; showScreen('levels'); }
+          if(levelMode){ levelMode=false; difficulty=Math.max(1,difficulty-5);
+            if(isDesert){ isDesert=false; document.getElementById('lvlMsg').textContent='The desert takes you at depth '+desertDepth+' — difficulty eased to '+difficulty+'.'; }
+            else document.getElementById('lvlMsg').textContent='Level '+level+' lost — difficulty eased to '+difficulty+'. Retry.';
+            showScreen('levels'); }
           else showScreen('menu');
           return; }
       }
@@ -997,12 +1207,11 @@ document.getElementById('random').addEventListener('click',()=>{
 });
 document.getElementById('s-line').value=playerLine;
 document.getElementById('s-line').addEventListener('input',e=>{ playerLine=e.target.value; });
-const MAP_ORDER=['corral','town','graveyard','opendesert'];
 const MAPNAMES={corral:'CORRAL',town:'TOWN',graveyard:'GRAVEYARD',opendesert:'OPEN DESERT'};
-function levelMap(lv){ return MAP_ORDER[Math.floor((lv-1)/5)%MAP_ORDER.length]; }
 function setLevelUi(){
-  const m=levelMap(level); if(m!==currentBg) setBg(m);
-  const t=document.querySelector('#screen-game .topbartitle'); if(t) t.textContent='LEVEL '+level+' · '+MAPNAMES[m]+' · '+difficulty;
+  const m=isDesert?'opendesert':levelMap(level); if(m!==currentBg) setBg(m);
+  const t=document.querySelector('#screen-game .topbartitle');
+  if(t) t.textContent=isDesert?('DESERT ∞'+desertDepth+' · '+difficulty):('LEVEL '+level+' · '+MAPNAMES[m]+' · '+difficulty);
   const sd=document.getElementById('s-diff'); if(sd) sd.value=difficulty; diffLabel();
 }
 function diffLabel(){
@@ -1011,8 +1220,8 @@ function diffLabel(){
   document.getElementById('diffTip').textContent=DIFFTIPS[b]||'';
 }
 diffLabel();
-document.getElementById('s-diff').addEventListener('input',e=>{ const v=Math.round(+e.target.value); if(!isNaN(v)){ baseDiff=Math.max(1,Math.min(200,v)); difficulty=baseDiff; diffLabel(); } });
-document.getElementById('s-diff').addEventListener('change',e=>{ let v=Math.round(+e.target.value); if(isNaN(v)) v=baseDiff; baseDiff=Math.max(1,Math.min(200,v)); difficulty=baseDiff; e.target.value=baseDiff; diffLabel(); });
+document.getElementById('s-diff').addEventListener('input',e=>{ const v=Math.round(+e.target.value); if(!isNaN(v)){ difficulty=Math.max(1,Math.min(200,v)); diffLabel(); } });
+document.getElementById('s-diff').addEventListener('change',e=>{ let v=Math.round(+e.target.value); if(isNaN(v)) v=difficulty; difficulty=Math.max(1,Math.min(200,v)); e.target.value=difficulty; diffLabel(); });
 window.addEventListener('keydown',e=>{ if(e.code==='Space'){ if(document.getElementById('screen-game').classList.contains('hidden')) return; e.preventDefault(); if(firing){ if(aimPhase==='fireprompt'){ playerFire(); } else if(aimPhase==='shrink'||aimPhase==='track'){ earlyFire(); } } else { fire(); } } });
 setBg('corral');
 renderAll();
