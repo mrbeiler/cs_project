@@ -41,8 +41,8 @@ canvas.shake{animation:shake .3s linear}
 figcaption{font-size:clamp(.7rem,1.8vh,.95rem);padding:2px 0 1px;line-height:1}
 /* offset duelists so both are visible: you big left, foe small right */
 .duelist{position:absolute;bottom:0;pointer-events:none}
-.duelist.player{left:4%;bottom:1%;height:95%;z-index:2}
-.duelist.foepos{right:10%;bottom:36.5%;height:30%;z-index:1}
+.duelist.player{left:4%;bottom:1%;height:86%;z-index:2}
+.duelist.foepos{right:16%;bottom:36.5%;height:15%;z-index:1}
 .duelist.showcase{left:50%;bottom:1%;height:94%;z-index:2;transform:translateX(-50%)}
 .duelist canvas{height:100%;width:auto;image-rendering:pixelated}
 .foe{pointer-events:none;transition:transform .45s ease-in,filter .12s}
@@ -52,7 +52,11 @@ figcaption{font-size:clamp(.7rem,1.8vh,.95rem);padding:2px 0 1px;line-height:1}
 @keyframes foebob{0%,100%{margin-bottom:0}50%{margin-bottom:4px}}
 .ground{position:absolute;z-index:1;left:2%;width:44%;bottom:3%;height:6%;background:rgba(0,0,0,.28);border-radius:50%;filter:blur(1px)}
 .ground.single{left:32%;width:36%}
-.foeground{position:absolute;z-index:1;right:6%;width:24%;bottom:35.5%;height:3%;background:rgba(0,0,0,.25);border-radius:50%}
+.foepos .foeshadow{position:absolute;left:50%;bottom:-3%;transform:translateX(-50%);width:150%;height:9%;background:rgba(0,0,0,.25);border-radius:50%;pointer-events:none}
+.bg-corral .foepos{right:28%;height:25%}
+.bg-corral .duelist.player{height:80%}
+.bg-graveyard .foepos{height:21%}
+.bg-graveyard .duelist.player{height:78%}
 .bang{position:absolute;z-index:5;left:38%;top:22%;transform:translate(-50%,-50%) scale(.5) rotate(-10deg);font-family:Impact,Georgia,sans-serif;font-weight:900;font-size:clamp(1.6rem,6vh,3rem);color:#ffdf2b;-webkit-text-stroke:2px #7a0e0e;text-shadow:3px 3px 0 #7a0e0e,0 0 18px rgba(255,200,0,.9);opacity:0;pointer-events:none;white-space:nowrap}
 .bang.show{animation:bangpop .55s ease-out}
 @keyframes bangpop{0%{opacity:0;transform:translate(-50%,-50%) scale(.4) rotate(-12deg)}15%{opacity:1;transform:translate(-50%,-60%) scale(1.25) rotate(-8deg)}100%{opacity:0;transform:translate(-50%,-90%) scale(1.1) rotate(-6deg)}}
@@ -73,8 +77,33 @@ figcaption{font-size:clamp(.7rem,1.8vh,.95rem);padding:2px 0 1px;line-height:1}
 .lineinput{display:flex;gap:8px;margin-bottom:8px}
 .lineinput input{flex:1;min-width:0;font:inherit;font-size:.85rem;padding:5px 8px;border-radius:6px;border:2px solid #3b2414;background:#fff8e6;color:#3b2414}
 .diffrow{display:flex;gap:10px;align-items:center;margin-bottom:8px}
-.diffrow input[type=range]{flex:1;accent-color:#c0392b}
+.diffrow input[type=number]{width:64px;font:inherit;font-size:.85rem;font-weight:700;padding:4px 6px;border-radius:6px;border:2px solid #3b2414;background:#fff8e6;color:#3b2414;text-align:center}
 .diffrow span{font-size:.85rem;font-weight:700;min-width:76px;text-align:center;background:#fff8e6;border:2px solid #3b2414;border-radius:6px;padding:2px 8px}
+.difftips{margin:-2px 0 8px;font-size:.72rem;font-style:italic;opacity:.75;line-height:1.35}
+.lvlscroll{flex:1 1 auto;min-height:0;overflow-y:auto;width:100%;max-width:420px;margin:0 auto;padding:2px 6px 14px}
+.lvlmark{display:flex;flex-direction:column;align-items:stretch;gap:4px;flex:0 0 auto;width:100%;padding:5px;border-radius:8px;font-size:.62rem;font-weight:900;letter-spacing:.06em;color:#f3e4c2;background:#3b2414;text-align:center;position:relative}
+.lvlmark svg{width:100%;height:46px;display:block;border-radius:5px}
+.lvlmark.corral{background:#6e4420}
+.lvlmark.town{background:#4a2d1a}
+.lvlmark.graveyard{background:#241d33}
+.lvlmark.desert{background:#8a5a22}
+.lvlgrid{display:flex;flex-direction:column;gap:7px;position:relative;z-index:0}
+.lvlgrid::before{content:'';position:absolute;top:4px;bottom:4px;left:50%;width:3px;transform:translateX(-50%);z-index:-1;background:repeating-linear-gradient(#3b2414 0 7px,transparent 7px 14px);border-radius:2px}
+.lvl{align-self:center;flex:0 0 auto;width:66px;font-size:1.05rem;font-weight:900;padding:9px 0;background:#e8c24a;color:#3b2414}
+.lvl.v-town{background:#d2894f}
+.lvl.v-graveyard{background:#a99ccb}
+.lvl.v-opendesert{background:#f2d08a}
+.lvl.next{background:#7a0e0e;color:#fff8e6;animation:hotpulse .5s infinite alternate}
+.lvl.cleared{background:#2e5a2e;color:#fff8e6}
+.lvl:disabled{opacity:.35;filter:grayscale(.8);cursor:default}
+.stage.sights .reticle{position:absolute;z-index:9;left:0;top:0;width:26px;height:26px;margin:-13px 0 0 -13px;pointer-events:none;opacity:0;transition:opacity .15s}
+.stage.sights.aiming .reticle{opacity:1}
+.stage.sights.aiming{cursor:none}
+.stage.sights.aiming .reticle .r-mid{fill:#fff}
+.stage.sights.aiming .reticle .r-ring{stroke:#7a0e0e}
+.stage.sights.aiming.hot .reticle .r-mid{fill:#ff5a3c}
+.stage.sights.aiming.hot .reticle .r-ring{stroke:#ff2d1a;animation:hotpulse .18s infinite alternate}
+@keyframes hotpulse{from{opacity:.55}to{opacity:1}}
 .tracer{position:absolute;z-index:4;left:36%;right:22%;bottom:31%;height:4px;background:linear-gradient(to right,#fff6c9,#fff 60%,rgba(255,246,201,0));opacity:0;pointer-events:none;box-shadow:0 0 8px #ffdf5a}
 .tracer.go{animation:trace .22s ease-out}
 @keyframes trace{0%{opacity:1;transform:scaleX(.05);transform-origin:left}100%{opacity:0;transform:scaleX(1);transform-origin:left}}
@@ -94,59 +123,26 @@ figcaption{font-size:clamp(.7rem,1.8vh,.95rem);padding:2px 0 1px;line-height:1}
  background-position:0 0,28% 12%,58% 22%,30% 49%,60% 50%,6% 51%,68% 52%,0 0;
  background-repeat:no-repeat}
 .bg-corral{background:
- radial-gradient(circle at 20% 12%,#fff9d8 0 5%,#ffdf5a 6% 8%,rgba(255,223,90,0) 9%),
- radial-gradient(ellipse at center,rgba(255,255,255,.95) 0 55%,rgba(255,255,255,0) 72%),
- linear-gradient(#5e2018,#5e2018),
- linear-gradient(#a63a2e,#a63a2e),
- linear-gradient(#3a1a10,#3a1a10),
- linear-gradient(#7a4a2a,#7a4a2a),
- linear-gradient(#7a4a2a,#7a4a2a),
- repeating-linear-gradient(90deg,#5a3418 0 3%,transparent 3% 9%),
+ url("corral.png"),
  linear-gradient(#7fb8e8 0 44%,#d8ecfa 44% 52%,#c49a62 52% 57%,#a87a4a 57% 61%,#8f653a 61% 100%);
- background-size:auto,24% 8%,15% 2.5%,13% 9%,3% 6%,100% 2.2%,100% 2.2%,100% 10%,auto;
- background-position:0 0,55% 12%,70.5% 44%,71.5% 46.5%,76% 49%,0 54%,0 59%,0 53%,0 0;
+ background-size:cover,auto;
+ background-position:center 70%,0 0;
  background-repeat:no-repeat}
 .bg-town{background:
- radial-gradient(circle at 20% 14%,#fff6c9 0 5%,#ffdf5a 6% 8%,rgba(255,223,90,0) 9%),
- radial-gradient(ellipse at center,rgba(255,255,255,.95) 0 55%,rgba(255,255,255,0) 72%),
- linear-gradient(#4a3018 0 12%,#6b4a30 12%),
- linear-gradient(#4a3018 0 10%,#7a5638 10%),
- linear-gradient(#453015 0 12%,#5f4128 12%),
- linear-gradient(#4a3018 0 10%,#75522f 10%),
- linear-gradient(#453015 0 12%,#684628 12%),
- linear-gradient(#241408,#241408),
- linear-gradient(#241408,#241408),
- linear-gradient(#241408,#241408),
- linear-gradient(#241408,#241408),
- linear-gradient(#241408,#241408),
- linear-gradient(#d8b078,#d8b078),
- linear-gradient(rgba(60,35,15,.35),rgba(60,35,15,.35)),
- linear-gradient(rgba(60,35,15,.35),rgba(60,35,15,.35)),
+ url("town.png"),
  linear-gradient(#7ec0ee 0 42%,#cfe4f5 42% 52%,#a8845a 52% 56%,#8f6c44 56% 60%,#b08a5e 60% 100%);
- background-size:auto,22% 8%,18% 18%,14% 22%,20% 16%,15% 20%,17% 17%,3% 6%,2.5% 7%,2.5% 3.5%,2% 3%,2% 3%,100% 2.5%,100% 1%,100% 1%,auto;
- background-position:0 0,65% 10%,2% 42%,22% 38%,39% 44%,60% 40%,78% 43%,8% 54%,26.5% 53%,13% 47%,43% 48%,64% 45%,0 57.5%,0 72%,0 80%,0 0;
+ background-size:cover,auto;
+ background-position:center 70%,0 0;
  background-repeat:no-repeat}
 .bg-graveyard{background:
- radial-gradient(circle at 72% 18%,rgba(242,236,216,.22) 0 12%,rgba(242,236,216,0) 13%),
- radial-gradient(circle at 72% 18%,#f2ecd8 0 7%,#cfc49a 8% 10%,rgba(207,196,154,0) 11%),
- linear-gradient(#14141a,#14141a),
- linear-gradient(#14141a,#14141a),
- linear-gradient(#14141a,#14141a),
- linear-gradient(#3a3a44,#3a3a44),
- linear-gradient(#3a3a44,#3a3a44),
- linear-gradient(#44444e,#44444e),
- linear-gradient(#44444e,#44444e),
- linear-gradient(#33333c,#33333c),
- linear-gradient(#33333c,#33333c),
- repeating-linear-gradient(90deg,#0c0c10 0 1.2%,transparent 1.2% 5%),
- linear-gradient(#0c0c10,#0c0c10),
- linear-gradient(rgba(200,200,215,0),rgba(200,200,215,.28)),
- radial-gradient(ellipse at center,rgba(20,16,28,.9) 0 60%,rgba(20,16,28,0) 72%),
- radial-gradient(ellipse at center,rgba(20,16,28,.9) 0 60%,rgba(20,16,28,0) 72%),
+ url("graveyard.png"),
  linear-gradient(#1a1626 0 50%,#2e2a3a 50% 56%,#3a3344 56% 60%,#4a3f52 60% 100%);
- background-size:auto,auto,2.5% 15%,7% 1.4%,6% 1.4%,2% 10%,6% 2%,1.6% 8%,5% 1.6%,2.2% 11%,6.5% 2%,100% 9%,100% 1.2%,100% 7%,22% 6%,26% 7%,auto;
- background-position:0 0,0 0,7% 45%,3.5% 47.5%,8% 49.5%,12% 52%,10% 54%,55% 54%,53.2% 56%,82% 51%,79.8% 53.5%,0 53%,0 53.5%,0 57%,18% 74%,58% 80%,0 0;
+ background-size:cover,auto;
+ background-position:center 70%,0 0;
  background-repeat:no-repeat}
+#stageF.bg-graveyard .duelist canvas{filter:brightness(.6) saturate(.8)}
+#stageF.bg-graveyard .duelist .foe.hit{filter:brightness(2.4) saturate(.5)}
+#stageF.bg-graveyard .duelist .foe.down{filter:brightness(.45) sepia(.6)}
 .target{position:absolute;z-index:4;width:11%;aspect-ratio:1/1;opacity:0;pointer-events:none;transform:translate(-50%,-50%);transition:opacity .15s}
 .target.show{opacity:1}
 .tring{position:absolute;inset:0;background:rgba(150,150,150,.45);border:2px solid rgba(80,80,80,.85);border-radius:50%}
@@ -175,6 +171,7 @@ label{display:flex;flex-direction:column;gap:2px;font-size:.68rem;text-transform
 select{font:inherit;font-size:.85rem;padding:4px;border-radius:6px;border:2px solid #3b2414;background:#fff8e6;color:#3b2414;max-width:100%}
 .btnrow{display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:center}
 button{font:inherit;cursor:pointer;border-radius:8px;border:2px solid #3b2414;padding:8px 16px}
+button.locked{opacity:.4;pointer-events:none;filter:grayscale(.7)}
 #random{background:#e8c24a;color:#3b2414;font-weight:700}
 .hint{font-size:clamp(.65rem,1.7vh,.85rem);opacity:.85;text-align:center;margin:5px 0 0}
 kbd{border:1px solid currentColor;border-radius:4px;padding:0 5px;font-size:.85em}
@@ -184,8 +181,8 @@ kbd{border:1px solid currentColor;border-radius:4px;padding:0 5px;font-size:.85e
 <body>
 <div class="screen" id="screen-menu">
 <h1 class="gametitle">STEADY</h1>
-<p class="sub">A cowboy quick-draw duel — dress your cowboy, pick your map, then duel the outlaw!</p>
-<div class="stage menustage bg-opendesert" id="stageMenu"><div class="ground single"></div><div class="duelist showcase"><canvas id="menuFront" width="24" height="40"></canvas></div></div>
+<p class="sub">A cowboy quick-draw duel — clear level after level as the outlaw gets faster. Dress for it in the store!</p>
+<div class="stage menustage bg-corral" id="stageMenu"><div class="ground single"></div><div class="duelist showcase"><canvas id="menuFront" width="24" height="40"></canvas></div></div>
 <div class="menubtns">
 <button id="btn-play">PLAY</button>
 <button id="btn-store">STORE</button>
@@ -195,21 +192,26 @@ kbd{border:1px solid currentColor;border-radius:4px;padding:0 5px;font-size:.85e
 <div class="screen hidden" id="screen-game">
 <div class="topbar"><button id="btn-gamemenu" class="small">Menu</button><span class="topbartitle">Steady</span><button id="btn-gamestore" class="small">Store</button></div>
 <div class="row">
-<figure class="hero"><div class="stage bg-opendesert" id="stageF"><div class="ground"></div><div class="foeground"></div><div class="duelist foepos"><canvas id="foeF" width="24" height="40" class="foe sway"></canvas></div><div class="duelist player" id="playerWrap"><canvas id="front" width="24" height="40" class="main"></canvas></div><div class="tracer" id="tracerF"></div><div class="target" id="targetF"><div class="tring"></div><div class="tdot"></div></div><div class="meter" id="meterF"><div class="mfill" id="mfillF"></div></div><div class="bubble foe-bubble" id="bubbleFoe"></div><div class="bubble player-bubble" id="bubbleYou"></div><div class="bang" id="bangF">BANG!</div><div class="duel" id="duelF"></div></div><figcaption>You (big, left) vs. distant outlaw (small, right)</figcaption></figure>
+<figure class="hero"><div class="stage bg-corral sights" id="stageF"><div class="ground"></div><div class="duelist foepos"><div class="foeshadow"></div><canvas id="foeF" width="24" height="40" class="foe sway"></canvas></div><div class="duelist player" id="playerWrap"><canvas id="front" width="24" height="40" class="main"></canvas></div><div class="tracer" id="tracerF"></div><div class="target" id="targetF"><div class="tring"></div><div class="tdot"></div></div><div class="meter" id="meterF"><div class="mfill" id="mfillF"></div></div><div class="bubble foe-bubble" id="bubbleFoe"></div><div class="bubble player-bubble" id="bubbleYou"></div><div class="bang" id="bangF">BANG!</div><div class="duel" id="duelF"></div><svg class="reticle" id="retF" viewBox="0 0 26 26" aria-hidden="true"><g fill="none" stroke="#111" stroke-width="2.6" opacity=".85"><circle class="r-ring" cx="13" cy="13" r="8.4" stroke="#f2e6cf"/><path d="M13 0.6v5.6M13 19.8v5.6M0.6 13h5.6M19.8 13h5.6"/></g><circle class="r-mid" cx="13" cy="13" r="1.7" fill="#f2e6cf"/></svg></div><figcaption>You (big, left) vs. distant outlaw (small, right)</figcaption></figure>
 </div>
 <div class="gamebar">
 <p class="hint">Duels start on their own — get inside the ring as it shrinks, track it, then FIRE! (Space or click). Shoot early and you lose!</p>
 </div>
 </div>
+<div class="screen hidden" id="screen-levels">
+<div class="topbar"><button id="btn-lvlmenu" class="small">Menu</button><span class="topbartitle">Duel Trail</span><button id="btn-lvlstore" class="small">Store</button></div>
+<p class="hint" id="lvlMsg">Clear duels to open the trail ahead.</p>
+<div class="lvlscroll" id="lvlScroll"></div>
+</div>
 <div class="screen hidden" id="screen-store">
 <div class="topbar"><button id="btn-storemenu" class="small">Menu</button><span class="topbartitle">Store — Cowboy &amp; Map</span><button id="btn-storeplay" class="small">Play</button></div>
 <div class="storewrap">
-<div class="stage storepreview bg-opendesert" id="stageStore"><div class="ground single"></div><div class="duelist showcase"><canvas id="storeFront" width="24" height="40"></canvas></div></div>
+<div class="stage storepreview bg-corral" id="stageStore"><div class="ground single"></div><div class="duelist showcase"><canvas id="storeFront" width="24" height="40"></canvas></div></div>
 <div class="panel">
 <p class="secttl">Map</p>
 <div class="bgbar" id="bgbar">
-<button data-bg="opendesert" class="active">Open Desert</button>
-<button data-bg="corral">Corral</button>
+<button data-bg="opendesert">Open Desert</button>
+<button data-bg="corral" class="active">Corral</button>
 <button data-bg="town">Town</button>
 <button data-bg="graveyard">Graveyard</button>
 </div>
@@ -234,7 +236,8 @@ kbd{border:1px solid currentColor;border-radius:4px;padding:0 5px;font-size:.85e
 <p class="secttl">Taunt — your reply in the duel</p>
 <div class="lineinput"><input id="s-line" maxlength="60" placeholder="It's high noon somewhere."></div>
 <p class="secttl">Difficulty</p>
-<div class="diffrow"><input type="range" id="s-diff" min="1" max="5" step="1" value="3"><span id="diffName">Sharp</span></div>
+<div class="diffrow"><input type="number" id="s-diff" min="1" max="200" step="1" value="50"><span id="diffName">Sharp</span></div>
+<p class="difftips" id="diffTip">Hint: the tighter the ring and the faster the fire window, the deadlier the outlaw.</p>
 <div class="btnrow">
 <button id="random">Randomize</button>
 </div>
@@ -266,7 +269,7 @@ function showBubble(who,text){
 function hideBubbles(){ document.getElementById('bubbleFoe').classList.remove('show'); document.getElementById('bubbleYou').classList.remove('show'); }
 
 const BGCLASSES=['bg-opendesert','bg-corral','bg-town','bg-graveyard'];
-let currentBg='opendesert';
+let currentBg='corral';
 function setBg(name){
   currentBg=name;
   for(const id of ['stageF','stageMenu','stageStore']){
@@ -279,19 +282,144 @@ function setBg(name){
 }
 document.querySelectorAll('#bgbar button').forEach(b=>b.addEventListener('click',()=>{ setBg(b.dataset.bg); renderPreviews(); }));
 
+/* start-screen pistol spin: ARM wind-up, twirl, hold, gun away — fully on and off */
+const SPIN_SEQ=['wind','wind','toss','up','right','down','left','up','right','down','left','drop1','drop2','hold','hold','hold','hold','lower','lower','seat','seat','rest','rest','rest','rest','rest','rest','rest','rest','rest','rest','rest','rest','rest','rest','rest','rest','rest','rest','rest','rest','rest','rest','rest'];
+let menuSpinRAF=0, spinBroken=false;
+function drawGunSpin(id,ph){
+  drawFigure(id,false,{dy:0,gun:'holster',flash:0},state);
+  const cv=document.getElementById(id), x=cv.getContext('2d');
+  if(typeof ph!=='number'||isNaN(ph)) ph=0; ph=((ph%1)+1)%1;
+  const i=Math.floor(ph*SPIN_SEQ.length)%SPIN_SEQ.length, f=SPIN_SEQ[i]||'hold';
+  const G='#2b2b30', L='#44444e', W='#5a3a22';
+  function gunAt(px,py,dir){
+    // rigid revolver: grip, cylinder and barrel rotate together around the fist pivot
+    if(dir==='up'){
+      x.fillStyle=W; x.fillRect(px,py+1,2,3);
+      x.fillStyle=G; x.fillRect(px,py-8,2,8); x.fillRect(px-1,py-2,4,2);
+      x.fillStyle=L; x.fillRect(px,py-8,2,1);
+    }
+    else if(dir==='right'){
+      x.fillStyle=W; x.fillRect(px-1,py+1,2,3);
+      x.fillStyle=G; x.fillRect(px+1,py,6,2); x.fillRect(px,py-1,2,3);
+      x.fillStyle=L; x.fillRect(px+6,py,1,2);
+    }
+    else if(dir==='down'){
+      x.fillStyle=W; x.fillRect(px-1,py+1,3,2);
+      x.fillStyle=G; x.fillRect(px,py+2,2,6);
+      x.fillStyle=L; x.fillRect(px,py+7,2,1);
+    }
+    else {
+      x.fillStyle=W; x.fillRect(px,py+1,2,3);
+      x.fillStyle=G; x.fillRect(px-6,py,6,2); x.fillRect(px-1,py-1,2,3);
+      x.fillStyle=L; x.fillRect(px-6,py,1,2);
+    }
+  }
+  function fistAt(fx,fy){ x.fillStyle=SKIN; x.fillRect(fx,fy,3,3); }
+  // arm cloth follows the outfit so the raised arm always matches what he wears
+  const coatBase=(COAT_COLORS[state.coatColor]||COAT_COLORS.tan);
+  let arm=(SHIRTS[state.shirt]||SHIRTS.cream); const cuff=(PANTS[state.pantsColor]||PANTS.blue).d;
+  if(state.coatStyle==='overcoat'||state.coatStyle==='jacket'||state.coatStyle==='poncho'||state.coatStyle==='cape') arm=coatBase;
+  function raisedArm(lift){
+    x.clearRect(16,14,4,16);
+    x.fillStyle='#4a2e1a'; x.fillRect(17,24,2,5); x.fillStyle='#2a1a10'; x.fillRect(17,28,2,1);
+    x.fillStyle=arm; x.fillRect(16,17-lift,3,5+lift); x.fillRect(16,22,3,4);
+    x.fillStyle=cuff; x.fillRect(16,21-lift,3,1);
+  }
+  if(f==='wind'||f==='toss'){
+    // WIND-UP: the ARM cocks up to start the spin — base arm erased, raised arm redrawn
+    const lift=(f==='toss')?2:0;
+    raisedArm(lift);
+    fistAt(16,18-lift); gunAt(17,19-lift,'up');
+  }
+  else if(f==='rest'){ /* gun away — plain holstered figure, animation fully off */ }
+  else if(f==='drop1'||f==='drop2'){
+    // arm lowers in steps — sleeve re-meets the descending fist, gun staying up
+    const fy=(f==='drop1')?21:23;
+    x.clearRect(16,14,4,16);
+    x.fillStyle='#4a2e1a'; x.fillRect(17,24,2,5); x.fillStyle='#2a1a10'; x.fillRect(17,28,2,1);
+    x.fillStyle=arm; x.fillRect(16,17,3,fy+3-17);
+    fistAt(16,fy); gunAt(17,fy+1,'up');
+  }
+  else if(f==='hold'){
+    gunAt(17,26,'up');
+    fistAt(16,25);
+  }
+  else if(f==='lower'){
+    // REHOLSTER 1: muzzle turned down to the holster mouth, hand riding it home
+    gunAt(17,26,'down');
+    fistAt(16,25);
+  }
+  else if(f==='seat'){
+    // REHOLSTER 2: the last of the grip slides home — hand stays low, butt still out till rest
+    x.fillStyle='#4a2e1a'; x.fillRect(17,24,2,1);
+    x.fillStyle=W; x.fillRect(17,22,2,3);
+    fistAt(16,23);
+  }
+  else {
+    // the twirl happens on the RAISED hand — arm stays cocked up throughout the spin
+    raisedArm(0);
+    // speed ticks stream out of the muzzle, trailing each barrel position
+    if(f==='up'){ x.fillStyle='rgba(255,255,255,.7)'; x.fillRect(12,11,4,1); x.fillStyle='rgba(20,20,25,.55)'; x.fillRect(11,13,5,1); }
+    else if(f==='right'){ x.fillStyle='rgba(255,255,255,.7)'; x.fillRect(22,14,1,4); x.fillStyle='rgba(20,20,25,.55)'; x.fillRect(20,13,1,5); }
+    else if(f==='down'){ x.fillStyle='rgba(255,255,255,.7)'; x.fillRect(19,24,3,1); x.fillStyle='rgba(20,20,25,.55)'; x.fillRect(19,27,4,1); }
+    else { x.fillStyle='rgba(255,255,255,.7)'; x.fillRect(11,21,1,4); x.fillStyle='rgba(20,20,25,.55)'; x.fillRect(13,22,1,4); }
+    gunAt(17,19,f);
+    const pump={up:[16,17],right:[17,18],down:[16,19],left:[15,18]}[f]||[16,18];
+    fistAt(pump[0],pump[1]);
+  }
+}
+function menuSpinLoop(){
+  cancelAnimationFrame(menuSpinRAF);
+  const t0=performance.now();
+  function tick(now){
+    // schedule the NEXT frame first so one bad draw can never kill the loop
+    if(document.getElementById('screen-menu').classList.contains('hidden')) return;
+    menuSpinRAF=requestAnimationFrame(tick);
+    try{ drawGunSpin('menuFront',((now-t0)/5720)%1); }
+    catch(e){ spinFail(e); }
+  }
+  menuSpinRAF=requestAnimationFrame(tick);
+}
+function spinFail(e){
+  spinBroken=true;
+  const el=document.createElement('div');
+  el.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:99;background:#7a0e0e;color:#fff;font:12px/1.4 monospace;padding:6px 8px;white-space:pre-wrap';
+  el.textContent='spin error: '+(e&&e.message||e);
+  document.body.appendChild(el);
+}
+let duelLocked=false, duelGen=0;
+function lockDuelBtns(locked){
+  for(const id of ['btn-gamemenu','btn-gamestore']) document.getElementById(id).classList.toggle('locked',locked);
+}
+function bailDuel(){
+  // walk away during the talking beats: kill the duel loop dead, reset the stage
+  duelGen++; firing=false; duelLocked=false; levelMode=false;
+  outcome=null; aimPhase='idle'; doomMsg=null;
+  lockDuelBtns(false); aimUi('idle');
+  foeDown(false); foeHit(false);
+  document.getElementById('foeF').style.transform='';
+}
 function showScreen(name){
-  if(firing) return;
-  for(const s of ['menu','game','store']) document.getElementById('screen-'+s).classList.toggle('hidden',s!==name);
+  cancelAnimationFrame(menuSpinRAF);
+  if(firing){
+    if(name==='game'||duelLocked) return;   // locked in once STEADY shows
+    bailDuel();
+  }
+  for(const s of ['menu','game','store','levels']) document.getElementById('screen-'+s).classList.toggle('hidden',s!==name);
   clearFx();
   if(name==='game'){ shuffleFoe(); renderIdle(); scheduleRound(900); }
+  else if(name==='levels'){ buildLevels(); }
   else { resetSpin(); renderPreviews(); }
+  if(name==='menu') menuSpinLoop();
 }
-document.getElementById('btn-play').addEventListener('click',()=>showScreen('game'));
+document.getElementById('btn-play').addEventListener('click',()=>{ document.getElementById('lvlMsg').textContent='Clear duels to open the trail ahead.'; showScreen('levels'); });
 document.getElementById('btn-store').addEventListener('click',()=>showScreen('store'));
 document.getElementById('btn-gamemenu').addEventListener('click',()=>showScreen('menu'));
 document.getElementById('btn-gamestore').addEventListener('click',()=>showScreen('store'));
 document.getElementById('btn-storemenu').addEventListener('click',()=>showScreen('menu'));
-document.getElementById('btn-storeplay').addEventListener('click',()=>showScreen('game'));
+document.getElementById('btn-storeplay').addEventListener('click',()=>{ document.getElementById('lvlMsg').textContent='Clear duels to open the trail ahead.'; showScreen('levels'); });
+document.getElementById('btn-lvlmenu').addEventListener('click',()=>showScreen('menu'));
+document.getElementById('btn-lvlstore').addEventListener('click',()=>showScreen('store'));
 
 /* rounds start on their own shortly after entering (and after each duel) */
 function scheduleRound(ms){
@@ -339,7 +467,10 @@ function drawFigure(id,back,pose,outfit){
     if(pose.flipGun){ r(4,17,4,4,shirt); r(3,20,3,3,shirt); r(2,hy,3,3,SKIN); }
     else { r(16,17,4,4,shirt); r(18,20,3,3,shirt); r(19,hy,3,3,SKIN); }
   }
-  else { r(16,17,3,9,shirt); r(16,25,3,1,pant.d); r(16,26,3,3,SKIN); r(hx,24,2,2,SKIN); }
+  else if(drawP<0.75){ r(16,17,3,9,shirt); r(16,25,3,1,pant.d); r(16,26,3,3,SKIN); r(hx,drawP<0.5?24:23,2,2,SKIN); }
+  else { r(16,17,3,9,shirt); r(16,25,3,1,pant.d); r(16,26,3,3,SKIN);
+    if(pose.flipGun){ r(4,17,4,4,shirt); r(3,20,3,3,shirt); r(3,22,3,2,SKIN); }
+    else { r(16,17,4,4,shirt); r(18,20,3,3,shirt); r(18,22,3,2,SKIN); } }
 
   if(coat==='none'){
     if(vestStyle!=='none'&&vest){
@@ -408,7 +539,7 @@ function drawFigure(id,back,pose,outfit){
     if(face==='grizzled'){ r(9,12,6,2,'#b8b0a4'); r(10,14,4,1,'#b8b0a4'); r(10,12,4,1,'#ddd6c8'); r(11,13,2,1,MOUTH); }
     if(face==='mask'){ r(8,10,8,2,'#1a1a1e'); r(10,11,1,1,'#fff'); r(13,11,1,1,'#fff'); r(11,13,2,1,MOUTH); }
     if(face==='handlebar'){ r(8,12,8,1,'#2a1a10'); r(7,11,1,2,'#2a1a10'); r(16,11,1,2,'#2a1a10'); }
-    if(face==='eyepatch'){ r(13,11,1,1,'#111'); r(9,10,4,1,'rgba(0,0,0,.35)'); r(14,9,1,2,'#111'); }
+    if(face==='eyepatch'){ r(13,10,2,2,'#15151a'); r(13,10,2,1,'#33333c'); r(9,10,2,1,'#15151a'); r(11,9,5,1,'#15151a'); r(8,11,1,1,'#15151a'); }
   }
   if(bStyle!=='none'&&band){
     if(back){
@@ -431,7 +562,14 @@ function drawFigure(id,back,pose,outfit){
   }
   d.data.set(o); x.putImageData(d,0,0);
 
-  if(drawP>0&&drawP<1){ r(hx,21,2,3,'#2b2b30'); }
+  if(drawP>0&&drawP<1){
+    const gm='#2b2b30';
+    if(drawP<0.25){ /* hand on the iron, not yet moving */ }
+    else if(drawP<0.5){ r(hx,22,2,3,gm); }
+    else if(drawP<0.75){ r(hx,20,2,4,gm); r(hx,20,2,1,'#44444e'); }
+    else if(pose.flipGun){ r(3,18,2,4,gm); r(3,18,2,1,'#44444e'); }
+    else { r(18,18,2,4,gm); r(18,18,2,1,'#44444e'); }
+  }
   else if(gunOut){
     const gy = pose.gun==='fire' ? 23 : 24;
     if(pose.flipGun){
@@ -533,36 +671,128 @@ const aim={x:0.5,y:0.5,active:false};
 let outcome=null, outT0=0, aimPhase='idle', doomMsg=null;
 /* per-round ring odds: size, path, and pace re-rolled every duel */
 let ring={size:11,sx:0.45,sy:0.52,ex:0.82,ey:0.44,shrinkMs:1400,trackMs:2200,startW:30};
-let difficulty=3, promptTimeout=1600;
-const DIFFNAMES=['','Greenhorn','Regular','Sharp','Deadeye','Legend'];
+let difficulty=50, promptTimeout=1600;
+let level=1, levelMode=false, baseDiff=50;
+function levelDiff(lv){ return Math.min(200, baseDiff+(lv-1)*5); }
+function unlocked(){
+  try{ return Math.max(1,Math.min(40,+(localStorage.getItem('steadyUnlock')||1))); }catch(e){ return 1; }
+}
+function saveBest(lv){
+  try{
+    const b=Math.max(lv,+(localStorage.getItem('steadyBest')||0)); localStorage.setItem('steadyBest',b);
+    if(lv<40) localStorage.setItem('steadyUnlock',Math.max(unlocked(),lv+1));
+  }catch(e){}
+}
+const MAPSCENES={
+corral:'<svg viewBox="0 0 120 36" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="120" height="36" fill="#9ecfee"/><circle cx="104" cy="7" r="5" fill="#ffe9a3"/><rect y="24" width="120" height="12" fill="#c99a5b"/><rect x="0" y="18" width="120" height="2" fill="#7a4a26"/><rect x="0" y="22" width="120" height="2" fill="#7a4a26"/><rect x="6" y="14" width="3" height="14" fill="#5e3a1e"/><rect x="34" y="14" width="3" height="14" fill="#5e3a1e"/><rect x="62" y="14" width="3" height="14" fill="#5e3a1e"/><rect x="90" y="14" width="3" height="14" fill="#5e3a1e"/><rect x="20" y="24" width="2" height="6" fill="#7a4a26"/><rect x="22" y="24" width="16" height="7" fill="#f4efe2"/><rect x="26" y="25" width="4" height="3" fill="#3b2a1a"/><rect x="32" y="28" width="3" height="2" fill="#3b2a1a"/><rect x="23" y="30" width="2" height="5" fill="#3b2a1a"/><rect x="28" y="30" width="2" height="5" fill="#3b2a1a"/><rect x="33" y="30" width="2" height="5" fill="#3b2a1a"/><rect x="36" y="21" width="6" height="6" fill="#f4efe2"/><rect x="36" y="19" width="2" height="2" fill="#e8dcc0"/><rect x="40" y="19" width="2" height="2" fill="#e8dcc0"/><rect x="76" y="24" width="15" height="7" fill="#7a4a26"/><rect x="70" y="21" width="6" height="6" fill="#7a4a26"/><rect x="70" y="19" width="2" height="2" fill="#e8dcc0"/><rect x="74" y="19" width="2" height="2" fill="#e8dcc0"/><rect x="77" y="30" width="2" height="5" fill="#3b2414"/><rect x="82" y="30" width="2" height="5" fill="#3b2414"/><rect x="87" y="30" width="2" height="5" fill="#3b2414"/><rect x="50" y="31" width="3" height="3" fill="#5e8a3a"/><rect x="100" y="31" width="3" height="3" fill="#5e8a3a"/></svg>',
+town:'<svg viewBox="0 0 120 36" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="120" height="36" fill="#e6b96e"/><circle cx="18" cy="6" r="4" fill="#fff3c8"/><rect y="26" width="120" height="10" fill="#a5753f"/><rect y="24" width="120" height="2" fill="#8a5a2e"/><rect x="4" y="10" width="30" height="16" fill="#8a5a3a"/><rect x="2" y="8" width="34" height="3" fill="#5e3a22"/><rect x="10" y="4" width="18" height="4" fill="#e8c24a"/><rect x="16" y="18" width="6" height="8" fill="#3b2414"/><rect x="7" y="14" width="5" height="5" fill="#ffe9a3"/><rect x="26" y="14" width="5" height="5" fill="#ffe9a3"/><rect x="38" y="12" width="24" height="14" fill="#7d7468"/><rect x="37" y="10" width="26" height="3" fill="#5a5348"/><rect x="41" y="14" width="3" height="12" fill="#5a5348"/><rect x="56" y="14" width="3" height="12" fill="#5a5348"/><rect x="46" y="18" width="8" height="8" fill="#3b2414"/><rect x="66" y="6" width="36" height="20" fill="#9a6a42"/><rect x="66" y="14" width="36" height="2" fill="#5e3a22"/><rect x="70" y="9" width="5" height="4" fill="#ffe9a3"/><rect x="79" y="9" width="5" height="4" fill="#ffe9a3"/><rect x="88" y="9" width="5" height="4" fill="#ffe9a3"/><rect x="70" y="18" width="5" height="5" fill="#ffe9a3"/><rect x="79" y="18" width="5" height="5" fill="#ffe9a3"/><rect x="88" y="18" width="5" height="5" fill="#3b2414"/><rect x="106" y="8" width="10" height="8" fill="#7a5a3a"/><rect x="105" y="6" width="12" height="2" fill="#5e3a22"/><rect x="107" y="16" width="2" height="10" fill="#5e3a22"/><rect x="113" y="16" width="2" height="10" fill="#5e3a22"/></svg>',
+graveyard:'<svg viewBox="0 0 120 36" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="120" height="36" fill="#141021"/><rect x="48" y="4" width="1.5" height="1.5" fill="#cfd6ff"/><rect x="70" y="8" width="1.5" height="1.5" fill="#cfd6ff"/><rect x="90" y="3" width="1.5" height="1.5" fill="#cfd6ff"/><rect x="108" y="10" width="1.5" height="1.5" fill="#cfd6ff"/><rect x="58" y="14" width="1.5" height="1.5" fill="#cfd6ff"/><circle cx="20" cy="9" r="9" fill="#e8e4c8" opacity="0.25"/><circle cx="20" cy="9" r="6" fill="#e8e4c8"/><rect x="18" y="7" width="2" height="2" fill="#c9c49a"/><rect x="22" y="10" width="1.5" height="1.5" fill="#c9c49a"/><rect y="25" width="120" height="11" fill="#241d33"/><rect x="0" y="19" width="120" height="1.5" fill="#0c0916"/><rect x="5" y="15" width="2" height="9" fill="#0c0916"/><rect x="30" y="15" width="2" height="9" fill="#0c0916"/><rect x="55" y="15" width="2" height="9" fill="#0c0916"/><rect x="80" y="15" width="2" height="9" fill="#0c0916"/><rect x="105" y="15" width="2" height="9" fill="#0c0916"/><rect x="40" y="18" width="7" height="8" fill="#8f86a8"/><circle cx="43.5" cy="18" r="3.5" fill="#8f86a8"/><rect x="42" y="20" width="1.5" height="4" fill="#5a5370"/><rect x="62" y="20" width="6" height="6" fill="#8f86a8"/><circle cx="65" cy="20" r="3" fill="#8f86a8"/><rect x="98" y="14" width="2" height="12" fill="#6e6488"/><rect x="94" y="17" width="10" height="2" fill="#6e6488"/><rect x="8" y="12" width="3" height="14" fill="#0c0916"/><rect x="8" y="12" width="8" height="2" fill="#0c0916" transform="rotate(-25 8 12)"/><rect y="22" width="120" height="4" fill="#8f86a8" opacity="0.35"/></svg>',
+opendesert:'<svg viewBox="0 0 120 36" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><rect width="120" height="20" fill="#f2c063"/><rect y="20" width="120" height="16" fill="#e8a94e"/><circle cx="60" cy="15" r="9" fill="#ffdf5a"/><rect x="0" y="10" width="30" height="16" fill="#a5552e"/><rect x="0" y="10" width="30" height="3" fill="#c06a3a"/><rect x="92" y="14" width="28" height="12" fill="#a5552e"/><rect x="92" y="14" width="28" height="3" fill="#c06a3a"/><rect y="26" width="120" height="10" fill="#d99a4e"/><rect x="14" y="29" width="12" height="1.5" fill="#b57a38"/><rect x="40" y="32" width="14" height="1.5" fill="#b57a38"/><rect x="90" y="32" width="12" height="1.5" fill="#b57a38"/><rect x="44" y="14" width="4" height="12" fill="#4e7d3a"/><rect x="40" y="17" width="4" height="2" fill="#4e7d3a"/><rect x="40" y="15" width="2" height="4" fill="#4e7d3a"/><rect x="48" y="19" width="4" height="2" fill="#4e7d3a"/><rect x="50" y="17" width="2" height="4" fill="#4e7d3a"/><rect x="76" y="19" width="3" height="7" fill="#4e7d3a"/><rect x="80" y="28" width="5" height="4" fill="#efe8d2"/><rect x="81" y="29" width="1.5" height="1.5" fill="#3b2a1a"/><rect x="83.5" y="29" width="1.5" height="1.5" fill="#3b2a1a"/><circle cx="102" cy="29" r="3" fill="none" stroke="#8a5a2e" stroke-width="1"/><rect x="99" y="29" width="6" height="1" fill="#8a5a2e"/></svg>'};
+function buildLevels(){
+  const box=document.getElementById('lvlScroll'); box.innerHTML='';
+  const sd=document.getElementById('s-diff'); if(sd) sd.value=baseDiff;
+  difficulty=baseDiff; diffLabel();
+  const unl=unlocked();
+  const grid=document.createElement('div'); grid.className='lvlgrid'; box.appendChild(grid);
+  const items=[];
+  let nextNode=null;
+  for(let g=0;g<8;g++){
+    const a=g*5+1, b=g*5+5, ground=MAP_ORDER[g%MAP_ORDER.length];
+    const m=document.createElement('span');
+    m.className='lvlmark '+(ground==='opendesert'?'desert':ground);
+    m.title='Levels '+a+'-'+b+' · '+MAPNAMES[ground]+(g>3?' · Round '+(Math.floor(g/4)+1):'');
+    m.innerHTML=MAPSCENES[ground]+'<span>LEVELS '+a+'–'+b+' · '+MAPNAMES[ground]+(g>3?' · ROUND '+(Math.floor(g/4)+1):'')+'</span>';
+    items.push(m);
+    for(let l=a;l<=b;l++){
+      const n=document.createElement('button'); n.className='lvl v-'+ground; n.textContent=l;
+      n.title='Level '+l+' · diff '+levelDiff(l);
+      if(l<unl) n.classList.add('cleared');
+      if(l===unl){ n.classList.add('next'); nextNode=n; }
+      if(l>unl) n.disabled=true;
+      else n.addEventListener('click',()=>startLevel(l));
+      items.push(n);
+    }
+  }
+  for(let i=items.length-1;i>=0;i--) grid.appendChild(items[i]);
+  if(nextNode){
+    try{ box.scrollTop=Math.max(0,nextNode.offsetTop-box.clientHeight/2+nextNode.offsetHeight/2); }catch(e){}
+  }
+}
+function startLevel(l){
+  level=l; levelMode=true; difficulty=levelDiff(l); setLevelUi();
+  showScreen('game');
+}
+const DIFFNAMES=['','Greenhorn','Regular','Sharp','Deadeye','Legend','Mythic','Nightmare','Hellfire','Reaper','El Muerto'];
+const DIFFTIPS=[
+ '',
+ 'A gentle stroll. Wide ring, slow outlaw, all the time in the world.',
+ 'Peaceful practice. Generous ring and fire window for warming up.',
+ 'A fair fight. Steady hands required, mistakes forgiven.',
+ 'Mean and quick. Small ring, short fuse, no dawdling.',
+ 'Pure menace. Tiny ring, quarter-second window. Good luck, partner.',
+ 'Beyond legend. The window is a blink and the ring barely sits still.',
+ 'The outlaw reads your mind. Blink and the duel is over.',
+ 'Hell rides with him. Only perfect hands survive.',
+ 'Death walks at noon. A twitch is too slow.',
+ 'El Muerto does not miss. Neither can you.'
+];
 function rollRing(){
   const R=(a,b)=>a+Math.random()*(b-a);
-  const d=difficulty;
-  ring.size=Math.min(16,Math.max(7,R(9,14)-(d-3)*1.2));
-  ring.sx=R(0.35,0.55); ring.sy=R(0.45,0.58);
-  ring.ex=R(0.78,0.86); ring.ey=R(0.40,0.48);
-  ring.shrinkMs=R(1000,1800)/(0.92+0.04*d);
-  ring.trackMs=R(1600,2800)/(0.85+0.075*d);
-  ring.startW=R(26,34);
-  promptTimeout=1000-120*d;
+  const d=Math.max(1,Math.min(200,difficulty)), k=(Math.min(d,100)-1)/99, j=Math.max(0,(d-100)/100);
+  // 1-100 behaves exactly as before; 101-200 tightens further via overdrive j
+  ring.size=+(16-9*k-2*j).toFixed(2);                      // 16% -> 5%
+  ring.sx=R(0.12,0.58); ring.sy=R(0.28,0.62);
+  const fc=foeCenter();
+  ring.ex=Math.min(0.94,Math.max(0.06,fc.x+R(-0.015,0.015)));
+  ring.ey=Math.min(0.9,Math.max(0.1,fc.y+R(-0.02,0.02)));
+  // the ring drifts along the first stretch of its path while it closes
+  ring.mx=ring.sx+(ring.ex-ring.sx)*0.35; ring.my=ring.sy+(ring.ey-ring.sy)*0.35;
+  ring.startW=+(R(29,32)*(1-0.35*k)).toFixed(2);
+  ring.shrinkMs=Math.round(R(0.93,1.07)*(1500-950*k)*(1-0.36*j));   // 1500ms -> ~350ms
+  ring.trackMs=Math.round(R(0.93,1.07)*(2600-1600*k)*(1-0.35*j)*trackPace());   // 2600ms -> ~650ms
+  promptTimeout=Math.round((1300-1120*k*k)*(1-0.33*j)*0.45);        // 585ms -> ~55ms
+  ring.graceMs=Math.round((170-135*k)*(1-0.43*j));                  // 170ms -> ~20ms
+}
+function trackPace(){
+  // constant ring speed: scale the track time by actual path length so short
+  // paths don't crawl and long paths don't rush (clamped to sane extremes)
+  const r0=stageEl.getBoundingClientRect(), asp=(r0.height||1)/(r0.width||1);
+  const len=Math.hypot(ring.ex-ring.mx,(ring.ey-ring.my)*asp)||0.38;
+  return Math.max(0.5,Math.min(1.5,len/0.38));
+}
+function foeCenter(){
+  // actual rendered outlaw position — keeps the ring honest on every map and screen size
+  const s=stageEl.getBoundingClientRect(), f=document.getElementById('foeF').getBoundingClientRect();
+  if(!s.width) return {x:0.82,y:0.48};
+  return {x:(f.left+f.width/2-s.left)/s.width, y:(f.top+f.height*0.3-s.top)/s.height};
 }
 function startDoom(msg,now){
   // hand over to the staged outlaw revenge in the frame loop
-  aimPhase='done'; outcome='lose'; outT0=now; doomMsg=msg||null; hideTarget();
+  aimPhase='done'; outcome='lose'; outT0=now; doomMsg=msg||null; hideTarget(); aimUi('done');
 }
-function aimPos(e){ const r=stageEl.getBoundingClientRect(); aim.x=(e.clientX-r.left)/r.width; aim.y=(e.clientY-r.top)/r.height; aim.active=true; }
+function aimPos(e){
+  const r=stageEl.getBoundingClientRect();
+  aim.x=(e.clientX-r.left)/r.width; aim.y=(e.clientY-r.top)/r.height; aim.active=true;
+  aim.px=e.clientX-r.left; aim.py=e.clientY-r.top;
+  const ret=document.getElementById('retF');
+  ret.style.transform=`translate(${aim.px}px,${aim.py}px)`;
+}
+function aimUi(phase){
+  stageEl.classList.toggle('aiming', phase==='shrink'||phase==='track'||phase==='fireprompt');
+  stageEl.classList.toggle('hot', phase==='fireprompt');
+}
 function playerFire(){
   if(!firing||aimPhase!=='fireprompt'||outcome!==null) return;
-  aimPhase='done'; outcome='win'; outT0=performance.now(); hideTarget();
+  aimPhase='done'; outcome='win'; outT0=performance.now(); hideTarget(); aimUi('done');
 }
 function earlyFire(){
   if(!firing||outcome!==null) return;
   if(aimPhase!=='shrink'&&aimPhase!=='track') return;
-  aimPhase='done'; outcome='early'; outT0=performance.now(); hideTarget();
+  aimPhase='done'; outcome='early'; outT0=performance.now(); hideTarget(); aimUi('done');
 }
 stageEl.addEventListener('pointermove',aimPos);
 stageEl.addEventListener('pointerdown',e=>{ aimPos(e); playerFire(); earlyFire(); });
-stageEl.addEventListener('pointerleave',()=>{ aim.active=false; });
+stageEl.addEventListener('pointerleave',()=>{ aim.active=false; stageEl.classList.remove('aiming'); });
 
 function spawnSmoke(){ smoke=[]; puffSmoke(14); }
 function puffSmoke(n){ for(let i=0;i<(n||3);i++) smoke.push({x:21+Math.random()*2,y:22+Math.random()*2,vx:0.2+Math.random()*0.7,vy:-0.25-Math.random()*0.45,life:0.9}); if(smoke.length>60) smoke.splice(0,smoke.length-60); }
@@ -586,16 +816,18 @@ function applyTurnBackHolster(id, p){
 
 function fire(){
   if(firing) return; firing=true;
+  const gen=++duelGen; duelLocked=false; lockDuelBtns(false);
   foeDown(false); foeHit(false); playerDown(false); hideTarget();
   document.getElementById('front').classList.remove('hit');
   document.getElementById('foeF').style.transform='';
   const start=performance.now(); let boomed=false, turned=false, lastPuff=0, foeSaid=false, youSaid=false, steadySaid=false;
   let aimSaid=false, aimT0=0, trackT0=0, promptT0=0, outsideSince=0, drewTxt=false, foeFired=false;
-  outcome=null; outT0=0; aimPhase='idle'; doomMsg=null; rollRing();
+  outcome=null; outT0=0; aimPhase='idle'; doomMsg=null; rollRing(); aimUi('idle');
   smoke=[];
   const foeLine=FOE_LINES[Math.floor(Math.random()*FOE_LINES.length)];
   const tgt=document.getElementById('targetF'), mfill=document.getElementById('mfillF');
   function frame(now){
+    if(gen!==duelGen) return;   // bailed to menu/store mid-intro
     const t=now-start;
     if(t<1700){
       // ENEMY speaks first
@@ -613,7 +845,7 @@ function fire(){
       // count: STILL FACING FORWARD
       resetSpin();
       drawCowboy('front',false,{dy:0,gun:'holster',flash:0});
-      if(!steadySaid){ steadySaid=true; hideBubbles(); showDuel('STEADY…'); }
+      if(!steadySaid){ steadySaid=true; hideBubbles(); showDuel('STEADY…'); duelLocked=true; lockDuelBtns(true); }
     }
     else if(t<4650){
       // "TURN": spins front -> back, ends facing AWAY
@@ -626,7 +858,7 @@ function fire(){
       resetSpin();
       const r=stageEl.getBoundingClientRect();
       if(!aimSaid){
-        aimSaid=true; aimT0=now; aimPhase='shrink';
+        aimSaid=true; aimT0=now; aimPhase='shrink'; aimUi('shrink');
         showDuel('GET READY!');
         tgt.style.left=(ring.sx*100)+'%'; tgt.style.top=(ring.sy*100)+'%'; tgt.style.width=ring.startW+'%';
         tgt.classList.add('show'); tgt.classList.add('dotted'); tgt.classList.remove('hot');
@@ -635,12 +867,14 @@ function fire(){
       const insideAt=(px,py)=>{ const dx=(aim.x-px)*r.width, dy=(aim.y-py)*r.height; return aim.active&&(dx*dx+dy*dy<=radPx*radPx); };
       if(aimPhase==='shrink'){
         drawCowboy('front',true,{dy:0,gun:'holster',flash:0});
-        const st=(now-aimT0)/ring.shrinkMs;
-        if(st<1){ tgt.style.width=(ring.startW+(ring.size-ring.startW)*st)+'%'; }
-        else{
-          tgt.style.width=ring.size+'%';
-          if(insideAt(ring.sx,ring.sy)){
-            aimPhase='track'; trackT0=now; outsideSince=0;
+        const st=Math.min(1,(now-aimT0)/ring.shrinkMs);
+        // the ring drifts along its line while it closes
+        const cx=ring.sx+(ring.mx-ring.sx)*st, cy=ring.sy+(ring.my-ring.sy)*st;
+        tgt.style.left=(cx*100)+'%'; tgt.style.top=(cy*100)+'%';
+        tgt.style.width=(ring.startW+(ring.size-ring.startW)*st)+'%';
+        if(st>=1){
+          if(insideAt(ring.mx,ring.my)){
+            aimPhase='track'; trackT0=now; outsideSince=0; aimUi('track');
             tgt.classList.remove('dotted'); showDuel('TRACK HIM!');
           } else {
             aimPhase='done'; startDoom("YOU WEREN'T READY!",now);
@@ -649,7 +883,7 @@ function fire(){
       }
       else if(aimPhase==='track'){
         const tp=Math.min(1,(now-trackT0)/ring.trackMs);
-        const tx=ring.sx+(ring.ex-ring.sx)*tp, ty=ring.sy+(ring.ey-ring.sy)*tp;
+        const tx=ring.mx+(ring.ex-ring.mx)*tp, ty=ring.my+(ring.ey-ring.my)*tp;
         tgt.style.left=(tx*100)+'%'; tgt.style.top=(ty*100)+'%';
         // both duelists slowly draw as the ring travels
         drawCowboy('front',true,{dy:0,gun:'holster',drawP:tp,flash:0});
@@ -657,16 +891,18 @@ function fire(){
         if(insideAt(tx,ty)){ outsideSince=0; }
         else{
           if(!outsideSince) outsideSince=now;
-          if(now-outsideSince>120){ startDoom('YOU LOST HIM!',now); }
+          if(now-outsideSince>(ring.graceMs||150)){ startDoom('YOU LOST HIM!',now); }
         }
         if(outcome===null&&tp>=1){
-          aimPhase='fireprompt'; promptT0=now;
+          aimPhase='fireprompt'; promptT0=now; aimUi('fireprompt');
           tgt.classList.add('hot'); showDuel('FIRE!');
         }
       }
       else if(aimPhase==='fireprompt'){
         drawCowboy('front',true,{dy:0,gun:'draw',flash:0});
         drawFigure('foeF',false,{dy:0,gun:'draw',flash:0,flipGun:true},foeState);
+        document.getElementById('meterF').classList.add('show');
+        mfill.style.width=Math.min(100,(now-promptT0)/promptTimeout*100)+'%';
         if(now-promptT0>promptTimeout){ startDoom(null,now); }
       }
     }
@@ -713,7 +949,10 @@ function fire(){
         updateSmoke();
       }
       else {
-        smoke=[]; foeDown(false); renderIdle(); firing=false; showScreen('menu'); return;
+        smoke=[]; foeDown(false); firing=false;
+        if(levelMode){ levelMode=false; saveBest(level); document.getElementById('lvlMsg').textContent='Level '+level+' cleared — pick your next duel.'; renderIdle(); showScreen('levels'); }
+        else { renderIdle(); showScreen('menu'); }
+        return;
       }
     }
     else {
@@ -730,7 +969,10 @@ function fire(){
         drawFigure('foeF',false,{dy:0,gun:fl?'fire':'draw',flash:fl?1:0,flipGun:true},foeState);
         if(!foeFired){ foeFired=true; boom(); foeTracer(); showDuel(doomMsg||'THE OUTLAW WAS FASTER!'); const c=document.getElementById('front'); c.classList.add('hit'); c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake'); }
         if(lt>750){ document.getElementById('front').classList.remove('hit'); playerDown(true); }
-        if(lt>2300){ playerDown(false); renderIdle(); firing=false; showScreen('menu'); return; }
+        if(lt>2300){ playerDown(false); renderIdle(); firing=false;
+          if(levelMode){ levelMode=false; document.getElementById('lvlMsg').textContent='Level '+level+' lost — steady yourself and retry.'; showScreen('levels'); }
+          else showScreen('menu');
+          return; }
       }
     }
     requestAnimationFrame(frame);
@@ -755,12 +997,27 @@ document.getElementById('random').addEventListener('click',()=>{
 });
 document.getElementById('s-line').value=playerLine;
 document.getElementById('s-line').addEventListener('input',e=>{ playerLine=e.target.value; });
-document.getElementById('diffName').textContent=DIFFNAMES[difficulty];
-document.getElementById('s-diff').addEventListener('input',e=>{ difficulty=+e.target.value; document.getElementById('diffName').textContent=DIFFNAMES[difficulty]; });
+const MAP_ORDER=['corral','town','graveyard','opendesert'];
+const MAPNAMES={corral:'CORRAL',town:'TOWN',graveyard:'GRAVEYARD',opendesert:'OPEN DESERT'};
+function levelMap(lv){ return MAP_ORDER[Math.floor((lv-1)/5)%MAP_ORDER.length]; }
+function setLevelUi(){
+  const m=levelMap(level); if(m!==currentBg) setBg(m);
+  const t=document.querySelector('#screen-game .topbartitle'); if(t) t.textContent='LEVEL '+level+' · '+MAPNAMES[m]+' · '+difficulty;
+  const sd=document.getElementById('s-diff'); if(sd) sd.value=difficulty; diffLabel();
+}
+function diffLabel(){
+  const b=Math.min(10,Math.floor((Math.max(1,Math.min(200,difficulty))-1)/20)+1);
+  document.getElementById('diffName').textContent=DIFFNAMES[b];
+  document.getElementById('diffTip').textContent=DIFFTIPS[b]||'';
+}
+diffLabel();
+document.getElementById('s-diff').addEventListener('input',e=>{ const v=Math.round(+e.target.value); if(!isNaN(v)){ baseDiff=Math.max(1,Math.min(200,v)); difficulty=baseDiff; diffLabel(); } });
+document.getElementById('s-diff').addEventListener('change',e=>{ let v=Math.round(+e.target.value); if(isNaN(v)) v=baseDiff; baseDiff=Math.max(1,Math.min(200,v)); difficulty=baseDiff; e.target.value=baseDiff; diffLabel(); });
 window.addEventListener('keydown',e=>{ if(e.code==='Space'){ if(document.getElementById('screen-game').classList.contains('hidden')) return; e.preventDefault(); if(firing){ if(aimPhase==='fireprompt'){ playerFire(); } else if(aimPhase==='shrink'||aimPhase==='track'){ earlyFire(); } } else { fire(); } } });
-setBg('opendesert');
+setBg('corral');
 renderAll();
 showScreen('menu');
+setTimeout(()=>{ if(!spinBroken) menuSpinLoop(); },60);   // safety net if the loop ever died
 </script>
 </body>
 </html>
