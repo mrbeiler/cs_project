@@ -42,7 +42,7 @@ figcaption{font-size:clamp(.7rem,1.8vh,.95rem);padding:2px 0 1px;line-height:1}
 /* offset duelists so both are visible: you big left, foe small right */
 .duelist{position:absolute;bottom:0;pointer-events:none}
 .duelist.player{left:4%;bottom:1%;height:86%;z-index:2}
-.duelist.foepos{right:16%;bottom:36.5%;height:15%;z-index:1}
+.duelist.foepos{right:16%;bottom:36.5%;height:21%;z-index:1}
 .duelist.showcase{left:50%;bottom:1%;height:94%;z-index:2;transform:translateX(-50%)}
 .duelist canvas{height:100%;width:auto;image-rendering:pixelated}
 .foe{pointer-events:none;transition:transform .45s ease-in,filter .12s}
@@ -53,9 +53,10 @@ figcaption{font-size:clamp(.7rem,1.8vh,.95rem);padding:2px 0 1px;line-height:1}
 .ground{position:absolute;z-index:1;left:2%;width:44%;bottom:3%;height:6%;background:rgba(0,0,0,.28);border-radius:50%;filter:blur(1px)}
 .ground.single{left:32%;width:36%}
 .foepos .foeshadow{position:absolute;left:50%;bottom:-3%;transform:translateX(-50%);width:150%;height:9%;background:rgba(0,0,0,.25);border-radius:50%;pointer-events:none}
-.bg-corral .foepos{right:28%;height:25%}
+.bg-corral .foepos{right:19%;bottom:27.5%;height:23.1%}
 .bg-corral .duelist.player{height:80%}
-.bg-graveyard .foepos{height:21%}
+.bg-town .foepos{right:25%;bottom:36.5%;height:25.2%}
+.bg-graveyard .foepos{right:16%;bottom:33.5%;height:21%}
 .bg-graveyard .duelist.player{height:78%}
 .bang{position:absolute;z-index:5;left:38%;top:22%;transform:translate(-50%,-50%) scale(.5) rotate(-10deg);font-family:Impact,Georgia,sans-serif;font-weight:900;font-size:clamp(1.6rem,6vh,3rem);color:#ffdf2b;-webkit-text-stroke:2px #7a0e0e;text-shadow:3px 3px 0 #7a0e0e,0 0 18px rgba(255,200,0,.9);opacity:0;pointer-events:none;white-space:nowrap}
 .bang.show{animation:bangpop .55s ease-out}
@@ -194,6 +195,11 @@ figcaption{font-size:clamp(.7rem,1.8vh,.95rem);padding:2px 0 1px;line-height:1}
 #stageF.bg-graveyard .duelist canvas{filter:brightness(.6) saturate(.8)}
 #stageF.bg-graveyard .duelist .foe.hit{filter:brightness(2.4) saturate(.5)}
 #stageF.bg-graveyard .duelist .foe.down{filter:brightness(.45) sepia(.6)}
+#stageF.bg-graveyard #foeF{opacity:.62;filter:brightness(1.15) saturate(.35) drop-shadow(0 0 6px rgba(200,230,255,.9));transition:transform .45s ease-in,filter .12s,opacity .5s ease-out}
+#stageF.bg-graveyard #foeF.hit{opacity:.62;filter:brightness(2.2) saturate(.3) drop-shadow(0 0 8px rgba(200,230,255,.95))}
+#stageF.bg-graveyard #foeF.down{opacity:0;transform:translateY(-14px) scale(1.35);transform-origin:bottom center;filter:brightness(1.8) saturate(.2) drop-shadow(0 0 12px rgba(200,230,255,1))}
+#stageF.bg-graveyard .foepos .foeshadow{opacity:.15;transition:opacity .5s}
+#stageF.bg-graveyard .foepos:has(#foeF.down) .foeshadow{opacity:0}
 .target{position:absolute;z-index:4;width:11%;aspect-ratio:1/1;opacity:0;pointer-events:none;transform:translate(-50%,-50%);transition:opacity .15s}
 .target.show{opacity:1}
 .tring{position:absolute;inset:0;background:rgba(150,150,150,.45);border:2px solid rgba(80,80,80,.85);border-radius:50%}
