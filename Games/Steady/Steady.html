@@ -163,16 +163,10 @@ figcaption{font-size:clamp(.7rem,1.8vh,.95rem);padding:2px 0 1px;line-height:1}
 .tracer.rev.go{animation:traceR .25s ease-out}
 @keyframes traceR{0%{opacity:1;transform:scaleX(.05);transform-origin:right}100%{opacity:0;transform:scaleX(1);transform-origin:right}}
 .bg-opendesert{background:
- radial-gradient(circle at 74% 16%,#fff9d8 0 6%,#ffdf5a 7% 10%,rgba(255,223,90,0) 11%),
- radial-gradient(ellipse at center,rgba(255,255,255,.95) 0 55%,rgba(255,255,255,0) 72%),
- radial-gradient(ellipse at center,rgba(255,255,255,.9) 0 55%,rgba(255,255,255,0) 72%),
- linear-gradient(#c08a5e,#c08a5e),
- linear-gradient(#b9835a,#b9835a),
- linear-gradient(#8a5a3a,#8a5a3a),
- linear-gradient(#9a6a44,#9a6a44),
+ url("open.png"),
  linear-gradient(#5ea9e6 0 42%,#aecfee 42% 50%,#e3c188 50% 54%,#c98a5a 54% 58%,#e0b96a 58% 63%,#cfa054 63% 100%);
- background-size:auto,26% 9%,18% 7%,18% 5%,12% 4%,22% 7%,15% 5%,auto;
- background-position:0 0,28% 12%,58% 22%,30% 49%,60% 50%,6% 51%,68% 52%,0 0;
+ background-size:cover,auto;
+ background-position:center 70%,0 0;
  background-repeat:no-repeat}
 .bg-corral{background:
  url("corral.png"),
@@ -292,9 +286,6 @@ kbd{border:1px solid currentColor;border-radius:4px;padding:0 5px;font-size:.85e
 </div>
 <p class="secttl">Taunt — your reply in the duel</p>
 <div class="lineinput"><input id="s-line" maxlength="60" placeholder="It's high noon somewhere."></div>
-<p class="secttl">Difficulty</p>
-<div class="diffrow"><input type="number" id="s-diff" min="1" max="200" step="1" value="50"><span id="diffName">Sharp</span></div>
-<p class="difftips" id="diffTip">Hint: the tighter the ring and the faster the fire window, the deadlier the outlaw.</p>
 <div class="btnrow">
 <button id="random">Randomize</button>
 </div>
@@ -1744,13 +1735,17 @@ function setLevelUi(){
   const sd=document.getElementById('s-diff'); if(sd) sd.value=difficulty; diffLabel();
 }
 function diffLabel(){
+  const n=document.getElementById('diffName'), tp=document.getElementById('diffTip');
+  if(!n&&!tp) return;
   const b=Math.min(10,Math.floor((Math.max(1,Math.min(200,difficulty))-1)/20)+1);
-  document.getElementById('diffName').textContent=DIFFNAMES[b];
-  document.getElementById('diffTip').textContent=DIFFTIPS[b]||'';
+  if(n) n.textContent=DIFFNAMES[b];
+  if(tp) tp.textContent=DIFFTIPS[b]||'';
 }
 diffLabel();
-document.getElementById('s-diff').addEventListener('input',e=>{ const v=Math.round(+e.target.value); if(!isNaN(v)){ difficulty=Math.max(1,Math.min(200,v)); diffLabel(); } });
-document.getElementById('s-diff').addEventListener('change',e=>{ let v=Math.round(+e.target.value); if(isNaN(v)) v=difficulty; difficulty=Math.max(1,Math.min(200,v)); e.target.value=difficulty; diffLabel(); });
+{ const _sd=document.getElementById('s-diff'); if(_sd){
+_sd.addEventListener('input',e=>{ const v=Math.round(+e.target.value); if(!isNaN(v)){ difficulty=Math.max(1,Math.min(200,v)); diffLabel(); } });
+_sd.addEventListener('change',e=>{ let v=Math.round(+e.target.value); if(isNaN(v)) v=difficulty; difficulty=Math.max(1,Math.min(200,v)); e.target.value=difficulty; diffLabel(); });
+} }
 window.addEventListener('keydown',e=>{ if(e.code==='Space'){ if(document.getElementById('screen-game').classList.contains('hidden')) return; e.preventDefault(); if(firing){ if(aimPhase==='fireprompt'){ playerFire(); } else if(aimPhase==='shrink'||aimPhase==='track'){ earlyFire(); } } else { fire(); } } });
 setBg('corral');
 loadCustom();
