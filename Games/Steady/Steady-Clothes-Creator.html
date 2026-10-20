@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Steady — Clothes Creator</title>
+<style>
+*{box-sizing:border-box}
+:root{--bg:#e9d3a8;--ink:#3b2414;--panel:#f3e4c2;--line:#3b2414;--gold:#e8c24a}
+@media (prefers-color-scheme:dark){:root{--bg:#2a1d14;--ink:#f0dcb4;--panel:#3a2a1d;--line:#c9a96a}}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Georgia,serif;padding:10px 12px calc(14px + env(safe-area-inset-bottom,0px))}
+h1{margin:0 0 8px;font-size:1.3rem;letter-spacing:.08em;text-align:center}
+.wrap{display:grid;grid-template-columns:auto minmax(260px,1fr);gap:12px;max-width:980px;margin:0 auto;align-items:start}
+@media(max-width:640px){.wrap{grid-template-columns:1fr}}
+.box{background:var(--panel);border-radius:10px;padding:8px;box-shadow:0 2px 0 rgba(0,0,0,.15)}
+.edwrap{position:relative;display:inline-block;border:2px solid var(--line);border-radius:6px;background:repeating-conic-gradient(#c9b78f 0 25%,#d9c9a4 0 50%) 0 0/16px 16px;line-height:0}
+#ed{height:min(66dvh,560px);aspect-ratio:24/40;image-rendering:pixelated;cursor:crosshair;touch-action:none;display:block}
+.grid{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(to right,rgba(0,0,0,.14) 1px,transparent 1px),linear-gradient(to bottom,rgba(0,0,0,.14) 1px,transparent 1px);background-size:calc(100%/24) 100%,100% calc(100%/40)}
+.grid.off{display:none}
+.edcol{display:flex;flex-direction:column;align-items:center;gap:6px}
+.prev{display:flex;gap:8px;align-items:flex-end}
+.prev canvas{height:110px;aspect-ratio:24/40;image-rendering:pixelated;background:#d9c9a4;border-radius:4px}
+.ttl{margin:8px 0 4px;font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;opacity:.85}
+.ttl:first-child{margin-top:0}
+button,select{font:inherit;font-size:.85rem;cursor:pointer;border-radius:7px;border:2px solid var(--line);padding:5px 10px;background:var(--panel);color:var(--ink)}
+button.on{background:var(--ink);color:var(--panel)}
+button.gold{background:var(--gold);color:#3b2414;font-weight:700}
+.row{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.slot{display:flex;gap:4px;align-items:center;width:100%;margin-bottom:3px}
+.slot .nm{flex:1;text-align:left}
+.slot .eye{padding:5px 8px}
+input[type=range]{flex:1;min-width:120px;accent-color:#c0392b}
+.pal{display:grid;grid-template-columns:repeat(auto-fill,minmax(20px,1fr));gap:3px}
+.pal i{aspect-ratio:1;border:1px solid rgba(0,0,0,.45);border-radius:3px;cursor:pointer}
+.pal i.sel{outline:2px solid var(--ink);outline-offset:1px}
+input[type=color]{width:42px;height:32px;padding:0;border:2px solid var(--line);border-radius:6px;background:none}
+dialog{max-width:min(680px,92vw);background:var(--panel);color:var(--ink);border:2px solid var(--line);border-radius:10px}
+dialog textarea{width:100%;height:46vh;font:12px/1.35 monospace}
+small{opacity:.8}
+</style></head><body>
+<h1>STEADY · CLOTHES CREATOR</h1>
+<div class="wrap">
+ <div class="box edcol">
+  <div class="row"><button id="sF" class="on">Front</button><button id="sB">Back</button><button id="both" title="Paint on the front and back at the same time">Both sides</button><button id="mir" class="on" title="Mirror strokes left/right">Mirror</button><button id="mirFB" title="Mirror strokes front to back (paint mirrored X onto the opposite side)">F↔B</button><button id="gr" class="on">Grid</button><button id="mine" class="on" title="Show or hide your drawing on top of the base characters">My drawing</button></div>
+  <div class="edwrap"><canvas id="ed" width="24" height="40"></canvas><div class="grid" id="gridEl"></div></div>
+  <div class="prev"><canvas id="pvF" width="24" height="40"></canvas><canvas id="pvB" width="24" height="40"></canvas></div>
+ </div>
+ <div class="box">
+  <p class="ttl">Garment layer</p><div id="slots"></div>
+  <div class="row" style="margin-top:4px"><button id="cpy" title="Copy this garment's front pixels onto its back">Front → Back</button><small>Base:</small><select id="base"></select></div>
+  <p class="ttl">Tool</p>
+  <div class="row" id="tools"><button data-t="pencil" class="on">Pencil</button><button data-t="eraser">Eraser</button><button id="ea" class="on" title="Eraser removes pixels from every garment, not just the selected one">All layers</button><button data-t="cut" title="Cut a hole through the base outfit">Cut</button><button data-t="fill">Fill</button><button data-t="pick">Pick</button><button id="un">Undo</button><button id="re">Redo</button></div>
+  <p class="ttl">Pen size <small id="szv">1 px</small></p>
+  <div class="row"><input type="range" id="size" min="1" max="8" value="1"></div>
+  <p class="ttl">Transparent <small id="trv">0%</small></p>
+  <div class="row"><input type="range" id="tr" min="0" max="100" value="0" title="Makes this pen's own pixels see-through (0% = solid, 100% = invisible)"></div>
+  <p class="ttl">Negative transparent (erase under) <small id="ntv">0%</small></p>
+  <div class="row"><input type="range" id="nt" min="0" max="100" value="0" title="Makes pixels underneath (lower garments + base character) also transparent"></div>
+  <p class="ttl">Piece colour — <span id="pcn"></span></p>
+  <div class="row"><input type="color" id="col" value="#b8452f"><small>or pick a swatch</small></div>
+  <p class="ttl">Light – dark <small id="ldv">100%</small></p>
+  <div class="row"><input type="range" id="ld" min="0" max="200" value="100"></div>
+  <div class="pal" id="pal" style="margin-top:6px"></div>
+  <p class="ttl">Outfit</p>
+  <div class="row"><button id="save" class="gold">Save JSON</button><button id="load">Load JSON</button><button id="png">PNG</button><button id="code" class="gold">Game code</button><button id="clr">Clear all</button><button id="wipe" title="Delete the autosaved drawing from this browser">Wipe saved</button></div>
+  <input type="file" id="file" accept=".json,application/json" hidden>
+  <p class="ttl"><small style="text-transform:none;letter-spacing:0">Work autosaves in this browser. “Game code” gives a snippet to paste into Steady.html.</small></p>
+ </div>
+</div>
+<dialog id="dlg"><p class="ttl">Paste into Steady.html</p><textarea id="out" readonly></textarea><div class="row" style="margin-top:6px"><button id="cp" class="gold">Copy</button><button id="cl">Close</button></div></dialog>
+<script>
+const SKIN='#e0a57a', HAIR='#3a2a1e', EYE='#1d120a', MOUTH='#9a4a2c';
+const SHIRTS={cream:'#eadbb9',red:'#b8452f',blue:'#4a7ab5',green:'#5a7d3a',black:'#3a3632',white:'#f6f1e6',purple:'#7a4a9a',orange:'#c97a2e',teal:'#3a8a8a',maroon:'#6e2a3a',brown:'#8a5a2b'};
+const PANTS={blue:{b:'#3f62a0',d:'#2f4a7c'},dark:{b:'#2e3a52',d:'#1e283c'},brown:{b:'#6b4a2e',d:'#4a3220'},black:{b:'#2b2b2e',d:'#161617'},chaps:{b:'#3f62a0',d:'#2f4a7c',chap:'#a67c44'},grey:{b:'#6e6e72',d:'#4a4a4e'},olive:{b:'#5a5e3a',d:'#3c4028'},white:{b:'#e8e4da',d:'#b8b0a8'}};
+const BOOTS={brown:{b:'#5a3220',s:'#2a170d'},black:{b:'#2a2320',s:'#0e0c0b'},oxblood:{b:'#6e2a22',s:'#2a0e0c'},tan:{b:'#9a6a3a',s:'#4a3018'},grey:{b:'#4a4a4e',s:'#222226'},red:{b:'#8a2a22',s:'#3a0e0c'},white:{b:'#d8d0c0',s:'#4a4433'},navy:{b:'#2e3a52',s:'#141422'}};
+const BANDS={red:'#c0392b',blue:'#2f5a9a',black:'#232323',green:'#3a7a4a',gold:'#d8a93a',white:'#e8e4da',purple:'#6a3a8a',orange:'#c97a2e',teal:'#2e8a8a',brown:'#8a5a2b',none:null};
+const VESTS={brown:{b:'#5a3a22',d:'#3f2616'},black:{b:'#2e2a28',d:'#161415'},tan:{b:'#a67c44',d:'#7a5a2e'},red:{b:'#8a2a22',d:'#5a1a16'},grey:{b:'#5a5a5e',d:'#3a3a3e'},white:{b:'#d8d0c0',d:'#a89a80'},none:null};
+const HAT_COLORS={brown:'#8a5a2b',black:'#232326',white:'#d8d0c0',tan:'#c49a5a',grey:'#6e6e72',red:'#8a3a2a'};
+const COAT_COLORS={tan:'#b89a6a',brown:'#6b4a2e',black:'#2e2a28',grey:'#5a5a5e',red:'#8a3a2e',navy:'#2e3a52',white:'#d8d0c0'};
+function shade(hex,f){ const n=parseInt(hex.slice(1),16); const r=Math.max(0,Math.min(255,Math.round(((n>>16)&255)*f))), g=Math.max(0,Math.min(255,Math.round(((n>>8)&255)*f))), b=Math.max(0,Math.min(255,Math.round((n&255)*f))); return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1); }
+const FOE_PRESETS=[
+ {hatStyle:'outlaw',hatColor:'black',face:'scar',shirtStyle:'plain',shirt:'black',vestStyle:'standard',vestColor:'black',coatStyle:'none',coatColor:'tan',bandana:'black',bandanaStyle:'classic',pantsStyle:'plain',pantsColor:'black',bootsStyle:'plain',boots:'black'},
+ {hatStyle:'sombrero',hatColor:'red',face:'mustache',shirtStyle:'plain',shirt:'white',vestStyle:'standard',vestColor:'red',coatStyle:'none',coatColor:'tan',bandana:'red',bandanaStyle:'mask',pantsStyle:'plain',pantsColor:'brown',bootsStyle:'spur',boots:'brown'},
+ {hatStyle:'gambler',hatColor:'tan',face:'grizzled',shirtStyle:'plain',shirt:'cream',vestStyle:'none',vestColor:'brown',coatStyle:'duster',coatColor:'tan',bandana:'gold',bandanaStyle:'classic',pantsStyle:'plain',pantsColor:'blue',bootsStyle:'plain',boots:'brown'},
+ {hatStyle:'tophat',hatColor:'black',face:'handlebar',shirtStyle:'striped',shirt:'purple',vestStyle:'none',vestColor:'black',coatStyle:'jacket',coatColor:'black',bandana:'black',bandanaStyle:'none',pantsStyle:'striped',pantsColor:'black',bootsStyle:'tooled',boots:'grey'},
+ {hatStyle:'bowler',hatColor:'black',face:'mask',shirtStyle:'plain',shirt:'grey',vestStyle:'none',vestColor:'black',coatStyle:'overcoat',coatColor:'black',bandana:'black',bandanaStyle:'classic',pantsStyle:'plain',pantsColor:'dark',bootsStyle:'plain',boots:'black'},
+ {hatStyle:'straw',hatColor:'tan',face:'beard',shirtStyle:'plaid',shirt:'red',vestStyle:'none',vestColor:'brown',coatStyle:'poncho',coatColor:'brown',bandana:'blue',bandanaStyle:'classic',pantsStyle:'chaps',pantsColor:'blue',bootsStyle:'spur',boots:'brown'}
+];
+function drawFigure(id,back,pose,outfit){
+  pose=pose||{dy:0,gun:'holster',flash:0};
+  outfit=outfit||state;
+  const cv=document.getElementById(id), x=cv.getContext('2d');
+  x.clearRect(0,0,24,40); x.save();
+  if(pose.mirror){ x.translate(24,0); x.scale(-1,1); }
+  x.translate(0,pose.dy||0);
+  const r=(a,b,w,h,c)=>{if(c==null)return; x.fillStyle=c; x.fillRect(a,b,w,h);};
+  const shirt=SHIRTS[outfit.shirt]||SHIRTS.cream;
+  const pant=PANTS[outfit.pantsColor]||PANTS.blue;
+  const boot=BOOTS[outfit.boots]||BOOTS.brown;
+  const band=BANDS[outfit.bandana], bStyle=outfit.bandanaStyle;
+  const vest=VESTS[outfit.vestColor];
+  const coat=outfit.coatStyle, vestStyle=outfit.vestStyle, pantsStyle=outfit.pantsStyle;
+  const face=outfit.face;
+  const gunOut=(pose.gun==='draw'||pose.gun==='fire');
+  const hx=pose.flipGun?5:17, drawP=(pose.drawP!=null)?pose.drawP:(gunOut?1:0);
+
+  r(8,27,8,9,pant.b); x.clearRect(11,30,2,6); r(8,27,1,9,pant.d);
+  if(pantsStyle==='chaps'){ r(8,27,2,9,'#a67c44'); r(14,27,2,9,'#a67c44'); r(8,27,1,9,'rgba(0,0,0,.2)'); r(15,27,1,9,'rgba(0,0,0,.2)'); }
+  if(pantsStyle==='striped'){ r(8,27,1,9,'rgba(255,255,255,.4)'); r(15,27,1,9,'rgba(255,255,255,.4)'); }
+  r(7,36,4,3,boot.b); r(13,36,4,3,boot.b);   r(7,39,4,1,boot.s); r(13,39,4,1,boot.s);
+  if(outfit.bootsStyle==='tooled'){ r(7,36,4,1,'rgba(255,255,255,.5)'); r(13,36,4,1,'rgba(255,255,255,.5)'); r(7,38,4,1,shade(boot.b,0.55)); r(13,38,4,1,shade(boot.b,0.55)); }
+  else if(outfit.bootsStyle==='spur'){ r(7,37,4,1,'#2a2a2a'); r(13,37,4,1,'#2a2a2a'); r(5,37,2,2,'#c0c0c0'); r(17,37,2,2,'#c0c0c0'); }
+  if(back){ r(6,38,1,1,'#e8c24a'); r(17,38,1,1,'#e8c24a'); }
+  else { r(6,37,1,2,boot.b); r(17,37,1,2,boot.b); }
+
+  r(8,17,8,9,shirt);
+  const shDark=shade(shirt,0.72), shLite='rgba(255,255,255,.35)';
+  if(outfit.shirtStyle==='plaid'){ r(10,17,1,9,shDark); r(13,17,1,9,shDark); r(8,19,8,1,shDark); r(8,22,8,1,shDark); }
+  else if(outfit.shirtStyle==='striped'){ r(10,17,1,9,shLite); r(13,17,1,9,shLite); }
+  else if(outfit.shirtStyle==='yoke'){ r(8,17,8,2,shDark); r(10,19,1,1,'#e8c24a'); r(13,19,1,1,'#e8c24a'); }
+  r(5,17,3,9,shirt); r(5,25,3,1,shDark); r(5,26,3,3,SKIN);
+  if(drawP<=0){ r(16,17,3,9,shirt); r(16,25,3,1,shDark); r(16,26,3,3,SKIN); }
+  else if(drawP>=1){
+    const hy = pose.gun==='fire' ? 22 : 23;
+    if(pose.flipGun){ r(4,17,4,4,shirt); r(3,20,3,3,shirt); r(2,hy,3,3,SKIN); }
+    else { r(16,17,4,4,shirt); r(18,20,3,3,shirt); r(19,hy,3,3,SKIN); }
+  }
+  else if(drawP<0.75){ r(16,17,3,9,shirt); r(16,25,3,1,shDark); r(16,26,3,3,SKIN); r(hx,drawP<0.5?24:23,2,2,SKIN); }
+  else { r(16,17,3,9,shirt); r(16,25,3,1,shDark); r(16,26,3,3,SKIN);
+    if(pose.flipGun){ r(4,17,4,4,shirt); r(3,20,3,3,shirt); r(3,22,3,2,SKIN); }
+    else { r(16,17,4,4,shirt); r(18,20,3,3,shirt); r(18,22,3,2,SKIN); } }
+
+  if(coat==='none'){
+    if(vestStyle!=='none'&&vest){
+      if(back){
+        r(8,17,8,9,vest.b); r(11,18,2,8,vest.d); r(8,17,8,1,vest.d);
+        if(vestStyle==='open'){ r(11,18,2,8,shirt); }
+        if(vestStyle==='fringe'){ r(7,19,1,1,'#e8c24a'); r(7,21,1,1,'#e8c24a'); r(7,23,1,1,'#e8c24a'); r(16,19,1,1,'#e8c24a'); r(16,21,1,1,'#e8c24a'); r(16,23,1,1,'#e8c24a'); }
+      } else if(vestStyle==='open'){
+        r(8,17,3,3,vest.b); r(13,17,3,3,vest.b);
+        r(8,20,2,3,vest.b); r(14,20,2,3,vest.b);
+        r(8,23,1,3,vest.b); r(15,23,1,3,vest.b);
+      } else {
+        r(8,17,3,9,vest.b); r(13,17,3,9,vest.b); r(9,19,2,2,'#e8c24a'); r(14,22,1,1,'#e8c24a');
+        if(vestStyle==='fringe'){ r(7,19,1,1,'#e8c24a'); r(7,21,1,1,'#e8c24a'); r(7,23,1,1,'#e8c24a'); r(16,19,1,1,'#e8c24a'); r(16,21,1,1,'#e8c24a'); r(16,23,1,1,'#e8c24a'); }
+      }
+    }
+  }
+  const coatBase=COAT_COLORS[outfit.coatColor]||COAT_COLORS.tan, coatDark=shade(coatBase,0.7);
+  if(coat==='duster'){
+    const dc=coatBase, dd=coatDark;
+    if(back){ r(7,17,10,18,dc); r(11,18,2,17,dd); r(7,17,10,1,dd); r(11,17,2,2,'#5a3a22'); }
+    else { r(7,17,4,18,dc); r(13,17,4,18,dc); r(7,17,4,1,dd); r(13,17,4,1,dd); r(7,22,1,4,dd); r(16,22,1,4,dd); r(10,17,1,2,'#e8c24a'); }
+    r(9,15,6,2,dd);
+  } else if(coat==='overcoat'){
+    // knee-length double-breasted coat: solid front, lapels, button column
+    const dc=coatBase, dd=coatDark;
+    if(back){ r(8,17,8,12,dc); r(11,18,2,11,dd); r(8,17,8,1,dd); }
+    else { r(8,17,8,12,dc); r(9,17,2,3,dd); r(13,17,2,3,dd); r(11,20,1,1,'#e8c24a'); r(11,22,1,1,'#e8c24a'); r(11,24,1,1,'#e8c24a'); r(11,27,1,1,'#e8c24a'); }
+    r(8,15,8,2,dd);
+    r(5,17,3,9,dc); r(16,17,3,9,dc);
+    if(gunOut){ const hy=pose.gun==='fire'?22:23; if(pose.flipGun){ r(3,20,3,3,dc); r(2,hy,3,3,SKIN); } else { r(18,20,3,3,dc); r(19,hy,3,3,SKIN); } }
+    else { r(5,26,3,3,SKIN); r(16,26,3,3,SKIN); }
+  } else if(coat==='poncho'){
+    const pc=coatBase, pd=coatDark, st='#e8c24a';
+    r(4,17,16,10,pc); r(4,17,16,1,pd); r(4,24,16,1,st); r(4,22,16,1,'#eadbb9');
+    if(back){ r(10,18,4,6,pd); } else { r(11,18,2,5,pd); }
+    if(!back){ r(9,19,1,1,st); r(14,21,1,1,st); }
+  } else if(coat==='jacket'){
+    const jc=coatBase, jd=coatDark;
+    if(back){ r(8,17,8,9,jc); r(11,18,2,8,jd); r(8,17,8,1,jd); }
+    else { r(8,17,8,9,jc); r(11,17,2,9,shirt); r(9,17,2,2,jd); r(13,17,2,2,jd); r(9,20,1,1,'#e8c24a'); }
+    r(5,17,3,9,jc); if(!(pose.flipGun&&gunOut)) r(16,17,3,9,jc);
+    if(gunOut){ const hy=pose.gun==='fire'?22:23; if(pose.flipGun){ r(3,20,3,3,jc); r(2,hy,3,3,SKIN); } else { r(18,20,3,3,jc); r(19,hy,3,3,SKIN); } }
+    else { r(5,26,3,3,SKIN); r(16,26,3,3,SKIN); }
+  } else if(coat==='cape'){
+    const cc=coatBase, cd=coatDark;
+    r(4,17,16,6,cc); r(4,17,16,1,cd);
+    r(9,15,6,2,cd);
+    if(back){ r(11,18,2,3,cd); } else { r(11,19,1,1,'#e8c24a'); }
+  }
+
+  r(8,26,8,1,'#2a1a10'); if(!back) r(11,26,2,1,'#e8c24a');
+  // holster sits on the gun side so nothing gun-like dangles off-side
+  if(drawP<1){ r(hx,24,2,5,'#4a2e1a'); r(hx,24,2,1,'#222'); if(!back) r(hx,24,1,1,'#666'); }
+  else { r(hx,24,2,5,'#4a2e1a'); r(hx,28,2,1,'#2a1a10'); }
+
+  r(10,15,4,1,SKIN); r(7,11,1,2,SKIN); r(16,11,1,2,SKIN);
+  if(back){
+    r(8,9,8,6,HAIR); r(7,11,1,2,HAIR); r(16,11,1,2,HAIR); r(10,15,4,1,SKIN);
+  } else {
+    r(8,9,8,6,SKIN); r(10,11,1,1,EYE); r(13,11,1,1,EYE); r(11,13,2,1,MOUTH);
+    r(8,9,8,1,'rgba(60,30,10,.35)');
+    if(face==='mustache'){ r(10,12,4,1,'#2a1a10'); r(9,12,1,1,'#2a1a10'); r(14,12,1,1,'#2a1a10'); }
+    if(face==='beard'){ r(8,12,8,3,HAIR); r(11,13,2,1,MOUTH); }
+    if(face==='scar'){ r(13,10,1,3,'#a33a2a'); r(9,12,3,1,'rgba(60,30,10,.4)'); r(10,11,1,1,'#fff'); }
+    if(face==='grizzled'){ r(9,12,6,2,'#b8b0a4'); r(10,14,4,1,'#b8b0a4'); r(10,12,4,1,'#ddd6c8'); r(11,13,2,1,MOUTH); }
+    if(face==='mask'){ r(8,10,8,2,'#1a1a1e'); r(10,11,1,1,'#fff'); r(13,11,1,1,'#fff'); r(11,13,2,1,MOUTH); }
+    if(face==='handlebar'){ r(8,12,8,1,'#2a1a10'); r(7,11,1,2,'#2a1a10'); r(16,11,1,2,'#2a1a10'); }
+    if(face==='eyepatch'){ r(13,10,2,2,'#15151a'); r(13,10,2,1,'#33333c'); r(9,10,2,1,'#15151a'); r(11,9,5,1,'#15151a'); r(8,11,1,1,'#15151a'); }
+  }
+  if(bStyle!=='none'&&band){
+    if(back){
+      if(bStyle==='headband'){ r(8,9,8,1,band); r(6,11,1,3,band); }
+      else { r(8,15,8,2,band); r(11,17,2,2,band); r(10,19,1,1,band); r(13,19,1,1,band); }
+    }
+    else {
+      if(bStyle==='mask'){ r(8,12,8,3,band); r(8,15,8,2,band); r(11,17,2,1,band); }
+      else if(bStyle==='headband'){ r(8,9,8,1,band); r(17,11,1,3,band); }
+      else { r(8,15,8,2,band); r(11,17,2,1,band); r(10,15,4,1,'rgba(255,255,255,.25)'); }
+    }
+  }
+  drawHat(x,r,back,outfit);
+  const f=x.getImageData(0,0,24,40).data;
+  if(outfit.__post) outfit.__post(x,r,back);
+
+  const d=x.getImageData(0,0,24,40), p=d.data, o=new Uint8ClampedArray(p);
+  const a=(i,j)=>i<0||j<0||i>=24||j>=40?0:f[(j*24+i)*4+3];
+  for(let j=0;j<40;j++)for(let i=0;i<24;i++){
+    const k=(j*24+i)*4;
+    if(p[k+3]===0&&(a(i-1,j)||a(i+1,j)||a(i,j-1)||a(i,j+1))){
+      o[k]=29;o[k+1]=18;o[k+2]=10;o[k+3]=255;}
+  }
+  d.data.set(o); x.putImageData(d,0,0);
+
+  if(drawP>0&&drawP<1){
+    const gm='#2b2b30';
+    if(drawP<0.25){ /* hand on the iron, not yet moving */ }
+    else if(drawP<0.5){ r(hx,22,2,3,gm); }
+    else if(drawP<0.75){ r(hx,20,2,4,gm); r(hx,20,2,1,'#44444e'); }
+    else if(pose.flipGun){ r(3,18,2,4,gm); r(3,18,2,1,'#44444e'); }
+    else { r(18,18,2,4,gm); r(18,18,2,1,'#44444e'); }
+  }
+  else if(gunOut){
+    const gy = pose.gun==='fire' ? 23 : 24;
+    if(pose.flipGun){
+      // left-facing gun (bandit shoots without turning around)
+      r(2,gy,3,2,'#2b2b30'); r(1,gy,2,1,'#44444e'); r(4,gy+2,1,2,'#5a3a22');
+      if(!back){ r(2,gy,1,1,'#888'); }
+      if(pose.flash){
+        const fy=gy;
+        r(0,fy-1,2,3,'#ff9a00'); r(0,fy,3,1,'#ffdf2b'); r(0,fy,1,2,'#fff');
+        x.fillStyle='rgba(255,220,80,.5)'; x.fillRect(0,fy-2,6,5);
+      }
+    } else {
+      r(19,gy,3,2,'#2b2b30'); r(21,gy,2,1,'#44444e'); r(19,gy+2,1,2,'#5a3a22');
+      if(!back){ r(20,gy,1,1,'#888'); }
+      if(pose.flash){
+        const fx=22, fy=gy;
+        r(fx,fy-1,2,3,'#ff9a00'); r(fx-1,fy,4,1,'#ffdf2b'); r(fx,fy,2,1,'#fff');
+        r(fx+1,fy-1,1,1,'#fff'); x.fillStyle='rgba(255,220,80,.5)'; x.fillRect(18,fy-2,6,5);
+      }
+    }
+  }
+  if(id==='front'){ for(const s of smoke){ x.fillStyle=`rgba(220,220,220,${Math.max(0,s.life)})`; x.fillRect(s.x|0,s.y|0,2,2); } }
+  x.restore();
+}
+function drawHat(x,r,back,outfit){
+  const h=(outfit||state).hatStyle, base=HAT_COLORS[(outfit||state).hatColor]||HAT_COLORS.brown;
+  const band='rgba(0,0,0,.45)', lite='rgba(255,255,255,.22)';
+  if(h==='classic'){ r(8,2,8,5,base); r(11,2,2,1,'rgba(0,0,0,.25)'); r(8,6,8,1,band); r(4,7,16,2,base); r(3,6,2,2,base); r(19,6,2,2,base); r(4,8,16,1,'rgba(0,0,0,.25)'); }
+  else if(h==='outlaw'){ r(8,1,8,6,base); r(8,6,8,1,band); r(11,1,2,5,lite); r(3,7,18,2,base); r(2,6,2,2,base); r(20,6,2,2,base); r(3,8,18,1,'rgba(0,0,0,.4)'); }
+  else if(h==='gambler'){ r(9,2,6,5,base); r(10,2,1,4,lite); r(9,6,6,1,band); r(5,7,14,2,base); r(5,8,14,1,'rgba(0,0,0,.2)'); }
+  else if(h==='sombrero'){ r(9,1,6,6,base); r(9,5,6,1,band); r(2,7,20,2,base); r(2,8,20,1,'rgba(0,0,0,.25)'); r(2,7,20,1,lite); }
+  else if(h==='bowler'){ r(9,3,6,4,base); r(10,3,2,4,lite); r(9,6,6,1,band); r(6,7,12,1,base); }
+  else if(h==='tophat'){ r(9,0,6,6,base); r(10,0,1,6,lite); r(9,5,6,1,band); r(5,7,14,2,base); r(5,8,14,1,'rgba(0,0,0,.4)'); }
+  else if(h==='straw'){ r(9,3,6,4,base); r(10,3,1,3,lite); r(9,6,6,1,band); r(3,7,18,2,base); r(3,8,18,1,'rgba(0,0,0,.2)'); }
+  else if(h==='flatcap'){ r(8,5,8,3,base); r(8,5,8,1,lite); r(5,8,14,1,base); r(5,8,14,1,'rgba(0,0,0,.15)'); }
+  else { r(8,8,8,2,HAIR); r(7,9,2,3,HAIR); r(15,9,2,3,HAIR); r(8,8,8,1,'#5a4433'); }
+}
+
+
+let smoke=[];
+const SLOTS=[['hat','Hat'],['scarf','Scarf'],['coat','Coat'],['vest','Vest'],['shirt','Shirt'],['pants','Pants'],['boots','Boots']];
+const ORDER=['pants','boots','shirt','vest','coat','scarf','hat'];
+const $=id=>document.getElementById(id);
+const blank=()=>{const o={};for(const[s]of SLOTS)o[s]={front:{},back:{}};return o;};
+let L=blank(), vis={}, slot='shirt', side='front', tool='pencil', size=1, mirror=true, both=false, mirrorFB=false;
+let transp=0, negTransp=0;
+const pc={hat:'#8a5a2b',scarf:'#c0392b',coat:'#b89a6a',vest:'#5a3a22',shirt:'#b8452f',pants:'#3f62a0',boots:'#5a3220'};
+const pcb=Object.assign({},pc), ldf={};
+for(const[s]of SLOTS)ldf[s]=100;
+for(const[s]of SLOTS)vis[s]=true;
+try{const s=JSON.parse(localStorage.getItem('steadyClothesCreator')||'null'); if(s&&s.layers)L=Object.assign(blank(),s.layers); if(s&&s.pc)Object.assign(pc,s.pc);
+  if(s&&s.pcb&&s.ldf){Object.assign(pcb,s.pcb);Object.assign(ldf,s.ldf);} else Object.assign(pcb,pc);
+  if(s&&(s.transp!=null))transp=+s.transp||0; if(s&&(s.negTransp!=null))negTransp=+s.negTransp||0;}catch(e){}
+let undo=[],redo=[];
+const save=()=>{try{localStorage.setItem('steadyClothesCreator',JSON.stringify({layers:L,pc,pcb,ldf,transp,negTransp}));}catch(e){}};
+function drawPx(x,r,px,py,v){
+  if(v==null)return;
+  if(typeof v==='string'){ if(v==='clear')x.clearRect(px,py,1,1); else r(px,py,1,1,v); return; }
+  const e=+v.e||0, a=(v.a==null?1:+v.a), c=v.c;
+  if(e>0){ x.save(); x.globalCompositeOperation='destination-out'; x.globalAlpha=Math.max(0,Math.min(1,e)); x.fillStyle='#000'; x.fillRect(px,py,1,1); x.restore(); }
+  if(c!=null&&a>0){ x.save(); x.globalAlpha=Math.max(0,Math.min(1,a)); r(px,py,1,1,c); x.restore(); }
+}
+function makeVal(){
+  const alpha=(100-transp)/100, erase=negTransp/100;
+  if(tool==='cut'){
+    const hole=(100-transp)/100, e2=Math.max(hole,erase);
+    if(e2<=0.005)return null;
+    if(e2>=0.995)return 'clear';
+    return {c:null,a:0,e:e2};
+  }
+  if(erase<=0.005&&alpha>=0.995)return pc[slot];
+  if(alpha<=0.005&&erase<=0.005)return null;
+  return {c:pc[slot],a:alpha,e:erase};
+}
+let showMine=true, eraseAll=true;
+function post(x,r,back){ if(!showMine)return;
+  for(const s of ORDER){ if(!vis[s]) continue; const l=L[s][back?'back':'front'];
+    for(const k in l){ const c=l[k],px=k%24,py=(k/24)|0; drawPx(x,r,px,py,c); } }
+}
+const NEUTRAL={hatStyle:'none',hatColor:'brown',face:'clean',shirtStyle:'plain',shirt:'white',vestStyle:'none',vestColor:'brown',coatStyle:'none',coatColor:'tan',bandana:'none',bandanaStyle:'none',pantsStyle:'plain',pantsColor:'grey',bootsStyle:'plain',boots:'black'};
+const PLAYER={hatStyle:'classic',hatColor:'brown',face:'clean',shirtStyle:'plain',shirt:'cream',vestStyle:'standard',vestColor:'brown',coatStyle:'none',coatColor:'tan',bandana:'red',bandanaStyle:'classic',pantsStyle:'plain',pantsColor:'blue',bootsStyle:'plain',boots:'brown'};
+const BASES=[['Blank mannequin',NEUTRAL],['Player default',PLAYER],...FOE_PRESETS.map((p,i)=>['Outlaw '+(i+1)+' ('+p.hatStyle+')',p]),['Blank (no mannequin)',null]];
+BASES.forEach((b,i)=>$('base').add(new Option(b[0],i)));
+let baseIdx=0;
+const pose={dy:0,gun:'holster',flash:0};
+function render(){
+  const bo=BASES[baseIdx][1];
+  if(bo==null){
+    // no mannequin at all: bare transparent canvas, just your drawing
+    for(const [id,bk] of [['ed',side==='back'],['pvF',false],['pvB',true]]){
+      const cv=document.getElementById(id), x=cv.getContext('2d');
+      x.clearRect(0,0,24,40);
+      post(x,(a,b,w,h,c)=>{if(c==null)return; x.fillStyle=c; x.fillRect(a,b,w,h);},bk);
+    }
+  } else {
+    const o=Object.assign({},bo,{__post:post});
+    drawFigure('ed',side==='back',pose,o); drawFigure('pvF',false,pose,o); drawFigure('pvB',true,pose,o);
+  }
+  for(const[s]of SLOTS){const n=Object.keys(L[s].front).length+Object.keys(L[s].back).length; $('n-'+s).textContent=n?n+' px':'';}
+}
+/* ---- slots ---- */
+const sl=$('slots');
+for(const[s,n]of SLOTS){
+  const d=document.createElement('div'); d.className='slot';
+  d.innerHTML=`<button class="nm" data-s="${s}">${n} <small id="n-${s}"></small></button><button class="eye" data-e="${s}" title="Show/hide">👁</button><button class="eye" data-c="${s}" title="Clear layer">✕</button>`;
+  sl.appendChild(d);
+}
+function mark(){ syncColor(); sl.querySelectorAll('[data-s]').forEach(b=>b.classList.toggle('on',b.dataset.s===slot)); sl.querySelectorAll('[data-e]').forEach(b=>b.style.opacity=vis[b.dataset.e]?1:.35); }
+sl.onclick=e=>{const b=e.target.closest('button'); if(!b)return;
+  if(b.dataset.s)slot=b.dataset.s;
+  else if(b.dataset.e)vis[b.dataset.e]=!vis[b.dataset.e];
+  else if(b.dataset.c){push();L[b.dataset.c]={front:{},back:{}};save();}
+  mark();render();};
+/* ---- undo ---- */
+function push(){undo.push(JSON.stringify(L)); if(undo.length>80)undo.shift(); redo=[];}
+$('un').onclick=()=>{if(!undo.length)return; redo.push(JSON.stringify(L)); L=JSON.parse(undo.pop()); save();render();};
+$('re').onclick=()=>{if(!redo.length)return; undo.push(JSON.stringify(L)); L=JSON.parse(redo.pop()); save();render();};
+/* ---- ui bits ---- */
+function syncSide(){$('sF').classList.toggle('on',side==='front');$('sB').classList.toggle('on',side==='back');
+  $('cpy').textContent=side==='front'?'Front → Back':'Back → Front';
+  $('cpy').title=mirrorFB?('Copy this garment (mirrored left/right) onto its '+(side==='front'?'back':'front')):('Copy this garment\'s '+side+' pixels onto its '+(side==='front'?'back':'front'));}
+$('sF').onclick=()=>{side='front';syncSide();render();};
+$('sB').onclick=()=>{side='back';syncSide();render();};
+$('mir').onclick=e=>{mirror=!mirror;e.target.classList.toggle('on',mirror);};
+$('both').onclick=e=>{both=!both;e.target.classList.toggle('on',both);};
+$('mirFB').onclick=e=>{mirrorFB=!mirrorFB;e.target.classList.toggle('on',mirrorFB);syncSide();};
+$('gr').onclick=e=>{e.target.classList.toggle('on');$('gridEl').classList.toggle('off');};
+$('ea').onclick=e=>{eraseAll=!eraseAll;e.target.classList.toggle('on',eraseAll);};
+$('mine').onclick=e=>{showMine=!showMine;e.target.classList.toggle('on',showMine);render();};
+function arm(b,label,fn){let t;b.onclick=()=>{if(b.dataset.a){clearTimeout(t);delete b.dataset.a;b.textContent=label;fn();}else{b.dataset.a=1;b.textContent='Tap again to confirm';t=setTimeout(()=>{delete b.dataset.a;b.textContent=label;},3500);}};}
+arm($('wipe'),'Wipe saved',()=>{try{localStorage.removeItem('steadyClothesCreator');}catch(e){} L=blank();undo=[];redo=[];showMine=true;$('mine').classList.add('on');transp=0;negTransp=0;syncTransp();save();mark();render();});
+$('base').onchange=e=>{baseIdx=+e.target.value;render();};
+function mirrorCopy(src){
+  const out={};
+  for(const k in src){
+    const x=+k%24, y=(+k/24)|0, nk=y*24+(mirrorFB?(23-x):x);
+    out[nk]=src[k];
+  }
+  return out;
+}
+$('cpy').onclick=()=>{
+  push();
+  if(side==='front')L[slot].back=mirrorCopy(L[slot].front);
+  else L[slot].front=mirrorCopy(L[slot].back);
+  save();render();
+};
+$('tools').onclick=e=>{const b=e.target.closest('[data-t]'); if(!b)return; tool=b.dataset.t; $('tools').querySelectorAll('[data-t]').forEach(x=>x.classList.toggle('on',x===b));};
+function syncColor(){const c=pc[slot];$('col').value=c;$('pcn').textContent=SLOTS.find(x=>x[0]===slot)[1];
+  $('ld').value=ldf[slot];$('ldv').textContent=ldf[slot]+'%';
+  document.querySelectorAll('#pal i').forEach(i=>i.classList.toggle('sel',i.dataset.c===pcb[slot]));}
+function setColor(c){pcb[slot]=c;ldf[slot]=100;pc[slot]=c;syncColor();save();}
+$('col').oninput=e=>setColor(e.target.value);
+$('ld').oninput=e=>{ldf[slot]=+e.target.value;pc[slot]=shade(pcb[slot],ldf[slot]/100);syncColor();save();};
+$('size').oninput=e=>{size=+e.target.value;$('szv').textContent=size+' px';};
+function syncTransp(){$('tr').value=transp;$('trv').textContent=transp+'%';$('nt').value=negTransp;$('ntv').textContent=negTransp+'%';}
+$('tr').oninput=e=>{transp=+e.target.value;$('trv').textContent=transp+'%';save();};
+$('nt').oninput=e=>{negTransp=+e.target.value;$('ntv').textContent=negTransp+'%';save();};
+const pal=[...new Set([...Object.values(SHIRTS),...Object.values(HAT_COLORS),...Object.values(COAT_COLORS),...Object.values(BANDS).filter(Boolean),...Object.values(VESTS).filter(Boolean).flatMap(v=>[v.b,v.d]),...Object.values(PANTS).flatMap(v=>[v.b,v.d]),...Object.values(BOOTS).flatMap(v=>[v.b,v.s]),'#e8c24a','#c0c0c0','#ffffff','#1d120a','#a67c44','#d8a93a'])];
+pal.forEach(c=>{const i=document.createElement('i');i.style.background=c;i.dataset.c=c;i.title=c;i.onclick=()=>setColor(c);$('pal').appendChild(i);});
+/* ---- painting ---- */
+const ed=$('ed');
+const cell=e=>{const r=ed.getBoundingClientRect(); return [Math.max(0,Math.min(23,Math.floor((e.clientX-r.left)/r.width*24))),Math.max(0,Math.min(39,Math.floor((e.clientY-r.top)/r.height*40)))];};
+function paintTargets(x,noMir){
+  // L/R mirror ONLY when Mirror toggle is on (respects toggle even with Both / F↔B).
+  let xs=(mirror&&!noMir)?[...new Set([x,23-x])]:[x];
+  xs=xs.filter(v=>v>=0&&v<24);
+  const ops=[];
+  const pushOp=(sd,px)=>{const key=sd+':'+px; if(!ops.some(o=>o.key===key))ops.push({sd,px,key});};
+  const opp=side==='front'?'back':'front';
+  for(const px of xs)pushOp(side,px);
+  if(both)for(const px of xs)pushOp(opp,px);
+  if(mirrorFB)for(const px of xs)pushOp(opp,23-px);
+  return ops;
+}
+function cell1(x,y,noMir){ if(x<0||y<0||x>23||y>39)return;
+  const ops=paintTargets(x,noMir);
+  const v=(tool==='pencil'||tool==='fill'||tool==='cut')?makeVal():null;
+  for(const{sd,px}of ops){
+    const l=L[slot][sd],k=y*24+px;
+    if(tool==='pencil'||tool==='fill'||tool==='cut'){
+      if(v==null)delete l[k]; else l[k]=v;
+    }
+    else if(eraseAll){ for(const[n]of SLOTS)delete L[n][sd][k]; }
+    else delete l[k];
+  }
+}
+function put(x,y){ const lo=-((size-1)>>1),hi=size>>1; for(let dy=lo;dy<=hi;dy++)for(let dx=lo;dx<=hi;dx++)cell1(x+dx,y+dy); }
+function line(a,b){let[x0,y0]=a;const[x1,y1]=b,dx=Math.abs(x1-x0),dy=-Math.abs(y1-y0),sx=x0<x1?1:-1,sy=y0<y1?1:-1;let er=dx+dy;
+  for(;;){put(x0,y0); if(x0===x1&&y0===y1)break; const e2=2*er; if(e2>=dy){er+=dy;x0+=sx;} if(e2<=dx){er+=dx;y0+=sy;}}}
+function px(x,y){const d=ed.getContext('2d').getImageData(x,y,1,1).data; return d;}
+function flood(sx,sy){
+  const d=ed.getContext('2d').getImageData(0,0,24,40).data, k=(x,y)=>{const i=(y*24+x)*4;return d[i]+','+d[i+1]+','+d[i+2]+','+d[i+3];};
+  const a0=d[(sy*24+sx)*4+3], t=k(sx,sy);
+  // on empty canvas (or erased holes) fill the connected transparent region instead
+  const same=a0===0?(x,y)=>d[(y*24+x)*4+3]===0:(x,y)=>k(x,y)===t;
+  const seen=new Set(), st=[[sx,sy]];
+  while(st.length){const[x,y]=st.pop(); if(x<0||y<0||x>23||y>39)continue; const id=y*24+x; if(seen.has(id)||!same(x,y))continue; seen.add(id); cell1(x,y,true); st.push([x+1,y],[x-1,y],[x,y+1],[x,y-1]);}
+}
+let drawing=false,last=null;
+function pickAt(p){
+  const k=p[1]*24+p[0];
+  for(let i=ORDER.length-1;i>=0;i--){
+    const s=ORDER[i]; if(!vis[s])continue; const v=L[s][side][k];
+    if(v===undefined)continue;
+    if(typeof v==='string'){
+      if(v==='clear'){ slot=s; transp=0; negTransp=0; syncTransp(); mark(); tool='cut'; $('tools').querySelectorAll('[data-t]').forEach(x=>x.classList.toggle('on',x.dataset.t==='cut')); return true; }
+      slot=s; setColor(v); transp=0; negTransp=0; syncTransp(); mark(); save(); return true;
+    }
+    if(v&&typeof v==='object'){
+      slot=s;
+      const a=(v.a==null?1:+v.a), e=(+v.e||0);
+      if(v.c!=null){ setColor(v.c); transp=Math.max(0,Math.min(100,Math.round((1-a)*100))); negTransp=Math.max(0,Math.min(100,Math.round(e*100))); }
+      else { transp=Math.max(0,Math.min(100,Math.round((1-e)*100))); negTransp=Math.max(0,Math.min(100,Math.round(e*100))); tool='cut'; $('tools').querySelectorAll('[data-t]').forEach(x=>x.classList.toggle('on',x.dataset.t==='cut')); }
+      syncTransp(); mark(); save(); return true;
+    }
+  }
+  return false;
+}
+ed.addEventListener('pointerdown',e=>{
+  e.preventDefault(); const p=cell(e);
+  if(tool==='pick'){ if(pickAt(p))return; const d=px(p[0],p[1]); if(d[3]){setColor('#'+[d[0],d[1],d[2]].map(v=>v.toString(16).padStart(2,'0')).join('')); transp=0; negTransp=0; syncTransp(); save();} return;}
+  push(); ed.setPointerCapture(e.pointerId);
+  if(tool==='fill')flood(p[0],p[1]); else{drawing=true;last=p;put(p[0],p[1]);}
+  save();render();
+});
+ed.addEventListener('pointermove',e=>{if(!drawing)return; const p=cell(e); if(p[0]===last[0]&&p[1]===last[1])return; line(last,p); last=p; render();});
+const stop=()=>{if(drawing){drawing=false;save();}};
+ed.addEventListener('pointerup',stop); ed.addEventListener('pointercancel',stop);
+addEventListener('keydown',e=>{ if(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA')return;
+  if((e.ctrlKey||e.metaKey)&&e.key==='z'){e.preventDefault();$('un').click();}
+  else if((e.ctrlKey||e.metaKey)&&e.key==='y'){e.preventDefault();$('re').click();}
+  else{const m={p:'pencil',e:'eraser',c:'cut',f:'fill',i:'pick'}[e.key]; if(m)$('tools').querySelector('[data-t='+m+']').click();}});
+/* ---- files ---- */
+const dl=(name,blob)=>{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),500);};
+$('save').onclick=()=>dl('steady-clothes.json',new Blob([JSON.stringify({game:'Steady',version:3,layers:L,pc,pcb,ldf,transp,negTransp})],{type:'application/json'}));
+$('load').onclick=()=>$('file').click();
+$('file').onchange=e=>{const f=e.target.files[0]; if(!f)return; f.text().then(t=>{try{const j=JSON.parse(t); if(!j.layers)throw 0; push(); L=Object.assign(blank(),j.layers); if(j.pc)Object.assign(pc,j.pc);
+  if(j.pcb&&j.ldf){Object.assign(pcb,j.pcb);Object.assign(ldf,j.ldf);} else {Object.assign(pcb,pc); for(const s of SLOTS)ldf[s]=100;}
+  if(j.transp!=null)transp=+j.transp||0; if(j.negTransp!=null)negTransp=+j.negTransp||0; syncTransp();
+  save();mark();render();}catch(x){alert('That file is not a Steady clothes JSON.');}}); e.target.value='';};
+arm($('clr'),'Clear all',()=>{push();L=blank();save();render();});
+$('png').onclick=()=>{const c=document.createElement('canvas');c.width=48*8;c.height=40*8;const x=c.getContext('2d');x.imageSmoothingEnabled=false;x.drawImage($('pvF'),0,0,192,320);x.drawImage($('pvB'),192,0,192,320);c.toBlob(b=>dl('steady-outfit.png',b));};
+$('code').onclick=()=>{
+  const out={}; for(const[s]of SLOTS){ if(!vis[s])continue; const f=Object.entries(L[s].front).map(([k,v])=>[+k,v]), b=Object.entries(L[s].back).map(([k,v])=>[+k,v]); if(f.length||b.length)out[s]={front:f,back:b}; }
+  $('out').value=`// ---- Steady custom clothes (paste near the other palettes in Steady.html) ----
+const CUSTOM_CLOTHES=${JSON.stringify(out)};
+function drawCustomClothes(x,r,back){
+  const drawPx=(px,py,v)=>{
+    if(v==null)return;
+    if(typeof v==='string'){ if(v==='clear')x.clearRect(px,py,1,1); else r(px,py,1,1,v); return; }
+    const e=+v.e||0, a=(v.a==null?1:+v.a), c=v.c;
+    if(e>0){ x.save(); x.globalCompositeOperation='destination-out'; x.globalAlpha=Math.max(0,Math.min(1,e)); x.fillStyle='#000'; x.fillRect(px,py,1,1); x.restore(); }
+    if(c!=null&&a>0){ x.save(); x.globalAlpha=Math.max(0,Math.min(1,a)); r(px,py,1,1,c); x.restore(); }
+  };
+  for(const s of ['pants','boots','shirt','vest','coat','scarf','hat']){
+    const l=CUSTOM_CLOTHES[s]&&CUSTOM_CLOTHES[s][back?'back':'front']; if(!l)continue;
+    for(const [i,c] of l){ const px=i%24,py=(i/24)|0; drawPx(px,py,c); }
+  }
+}
+// ---- then, inside drawFigure(), right after the line  drawHat(x,r,back,outfit);  add: ----
+// if(outfit===state) drawCustomClothes(x,r,back);`;
+  $('dlg').showModal();};
+$('cp').onclick=()=>{$('out').select(); try{navigator.clipboard.writeText($('out').value);}catch(e){document.execCommand('copy');} };
+$('cl').onclick=()=>$('dlg').close();
+syncTransp();syncSide();mark();render();
+</script></body></html>

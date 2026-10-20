@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Steady</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤠</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='6' y='6' width='88' height='88' rx='20' fill='%23f3e4c2' stroke='%233b2414' stroke-width='7'/><path d='M32 58 Q32 28 50 28 Q68 28 68 58 Z' fill='%238a5a2b'/><rect x='16' y='54' width='68' height='13' rx='6.5' fill='%238a5a2b'/><rect x='32' y='47' width='36' height='10' fill='%23c0392b'/></svg>">
 <style>
 *{box-sizing:border-box}
 :root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
@@ -89,6 +89,26 @@ figcaption{font-size:clamp(.7rem,1.8vh,.95rem);padding:2px 0 1px;line-height:1}
 .lvl.v-town{background:#d2894f}
 .lvl.v-graveyard{background:#a99ccb}
 .lvl.v-opendesert{background:#f2d08a}
+.lvl.logo{background:none;border:none;box-shadow:none;width:60px;height:60px;padding:0}
+.lvl.logo svg{display:block;width:100%;height:100%;filter:drop-shadow(0 2px 2px rgba(0,0,0,.55))}
+/* ---- hanging result sign (drops after a duel) ---- */
+#screen-game{position:relative}
+#signWrap{position:absolute;inset:0;z-index:30;display:flex;justify-content:center;pointer-events:none;padding-top:4px}
+#signWrap.hidden{display:none}
+.signdrop{display:flex;flex-direction:column;align-items:center}
+.signdrop.drop{animation:signdrop .55s cubic-bezier(.2,1.3,.35,1)}
+@keyframes signdrop{from{transform:translateY(-115%)}to{transform:translateY(0)}}
+.signropes{display:flex;gap:130px;justify-content:center}
+.signropes i{display:block;width:5px;height:80px;background:repeating-linear-gradient(#4a3018 0 6px,#7a5230 6px 12px);border-left:1px solid #2e1c0e;border-right:1px solid #2e1c0e}
+.signboard{background:linear-gradient(#8a5a2e,#5e3a20);border:4px solid #2e1c0e;border-radius:10px;box-shadow:0 6px 0 rgba(0,0,0,.45),inset 0 0 0 3px rgba(255,240,200,.14);padding:12px 30px 16px;text-align:center;transform-origin:50% -110px;animation:signswing 2.4s ease-in-out infinite;pointer-events:auto;max-width:88%}
+@keyframes signswing{0%,100%{transform:rotate(-2.2deg)}50%{transform:rotate(2.2deg)}}
+#signTitle{font-family:Impact,Georgia,sans-serif;font-weight:900;font-size:clamp(1.8rem,7vh,3rem);letter-spacing:.1em;line-height:1;color:#ffdf2b;-webkit-text-stroke:2px #7a0e0e;text-shadow:3px 3px 0 #7a0e0e}
+.signboard.lose #signTitle{color:#ff8a70}
+#signSub{font-style:italic;margin:4px 0 10px;font-size:clamp(.75rem,2.2vh,1rem);color:#f3e4c2}
+.signbtns{display:flex;justify-content:center}
+#btn-signMain{background:#3a7a3a;color:#fff;box-shadow:0 4px 0 #234d23;font-weight:900;letter-spacing:.08em;font-size:1rem;padding:10px 30px}
+#btn-signMain:active{transform:translateY(3px);box-shadow:0 1px 0 #234d23}
+.signboard.lose #btn-signMain{background:#e8c24a;color:#3b2414;box-shadow:0 4px 0 #9a7420}
 .lvl.next{background:#7a0e0e;color:#fff8e6;animation:hotpulse .5s infinite alternate}
 .lvl.cleared{background:#2e5a2e;color:#fff8e6}
 .lvl:disabled{opacity:.35;filter:grayscale(.8);cursor:default}
@@ -246,6 +266,7 @@ kbd{border:1px solid currentColor;border-radius:4px;padding:0 5px;font-size:.85e
 <div class="row">
 <figure class="hero"><div class="stage bg-corral sights" id="stageF"><div class="ground"></div><div class="duelist foepos"><div class="foeshadow"></div><canvas id="foeF" width="24" height="40" class="foe sway"></canvas></div><div class="duelist player" id="playerWrap"><canvas id="front" width="24" height="40" class="main"></canvas></div><div class="tracer" id="tracerF"></div><div class="target" id="targetF"><div class="tring"></div><div class="tdot"></div></div><div class="meter" id="meterF"><div class="mfill" id="mfillF"></div></div><div class="bubble foe-bubble" id="bubbleFoe"></div><div class="bubble player-bubble" id="bubbleYou"></div><div class="bang" id="bangF">BANG!</div><div class="duel" id="duelF"></div><svg class="reticle" id="retF" viewBox="0 0 26 26" aria-hidden="true"><g fill="none" stroke="#111" stroke-width="2.6" opacity=".85"><circle class="r-ring" cx="13" cy="13" r="8.4" stroke="#f2e6cf"/><path d="M13 0.6v5.6M13 19.8v5.6M0.6 13h5.6M19.8 13h5.6"/></g><circle class="r-mid" cx="13" cy="13" r="1.7" fill="#f2e6cf"/></svg></div><figcaption>You (big, left) vs. distant outlaw (small, right)</figcaption></figure>
 </div>
+<div id="signWrap" class="hidden"><div class="signdrop" id="signDrop"><div class="signropes"><i></i><i></i></div><div class="signboard" id="signBoard"><div id="signTitle">YOU WIN!</div><div id="signSub"></div><div class="signbtns"><button id="btn-signMain">CONTINUE</button></div></div></div></div>
 <div class="gamebar">
 <p class="hint">Duels start on their own — get inside the ring as it shrinks, track it, then FIRE! (Space or click). Shoot early and you lose!</p>
 </div>
@@ -269,10 +290,10 @@ kbd{border:1px solid currentColor;border-radius:4px;padding:0 5px;font-size:.85e
 </div>
 <p class="secttl">Cowboy</p>
 <div class="controls">
-<label>Hat style<select id="s-hatStyle"><option value="classic">Classic</option><option value="outlaw">Outlaw</option><option value="gambler">Gambler</option><option value="sombrero">Sombrero</option><option value="bowler">Bowler</option><option value="tophat">Top Hat</option><option value="straw">Straw</option><option value="flatcap">Flat Cap</option><option value="cutter">Cutter</option><option value="none">None (hair)</option></select></label>
+<label>Hat style<select id="s-hatStyle"><option value="classic">Classic</option><option value="outlaw">Outlaw</option><option value="gambler">Gambler</option><option value="sombrero">Sombrero</option><option value="bowler">Bowler</option><option value="tophat">Top Hat</option><option value="straw">Straw</option><option value="flatcap">Flat Cap</option><option value="cutter">Cutter</option><option value="scruggs" disabled>Scruggs (beat lvl 33)</option><option value="none">None (hair)</option></select></label>
 <label>Hat color<select id="s-hatColor"><option value="brown">Brown</option><option value="black">Black</option><option value="white">White</option><option value="tan">Tan</option><option value="grey">Grey</option><option value="red">Red</option></select></label>
 <label>Face<select id="s-face"><option value="clean">Clean</option><option value="mustache">Mustache</option><option value="beard">Full Beard</option><option value="scar">Scarred</option><option value="grizzled">Grizzled Gray</option><option value="mask">Bandit Mask</option><option value="handlebar">Handlebar</option><option value="eyepatch">Eyepatch</option></select></label>
-<label>Shirt style<select id="s-shirtStyle"><option value="plain">Plain</option><option value="plaid">Plaid</option><option value="striped">Striped</option><option value="yoke">Western Yoke</option></select></label>
+<label>Shirt style<select id="s-shirtStyle"><option value="plain">Plain</option><option value="plaid">Plaid</option><option value="striped">Striped</option><option value="yoke">Western Yoke</option><option value="scruggs" disabled>Scruggs (beat lvl 33)</option></select></label>
 <label>Shirt color<select id="s-shirt"><option value="cream">Cream Shirt</option><option value="red">Red Shirt</option><option value="blue">Blue Shirt</option><option value="green">Green Shirt</option><option value="black">Black Shirt</option><option value="white">White Shirt</option><option value="purple">Purple Shirt</option><option value="orange">Orange Shirt</option><option value="teal">Teal Shirt</option><option value="maroon">Maroon Shirt</option><option value="brown">Brown Shirt</option></select></label>
 <label>Vest style<select id="s-vestStyle"><option value="standard">Standard</option><option value="open">Open</option><option value="fringe">Fringe</option><option value="none">No Vest</option></select></label>
 <label>Vest color<select id="s-vestColor"><option value="brown">Brown</option><option value="black">Black</option><option value="tan">Tan</option><option value="red">Red</option><option value="grey">Grey</option><option value="white">White</option></select></label>
@@ -280,7 +301,7 @@ kbd{border:1px solid currentColor;border-radius:4px;padding:0 5px;font-size:.85e
 <label>Coat color<select id="s-coatColor"><option value="tan">Tan</option><option value="brown">Brown</option><option value="black">Black</option><option value="grey">Grey</option><option value="red">Red</option><option value="navy">Navy</option><option value="white">White</option></select></label>
 <label>Bandana style<select id="s-bandanaStyle"><option value="classic">Neck Scarf</option><option value="mask">Face Mask</option><option value="headband">Headband</option><option value="none">None</option></select></label>
 <label>Bandana color<select id="s-bandana"><option value="red">Red</option><option value="blue">Blue</option><option value="black">Black</option><option value="green">Green</option><option value="gold">Gold</option><option value="white">White</option><option value="purple">Purple</option><option value="orange">Orange</option><option value="teal">Teal</option><option value="brown">Brown</option><option value="none">No Bandana</option></select></label>
-<label>Pants style<select id="s-pantsStyle"><option value="plain">Plain</option><option value="chaps">Chaps</option><option value="striped">Striped</option></select></label>
+<label>Pants style<select id="s-pantsStyle"><option value="plain">Plain</option><option value="chaps">Chaps</option><option value="striped">Striped</option><option value="scruggs" disabled>Scruggs (beat lvl 33)</option></select></label>
 <label>Pants color<select id="s-pantsColor"><option value="blue">Classic Blue</option><option value="dark">Dark Denim</option><option value="brown">Brown</option><option value="black">Black</option><option value="grey">Grey</option><option value="olive">Olive</option><option value="white">White</option></select></label>
 <label>Boots style<select id="s-bootsStyle"><option value="plain">Plain</option><option value="tooled">Tooled</option><option value="spur">Spurred</option></select></label>
 <label>Boots color<select id="s-boots"><option value="brown">Brown Boots</option><option value="black">Black Boots</option><option value="oxblood">Oxblood Boots</option><option value="tan">Tan Boots</option><option value="grey">Grey Boots</option><option value="red">Red Boots</option><option value="white">White Boots</option><option value="navy">Navy Boots</option></select></label>
@@ -304,6 +325,34 @@ const HAT_COLORS={brown:'#8a5a2b',black:'#232326',white:'#d8d0c0',tan:'#c49a5a',
 const COAT_COLORS={tan:'#b89a6a',brown:'#6b4a2e',black:'#2e2a28',grey:'#5a5a5e',red:'#8a3a2e',navy:'#2e3a52',white:'#d8d0c0'};
 // ---- Steady custom clothes (paste near the other palettes in Steady.html) ----
 const CUSTOM_CLOTHES={"hat":{"front":[[9,"#0e0c0b"],[10,"#0e0c0b"],[13,"#0e0c0b"],[14,"#0e0c0b"],[32,"#0e0c0b"],[33,"#b8452f"],[34,"#b8452f"],[35,"#0e0c0b"],[36,"#0e0c0b"],[37,"#b8452f"],[38,"#b8452f"],[39,"#0e0c0b"],[55,"#0e0c0b"],[56,"#b8452f"],[57,"#b8452f"],[58,"#b8452f"],[59,"#6e2a22"],[60,"#6e2a22"],[61,"#b8452f"],[62,"#b8452f"],[63,"#b8452f"],[64,"#0e0c0b"],[75,"#0e0c0b"],[76,"#0e0c0b"],[79,"#0e0c0b"],[80,"#b8452f"],[81,"#b8452f"],[82,"#b8452f"],[83,"#b8452f"],[84,"#b8452f"],[85,"#b8452f"],[86,"#b8452f"],[87,"#b8452f"],[88,"#0e0c0b"],[91,"#0e0c0b"],[92,"#0e0c0b"],[98,"#0e0c0b"],[99,"#b8452f"],[100,"#b8452f"],[101,"#0e0c0b"],[103,"#0e0c0b"],[104,"#b8452f"],[105,"#b8452f"],[106,"#b8452f"],[107,"#b8452f"],[108,"#b8452f"],[109,"#b8452f"],[110,"#b8452f"],[111,"#b8452f"],[112,"#0e0c0b"],[114,"#0e0c0b"],[115,"#b8452f"],[116,"#b8452f"],[117,"#0e0c0b"],[122,"#0e0c0b"],[123,"#b8452f"],[124,"#b8452f"],[125,"#0e0c0b"],[127,"#0e0c0b"],[128,"#b8452f"],[129,"#b8452f"],[130,"#b8452f"],[131,"#b8452f"],[132,"#b8452f"],[133,"#b8452f"],[134,"#b8452f"],[135,"#b8452f"],[136,"#0e0c0b"],[138,"#0e0c0b"],[139,"#b8452f"],[140,"#b8452f"],[141,"#0e0c0b"],[146,"#0e0c0b"],[147,"#b8452f"],[148,"#b8452f"],[149,"#6e2a22"],[150,"#0e0c0b"],[151,"#0e0c0b"],[152,"#3f2616"],[153,"#3f2616"],[154,"#3f2616"],[155,"#d8a93a"],[156,"#d8a93a"],[157,"#3f2616"],[158,"#3f2616"],[159,"#3f2616"],[160,"#0e0c0b"],[161,"#0e0c0b"],[162,"#6e2a22"],[163,"#b8452f"],[164,"#b8452f"],[165,"#0e0c0b"],[170,"#0e0c0b"],[171,"#b8452f"],[172,"#b8452f"],[173,"#b8452f"],[174,"#6e2a22"],[175,"#b8452f"],[176,"#b8452f"],[177,"#b8452f"],[178,"#b8452f"],[179,"#b8452f"],[180,"#b8452f"],[181,"#b8452f"],[182,"#b8452f"],[183,"#b8452f"],[184,"#b8452f"],[185,"#6e2a22"],[186,"#b8452f"],[187,"#b8452f"],[188,"#b8452f"],[189,"#0e0c0b"],[195,"#0e0c0b"],[196,"#b8452f"],[197,"#b8452f"],[198,"#b8452f"],[199,"#b8452f"],[200,"#b8452f"],[201,"#b8452f"],[202,"#b8452f"],[203,"#b8452f"],[204,"#b8452f"],[205,"#b8452f"],[206,"#b8452f"],[207,"#b8452f"],[208,"#b8452f"],[209,"#b8452f"],[210,"#b8452f"],[211,"#b8452f"],[212,"#0e0c0b"],[220,"#0e0c0b"],[221,"#0e0c0b"],[222,"#0e0c0b"],[223,"#0e0c0b"],[224,"#8d684d"],[225,"#8d684d"],[226,"#8d684d"],[227,"#8d684d"],[228,"#8d684d"],[229,"#8d684d"],[230,"#8d684d"],[231,"#8d684d"],[232,"#0e0c0b"],[233,"#0e0c0b"],[234,"#0e0c0b"],[235,"#0e0c0b"]],"back":[[9,"#0e0c0b"],[10,"#0e0c0b"],[13,"#0e0c0b"],[14,"#0e0c0b"],[32,"#0e0c0b"],[33,"#b8452f"],[34,"#b8452f"],[35,"#0e0c0b"],[36,"#0e0c0b"],[37,"#b8452f"],[38,"#b8452f"],[39,"#0e0c0b"],[55,"#0e0c0b"],[56,"#b8452f"],[57,"#b8452f"],[58,"#b8452f"],[59,"#6e2a22"],[60,"#6e2a22"],[61,"#b8452f"],[62,"#b8452f"],[63,"#b8452f"],[64,"#0e0c0b"],[75,"#0e0c0b"],[76,"#0e0c0b"],[79,"#0e0c0b"],[80,"#b8452f"],[81,"#b8452f"],[82,"#b8452f"],[83,"#b8452f"],[84,"#b8452f"],[85,"#b8452f"],[86,"#b8452f"],[87,"#b8452f"],[88,"#0e0c0b"],[91,"#0e0c0b"],[92,"#0e0c0b"],[98,"#0e0c0b"],[99,"#b8452f"],[100,"#b8452f"],[101,"#0e0c0b"],[103,"#0e0c0b"],[104,"#b8452f"],[105,"#b8452f"],[106,"#b8452f"],[107,"#b8452f"],[108,"#b8452f"],[109,"#b8452f"],[110,"#b8452f"],[111,"#b8452f"],[112,"#0e0c0b"],[114,"#0e0c0b"],[115,"#b8452f"],[116,"#b8452f"],[117,"#0e0c0b"],[122,"#0e0c0b"],[123,"#b8452f"],[124,"#b8452f"],[125,"#0e0c0b"],[127,"#0e0c0b"],[128,"#b8452f"],[129,"#b8452f"],[130,"#b8452f"],[131,"#b8452f"],[132,"#b8452f"],[133,"#b8452f"],[134,"#b8452f"],[135,"#b8452f"],[136,"#0e0c0b"],[138,"#0e0c0b"],[139,"#b8452f"],[140,"#b8452f"],[141,"#0e0c0b"],[146,"#0e0c0b"],[147,"#b8452f"],[148,"#b8452f"],[149,"#6e2a22"],[150,"#0e0c0b"],[151,"#0e0c0b"],[152,"#3f2616"],[153,"#b8452f"],[154,"#b8452f"],[155,"#b8452f"],[156,"#b8452f"],[157,"#b8452f"],[158,"#b8452f"],[159,"#3f2616"],[160,"#0e0c0b"],[161,"#0e0c0b"],[162,"#6e2a22"],[163,"#b8452f"],[164,"#b8452f"],[165,"#0e0c0b"],[170,"#0e0c0b"],[171,"#b8452f"],[172,"#b8452f"],[173,"#b8452f"],[174,"#6e2a22"],[175,"#b8452f"],[176,"#3f2616"],[177,"#3f2616"],[178,"#3f2616"],[179,"#3f2616"],[180,"#3f2616"],[181,"#3f2616"],[182,"#3f2616"],[183,"#3f2616"],[184,"#b8452f"],[185,"#6e2a22"],[186,"#b8452f"],[187,"#b8452f"],[188,"#b8452f"],[189,"#0e0c0b"],[195,"#0e0c0b"],[196,"#b8452f"],[197,"#b8452f"],[198,"#b8452f"],[199,"#b8452f"],[200,"#b8452f"],[201,"#b8452f"],[202,"#b8452f"],[203,"#b8452f"],[204,"#b8452f"],[205,"#b8452f"],[206,"#b8452f"],[207,"#b8452f"],[208,"#b8452f"],[209,"#b8452f"],[210,"#b8452f"],[211,"#b8452f"],[212,"#0e0c0b"],[220,"#0e0c0b"],[221,"#0e0c0b"],[222,"#0e0c0b"],[223,"#0e0c0b"],[224,"#0e0c0b"],[225,"#0e0c0b"],[226,"#0e0c0b"],[227,"#0e0c0b"],[228,"#0e0c0b"],[229,"#0e0c0b"],[230,"#0e0c0b"],[231,"#0e0c0b"],[232,"#0e0c0b"],[233,"#0e0c0b"],[234,"#0e0c0b"],[235,"#0e0c0b"]]}};
+function drawScruggsPiece(x,r,back,piece){
+  const l=SCRUGGS_CLOTHES[piece]&&SCRUGGS_CLOTHES[piece][back?'back':'front']; if(!l)return;
+  for(const [i,v] of l){
+    const px=i%24, py=(i/24)|0;
+    if(v==null) continue;
+    if(typeof v==='string'){ if(v==='clear')x.clearRect(px,py,1,1); else r(px,py,1,1,v); continue; }
+    const e=+v.e||0, a=(v.a==null?1:+v.a), c=v.c;
+    if(e>0){ x.save(); x.globalCompositeOperation='destination-out'; x.globalAlpha=Math.max(0,Math.min(1,e)); x.fillStyle='#000'; x.fillRect(px,py,1,1); x.restore(); }
+    if(c!=null&&a>0){ x.save(); x.globalAlpha=Math.max(0,Math.min(1,a)); r(px,py,1,1,c); x.restore(); }
+  }
+}
+function drawScruggs(x,r,back,outfit){
+  // Scruggs himself wears the full set; the player wears whichever Scruggs pieces they picked
+  const o=outfit||state, full=o.custom==='scruggs';
+  if(full||o.hatStyle==='scruggs') drawScruggsPiece(x,r,back,'hat');
+  if(full||o.shirtStyle==='scruggs') drawScruggsPiece(x,r,back,'shirt');
+  if(full||o.pantsStyle==='scruggs') drawScruggsPiece(x,r,back,'pants');
+}
+function scruggsUnlocked(){ return unlocked()>33; }
+function refreshScruggsOptions(){
+  const ok=scruggsUnlocked();
+  for(const id of ['s-hatStyle','s-shirtStyle','s-pantsStyle']){
+    const sel=document.getElementById(id); if(!sel) continue;
+    const opt=sel.querySelector('option[value="scruggs"]'); if(!opt) continue;
+    opt.disabled=!ok;
+    opt.textContent=ok?'Scruggs':'Scruggs (beat lvl 33)';
+  }
+}
 function drawCustomClothes(x,r,back,outfit){
   // custom hat recolors with the Hat color picker so it comes in a few different colors
   const base=(HAT_COLORS[((outfit||state).hatColor)]||'#b8452f').toLowerCase();
@@ -321,6 +370,8 @@ function drawCustomClothes(x,r,back,outfit){
     for(const [i,c] of l){ const px=i%24,py=(i/24)|0; if(c==='clear')x.clearRect(px,py,1,1); else r(px,py,1,1,remap(c)); }
   }
 }
+// ---- Scruggs custom clothes: worn by the level-33 boss, unlockable in the Store after beating him ----
+const SCRUGGS_CLOTHES={"hat":{"front":[[32,"#1d120a"],[33,"#1d120a"],[34,"#717171"],[35,"#717171"],[36,"#717171"],[37,"#717171"],[38,"#1d120a"],[39,"#1d120a"],[55,"#1d120a"],[56,"#b8b0a8"],[57,"#ffffff"],[58,"#ffffff"],[59,"#ffffff"],[60,"#ffffff"],[61,"#ffffff"],[62,"#ffffff"],[63,"#ffffff"],[64,"#1d120a"],[79,"#1d120a"],[80,"#b8b0a8"],[81,"#ffffff"],[82,"#ffffff"],[83,"#ffffff"],[84,"#ffffff"],[85,"#ffffff"],[86,"#ffffff"],[87,"#ffffff"],[88,"#1d120a"],[98,"#1d120a"],[103,"#1d120a"],[104,"#b8b0a8"],[105,"#ffffff"],[106,"#ffffff"],[107,"#ffffff"],[108,"#ffffff"],[109,"#ffffff"],[110,"#ffffff"],[111,"#ffffff"],[112,"#1d120a"],[117,"#1d120a"],[121,"#1d120a"],[122,"#ffffff"],[123,"#1d120a"],[124,"#1d120a"],[125,"#1d120a"],[126,"#1d120a"],[127,"#1d120a"],[128,"#b8b0a8"],[129,"#ffffff"],[130,"#ffffff"],[131,"#ffffff"],[132,"#ffffff"],[133,"#ffffff"],[134,"#ffffff"],[135,"#ffffff"],[136,"#1d120a"],[137,"#1d120a"],[138,"#1d120a"],[139,"#1d120a"],[140,"#1d120a"],[141,"#ffffff"],[142,"#1d120a"],[145,"#1d120a"],[146,"#ffffff"],[147,"#ffffff"],[148,"#ffffff"],[149,"#ffffff"],[150,"#ffffff"],[151,"#ffffff"],[152,"#ffffff"],[153,"#ffffff"],[154,"#ffffff"],[155,"#ffffff"],[156,"#ffffff"],[157,"#ffffff"],[158,"#ffffff"],[159,"#ffffff"],[160,"#ffffff"],[161,"#ffffff"],[162,"#ffffff"],[163,"#ffffff"],[164,"#ffffff"],[165,"#ffffff"],[166,"#1d120a"],[170,"#1d120a"],[171,"#1d120a"],[172,"#ffffff"],[173,"#ffffff"],[174,"#ffffff"],[175,"#ffffff"],[176,"#ffffff"],[177,"#ffffff"],[178,"#ffffff"],[179,"#ffffff"],[180,"#ffffff"],[181,"#ffffff"],[182,"#ffffff"],[183,"#ffffff"],[184,"#ffffff"],[185,"#ffffff"],[186,"#ffffff"],[187,"#ffffff"],[188,"#1d120a"],[189,"#1d120a"],[196,"#1d120a"],[197,"#1d120a"],[198,"#1d120a"],[199,"#1d120a"],[200,"#1d120a"],[201,"#1d120a"],[202,"#1d120a"],[203,"#1d120a"],[204,"#1d120a"],[205,"#1d120a"],[206,"#1d120a"],[207,"#1d120a"],[208,"#1d120a"],[209,"#1d120a"],[210,"#1d120a"],[211,"#1d120a"]],"back":[[32,"#1d120a"],[33,"#1d120a"],[34,"#717171"],[35,"#717171"],[36,"#717171"],[37,"#717171"],[38,"#1d120a"],[39,"#1d120a"],[55,"#1d120a"],[56,"#b8b0a8"],[57,"#ffffff"],[58,"#ffffff"],[59,"#ffffff"],[60,"#ffffff"],[61,"#ffffff"],[62,"#ffffff"],[63,"#ffffff"],[64,"#1d120a"],[79,"#1d120a"],[80,"#b8b0a8"],[81,"#ffffff"],[82,"#ffffff"],[83,"#ffffff"],[84,"#ffffff"],[85,"#ffffff"],[86,"#ffffff"],[87,"#ffffff"],[88,"#1d120a"],[98,"#1d120a"],[103,"#1d120a"],[104,"#b8b0a8"],[105,"#ffffff"],[106,"#ffffff"],[107,"#ffffff"],[108,"#ffffff"],[109,"#ffffff"],[110,"#ffffff"],[111,"#ffffff"],[112,"#1d120a"],[117,"#1d120a"],[121,"#1d120a"],[122,"#ffffff"],[123,"#1d120a"],[124,"#1d120a"],[125,"#1d120a"],[126,"#1d120a"],[127,"#1d120a"],[128,"#b8b0a8"],[129,"#ffffff"],[130,"#ffffff"],[131,"#ffffff"],[132,"#ffffff"],[133,"#ffffff"],[134,"#ffffff"],[135,"#ffffff"],[136,"#1d120a"],[137,"#1d120a"],[138,"#1d120a"],[139,"#1d120a"],[140,"#1d120a"],[141,"#ffffff"],[142,"#1d120a"],[145,"#1d120a"],[146,"#ffffff"],[147,"#ffffff"],[148,"#ffffff"],[149,"#ffffff"],[150,"#ffffff"],[151,"#ffffff"],[152,"#ffffff"],[153,"#ffffff"],[154,"#ffffff"],[155,"#ffffff"],[156,"#ffffff"],[157,"#ffffff"],[158,"#ffffff"],[159,"#ffffff"],[160,"#ffffff"],[161,"#ffffff"],[162,"#ffffff"],[163,"#ffffff"],[164,"#ffffff"],[165,"#ffffff"],[166,"#1d120a"],[170,"#1d120a"],[171,"#1d120a"],[172,"#ffffff"],[173,"#ffffff"],[174,"#ffffff"],[175,"#ffffff"],[176,"#ffffff"],[177,"#ffffff"],[178,"#ffffff"],[179,"#ffffff"],[180,"#ffffff"],[181,"#ffffff"],[182,"#ffffff"],[183,"#ffffff"],[184,"#ffffff"],[185,"#ffffff"],[186,"#ffffff"],[187,"#ffffff"],[188,"#1d120a"],[189,"#1d120a"],[196,"#1d120a"],[197,"#1d120a"],[198,"#1d120a"],[199,"#1d120a"],[200,"#1d120a"],[201,"#1d120a"],[202,"#1d120a"],[203,"#1d120a"],[204,"#1d120a"],[205,"#1d120a"],[206,"#1d120a"],[207,"#1d120a"],[208,"#1d120a"],[209,"#1d120a"],[210,"#1d120a"],[211,"#1d120a"]]},"shirt":{"front":[[366,"#1d120a"],[367,"#ffffff"],[368,"#1d120a"],[375,"#1d120a"],[376,"#ffffff"],[377,"#1d120a"],[390,"#1d120a"],[391,"#ffffff"],[392,"#ffffff"],[393,"#ffffff"],[398,"#ffffff"],[399,"#ffffff"],[400,"#ffffff"],[401,"#1d120a"],[413,"#c0c0c0"],[414,"#ffffff"],[415,"#ffffff"],[416,"#ffffff"],[417,"#ffffff"],[418,"#ffffff"],[419,"#1d120a"],[420,"#ffffff"],[421,"#ffffff"],[422,"#ffffff"],[423,"#ffffff"],[424,"#ffffff"],[425,"#ffffff"],[426,"#ffffff"],[437,"#c0c0c0"],[438,"#ffffff"],[439,"#ffffff"],[440,"#ffffff"],[441,"#ffffff"],[442,"#ffffff"],[443,"#1d120a"],[444,"#1d120a"],[445,"#ffffff"],[446,"#ffffff"],[447,"#ffffff"],[448,"#ffffff"],[449,"#ffffff"],[450,"#ffffff"],[461,"#c0c0c0"],[462,"#ffffff"],[463,"#ffffff"],[464,"#1d120a"],[465,"#1d120a"],[466,"#ffffff"],[467,"#1d120a"],[468,"#ffffff"],[469,"#ffffff"],[470,"#1d120a"],[471,"#1d120a"],[472,"#ffffff"],[473,"#ffffff"],[474,"#ffffff"],[485,"#c0c0c0"],[486,"#ffffff"],[487,"#ffffff"],[488,"#ffffff"],[489,"#ffffff"],[490,"#ffffff"],[491,"#1d120a"],[492,"#1d120a"],[493,"#ffffff"],[494,"#ffffff"],[495,"#ffffff"],[496,"#ffffff"],[497,"#ffffff"],[498,"#ffffff"],[509,"#c0c0c0"],[510,"#ffffff"],[511,"#ffffff"],[512,"#ffffff"],[513,"#ffffff"],[514,"#ffffff"],[515,"#1d120a"],[516,"#ffffff"],[517,"#ffffff"],[518,"#ffffff"],[519,"#ffffff"],[520,"#ffffff"],[521,"#ffffff"],[522,"#ffffff"],[533,"#c0c0c0"],[534,"#ffffff"],[535,"#ffffff"],[536,"#ffffff"],[537,"#ffffff"],[538,"#ffffff"],[539,"#1d120a"],[540,"#1d120a"],[541,"#ffffff"],[542,"#ffffff"],[543,"#ffffff"],[544,"#ffffff"],[545,"#ffffff"],[546,"#ffffff"],[557,"#1d120a"],[558,"#ffffff"],[559,"#ffffff"],[560,"#ffffff"],[561,"#ffffff"],[562,"#ffffff"],[563,"#1d120a"],[564,"#ffffff"],[565,"#ffffff"],[566,"#ffffff"],[567,"#ffffff"],[568,"#ffffff"],[569,"#ffffff"],[570,"#1d120a"],[581,"#c0c0c0"],[582,"#ffffff"],[583,"#ffffff"],[584,"#ffffff"],[585,"#ffffff"],[586,"#ffffff"],[587,"#1d120a"],[588,"#1d120a"],[589,"#ffffff"],[590,"#ffffff"],[591,"#ffffff"],[592,"#ffffff"],[593,"#ffffff"],[594,"#ffffff"],[605,"#c0c0c0"],[606,"#c0c0c0"],[607,"#c0c0c0"],[608,"#ffffff"],[609,"#ffffff"],[610,"#ffffff"],[611,"#1d120a"],[612,"#ffffff"],[613,"#ffffff"],[614,"#ffffff"],[615,"#ffffff"],[616,"#c0c0c0"],[617,"#c0c0c0"],[618,"#c0c0c0"],[632,"#ffffff"],[633,"#ffffff"],[634,"#ffffff"],[635,"#1d120a"],[636,"#ffffff"],[637,"#ffffff"],[638,"#ffffff"],[639,"#ffffff"],[659,"#1d120a"],[660,"#1d120a"],[661,"#ffffff"],[662,"#ffffff"],[663,"#ffffff"],[680,"#4a3220"]],"back":[[366,"#1d120a"],[367,"#ffffff"],[368,"#1d120a"],[375,"#1d120a"],[376,"#ffffff"],[377,"#1d120a"],[390,"#1d120a"],[391,"#ffffff"],[392,"#ffffff"],[393,"#ffffff"],[398,"#ffffff"],[399,"#ffffff"],[400,"#ffffff"],[401,"#1d120a"],[413,"#c0c0c0"],[414,"#ffffff"],[415,"#ffffff"],[416,"#ffffff"],[417,"#ffffff"],[418,"#ffffff"],[419,"#ffffff"],[420,"#ffffff"],[421,"#ffffff"],[422,"#ffffff"],[423,"#ffffff"],[424,"#ffffff"],[425,"#ffffff"],[426,"#ffffff"],[437,"#c0c0c0"],[438,"#ffffff"],[439,"#ffffff"],[440,"#ffffff"],[441,"#ffffff"],[442,"#ffffff"],[443,"#ffffff"],[444,"#ffffff"],[445,"#ffffff"],[446,"#ffffff"],[447,"#ffffff"],[448,"#ffffff"],[449,"#ffffff"],[450,"#ffffff"],[461,"#c0c0c0"],[462,"#ffffff"],[463,"#ffffff"],[464,"#ffffff"],[465,"#ffffff"],[466,"#ffffff"],[467,"#ffffff"],[468,"#ffffff"],[469,"#ffffff"],[470,"#ffffff"],[471,"#ffffff"],[472,"#ffffff"],[473,"#ffffff"],[474,"#ffffff"],[485,"#c0c0c0"],[486,"#ffffff"],[487,"#ffffff"],[488,"#ffffff"],[489,"#ffffff"],[490,"#ffffff"],[491,"#ffffff"],[492,"#ffffff"],[493,"#ffffff"],[494,"#ffffff"],[495,"#ffffff"],[496,"#ffffff"],[497,"#ffffff"],[498,"#ffffff"],[509,"#c0c0c0"],[510,"#ffffff"],[511,"#ffffff"],[512,"#ffffff"],[513,"#ffffff"],[514,"#ffffff"],[515,"#ffffff"],[516,"#ffffff"],[517,"#ffffff"],[518,"#ffffff"],[519,"#ffffff"],[520,"#ffffff"],[521,"#ffffff"],[522,"#ffffff"],[533,"#c0c0c0"],[534,"#ffffff"],[535,"#ffffff"],[536,"#ffffff"],[537,"#ffffff"],[538,"#ffffff"],[539,"#ffffff"],[540,"#ffffff"],[541,"#ffffff"],[542,"#ffffff"],[543,"#ffffff"],[544,"#ffffff"],[545,"#ffffff"],[546,"#ffffff"],[557,"#1d120a"],[558,"#ffffff"],[559,"#ffffff"],[560,"#ffffff"],[561,"#ffffff"],[562,"#ffffff"],[563,"#ffffff"],[564,"#ffffff"],[565,"#ffffff"],[566,"#ffffff"],[567,"#ffffff"],[568,"#ffffff"],[569,"#ffffff"],[570,"#1d120a"],[581,"#c0c0c0"],[582,"#ffffff"],[583,"#ffffff"],[584,"#ffffff"],[585,"#ffffff"],[586,"#ffffff"],[587,"#ffffff"],[588,"#ffffff"],[589,"#ffffff"],[590,"#ffffff"],[591,"#ffffff"],[592,"#ffffff"],[593,"#ffffff"],[594,"#ffffff"],[605,"#c0c0c0"],[606,"#c0c0c0"],[607,"#c0c0c0"],[608,"#ffffff"],[609,"#ffffff"],[610,"#ffffff"],[611,"#ffffff"],[612,"#ffffff"],[613,"#ffffff"],[614,"#ffffff"],[615,"#ffffff"],[616,"#c0c0c0"],[617,"#c0c0c0"],[618,"#c0c0c0"],[632,"#ffffff"],[633,"#ffffff"],[634,"#ffffff"],[635,"#ffffff"],[636,"#ffffff"],[637,"#ffffff"],[638,"#ffffff"],[639,"#ffffff"],[656,"#ffffff"],[657,"#ffffff"],[658,"#ffffff"],[659,"#ffffff"],[660,"#ffffff"],[680,"#4a3220"]]},"pants":{"front":[[656,"#ad9f84"],[657,"#f2deb8"],[658,"#f2deb8"],[659,"#f2deb8"],[660,"#f2deb8"],[661,"#f2deb8"],[662,"#f2deb8"],[663,"#f2deb8"],[680,"#3f2616"],[681,"#5a3a22"],[682,"#5a3a22"],[683,"#b3b3bb"],[684,"#5a3a22"],[685,"#5a3a22"],[686,"#5a3a22"],[687,"#5a3a22"],[704,"#ad9f84"],[705,"#f2deb8"],[706,"#f2deb8"],[707,"#c0c0c0"],[708,"#c0c0c0"],[709,"#f2deb8"],[710,"#f2deb8"],[711,"#5a3a22"],[728,"#ad9f84"],[729,"#f2deb8"],[730,"#f2deb8"],[733,"#f2deb8"],[734,"#f2deb8"],[735,"#f2deb8"],[751,"#1d120a"],[752,"#b5b5b5"],[753,"#ededed"],[754,"#ededed"],[757,"#ededed"],[758,"#ededed"],[759,"#ededed"],[760,"#1d120a"],[775,"#1d120a"],[776,"#b5b5b5"],[777,"#ededed"],[778,"#ededed"],[781,"#ededed"],[782,"#ededed"],[783,"#ededed"],[784,"#1d120a"],[799,"#1d120a"],[800,"#ad9f84"],[801,"#ededed"],[802,"#f2deb8"],[805,"#f2deb8"],[806,"#ededed"],[807,"#f2deb8"],[808,"#1d120a"],[822,"#1d120a"],[823,"#ad9f84"],[824,"#ad9f84"],[825,"#f2deb8"],[826,"#f2deb8"],[829,"#f2deb8"],[830,"#f2deb8"],[831,"#f2deb8"],[832,"#f2deb8"],[833,"#1d120a"],[846,"#1d120a"],[847,"#ad9f84"],[848,"#ad9f84"],[849,"#f2deb8"],[850,"#f2deb8"],[853,"#f2deb8"],[854,"#f2deb8"],[855,"#f2deb8"],[856,"#f2deb8"],[857,"#1d120a"]],"back":[[656,"#f2deb8"],[657,"#f2deb8"],[658,"#f2deb8"],[659,"#f2deb8"],[660,"#f2deb8"],[661,"#f2deb8"],[662,"#f2deb8"],[663,"#f2deb8"],[680,"#3f2616"],[681,"#5a3a22"],[682,"#5a3a22"],[683,"#4d321d"],[684,"#5a3a22"],[685,"#5a3a22"],[686,"#5a3a22"],[687,"#5a3a22"],[704,"#3f2616"],[705,"#f2deb8"],[706,"#f2deb8"],[707,"#f2deb8"],[708,"#f2deb8"],[709,"#f2deb8"],[710,"#f2deb8"],[711,"#f2deb8"],[728,"#ad9f84"],[729,"#f2deb8"],[730,"#f2deb8"],[733,"#f2deb8"],[734,"#f2deb8"],[735,"#f2deb8"],[751,"#1d120a"],[752,"#b5b5b5"],[753,"#ededed"],[754,"#ededed"],[757,"#ededed"],[758,"#ededed"],[759,"#ededed"],[760,"#1d120a"],[775,"#1d120a"],[776,"#ad9f84"],[777,"#f2deb8"],[778,"#f2deb8"],[781,"#f2deb8"],[782,"#f2deb8"],[783,"#f2deb8"],[784,"#1d120a"],[799,"#1d120a"],[800,"#ad9f84"],[801,"#f2deb8"],[802,"#f2deb8"],[805,"#f2deb8"],[806,"#f2deb8"],[807,"#f2deb8"],[808,"#1d120a"],[822,"#1d120a"],[823,"#ad9f84"],[824,"#ad9f84"],[825,"#f2deb8"],[826,"#f2deb8"],[829,"#f2deb8"],[830,"#f2deb8"],[831,"#f2deb8"],[832,"#f2deb8"],[833,"#1d120a"],[846,"#1d120a"],[847,"#ad9f84"],[848,"#ad9f84"],[849,"#f2deb8"],[850,"#f2deb8"],[853,"#f2deb8"],[854,"#f2deb8"],[855,"#f2deb8"],[856,"#f2deb8"],[857,"#1d120a"]]}};
 function shade(hex,f){ const n=parseInt(hex.slice(1),16); const r=Math.max(0,Math.min(255,Math.round(((n>>16)&255)*f))), g=Math.max(0,Math.min(255,Math.round(((n>>8)&255)*f))), b=Math.max(0,Math.min(255,Math.round((n&255)*f))); return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1); }
 const state={hatStyle:'classic',hatColor:'brown',face:'clean',shirtStyle:'plain',shirt:'cream',vestStyle:'standard',vestColor:'brown',coatStyle:'none',coatColor:'tan',bandana:'red',bandanaStyle:'classic',pantsStyle:'plain',pantsColor:'blue',bootsStyle:'plain',boots:'brown'};
 const foeState={hatStyle:'outlaw',hatColor:'black',face:'scar',shirtStyle:'plain',shirt:'black',vestStyle:'standard',vestColor:'black',coatStyle:'none',coatColor:'tan',bandana:'black',bandanaStyle:'classic',pantsStyle:'plain',pantsColor:'black',bootsStyle:'plain',boots:'black'};
@@ -333,6 +384,11 @@ function loadCustom(){
   try{
     const c=JSON.parse(localStorage.getItem('steadyCustom')||'null'); if(!c) return;
     if(c.state) for(const k of Object.keys(state)) if(c.state[k]!==undefined) state[k]=c.state[k];
+    if(!scruggsUnlocked()){
+      if(state.hatStyle==='scruggs') state.hatStyle='classic';
+      if(state.shirtStyle==='scruggs') state.shirtStyle='plain';
+      if(state.pantsStyle==='scruggs') state.pantsStyle='plain';
+    }
     if(typeof c.playerLine==='string'&&c.playerLine) playerLine=c.playerLine;
     if(c.bg) setBg(c.bg);
   }catch(e){}
@@ -489,7 +545,7 @@ function showScreen(name){
   clearFx();
   if(name==='game'){ shuffleFoe(); renderIdle(); scheduleRound(900); }
   else if(name==='levels'){ buildLevels(); }
-  else { resetSpin(); renderPreviews(); }
+  else { resetSpin(); renderPreviews(); refreshScruggsOptions(); }
   if(name==='menu') menuSpinLoop();
 }
 document.getElementById('btn-play').addEventListener('click',()=>{ document.getElementById('lvlMsg').textContent='Clear duels to open the trail ahead — town, corral, graveyard, then the endless desert.'; showScreen('levels'); });
@@ -643,8 +699,9 @@ function drawFigure(id,back,pose,outfit){
       const k=(j*24+i)*4;o[k]=29;o[k+1]=18;o[k+2]=10;o[k+3]=255;}
   }
   d.data.set(o); x.putImageData(d,0,0);
-  // Cutter already has its own black outline, so draw it after the auto-outline pass
+  // Cutter and Scruggs already have their own black outlines, so draw them after the auto-outline pass
   if((outfit||state).hatStyle==='cutter'||(outfit||state).hatStyle==='custom') drawCustomClothes(x,r,back,outfit);
+  drawScruggs(x,r,back,outfit);
 
   if(drawP>0&&drawP<1){
     const gm='#2b2b30';
@@ -710,8 +767,10 @@ const CORRAL_FOES=[
 ];
 const FOE_PRESETS=TOWN_FOES.concat(CORRAL_FOES);
 let lastFoe=-1;
+const SCRUGGS={name:'Scruggs',custom:'scruggs',line:"Don't let my white duds fool ya...",hatStyle:'scruggs',hatColor:'grey',face:'clean',shirtStyle:'scruggs',shirt:'white',vestStyle:'none',vestColor:'brown',coatStyle:'none',coatColor:'tan',bandana:'none',bandanaStyle:'none',pantsStyle:'scruggs',pantsColor:'grey',bootsStyle:'plain',boots:'black'};
 function foeForLevel(lv){
   // town: bankers, gamblers, etc. — corral: iconic cowboys — graveyard: rematches
+  if(lv===33) return SCRUGGS;   // boss of the town: beat him to wear his threads
   if(lv>=67) return FOE_PRESETS[(lv-67)%FOE_PRESETS.length];
   if(lv>=34) return CORRAL_FOES[(lv-34)%CORRAL_FOES.length];
   return TOWN_FOES[(Math.max(1,lv)-1)%TOWN_FOES.length];
@@ -722,16 +781,16 @@ function shuffleFoe(){
     const foe=isDesert
       ? FOE_PRESETS[(Math.max(1,desertDepth)-1)%FOE_PRESETS.length]
       : foeForLevel(level);
-    lastFoe=FOE_PRESETS.indexOf(foe); Object.assign(foeState,foe); drawFoes(); return;
+    lastFoe=FOE_PRESETS.indexOf(foe); Object.assign(foeState,{custom:null,line:null},foe); drawFoes(); return;
   }
   // non-level duels still re-roll (never twice running)
   let i; do{ i=Math.floor(Math.random()*FOE_PRESETS.length); }while(i===lastFoe&&FOE_PRESETS.length>1);
-  lastFoe=i; Object.assign(foeState,FOE_PRESETS[i]); drawFoes();
+  lastFoe=i; Object.assign(foeState,{custom:null,line:null},FOE_PRESETS[i]); drawFoes();
 }
 
 function drawHat(x,r,back,outfit){
   const h=(outfit||state).hatStyle, base=HAT_COLORS[(outfit||state).hatColor]||HAT_COLORS.brown;
-  if(h==='cutter'||h==='custom') return; // Cutter drawn by drawCustomClothes so Hat color still gives a few different colors
+  if(h==='cutter'||h==='custom'||h==='scruggs') return; // Cutter drawn by drawCustomClothes so Hat color still gives a few different colors
   const band='rgba(0,0,0,.45)', lite='rgba(255,255,255,.22)';
   if(h==='classic'){ r(8,2,8,5,base); r(11,2,2,1,'rgba(0,0,0,.25)'); r(8,6,8,1,band); r(4,7,16,2,base); r(3,6,2,2,base); r(19,6,2,2,base); r(4,8,16,1,'rgba(0,0,0,.25)'); }
   else if(h==='outlaw'){ r(8,1,8,6,base); r(8,6,8,1,band); r(11,1,2,5,lite); r(3,7,18,2,base); r(2,6,2,2,base); r(20,6,2,2,base); r(3,8,18,1,'rgba(0,0,0,.4)'); }
@@ -754,7 +813,7 @@ function resetSpin(){ document.getElementById('front').style.transform=''; }
 /* wipe one-shot fx so display:none screen swaps can't replay stale animations */
 function clearFx(){
   for(const id of ['bangF','duelF','bubbleFoe','bubbleYou']) document.getElementById(id).classList.remove('show');
-  hideTarget(); hideBubbles();
+  hideTarget(); hideBubbles(); hideSign();
   const c=document.getElementById('front'); c.classList.remove('shake'); c.classList.remove('hit');
   playerDown(false);
 }
@@ -1076,7 +1135,9 @@ function gcryptS(x,y){
   return '<g transform="translate('+x+','+y+')"><rect x="-32" y="-18" width="76" height="52" fill="#0000003a"/><rect x="-36" y="-26" width="72" height="50" fill="#6f6d82" stroke="#2e2a3a" stroke-width="2.5"/>'
    +'<rect x="-36" y="-26" width="72" height="25" fill="#7f7d94"/><rect x="-36" y="-2" width="72" height="4" fill="#4a4860"/><path d="M-36 -14 H36 M-36 10 H36" stroke="#00000022"/>'
    +'<rect x="-28" y="-20" width="8" height="8" fill="#4a4860"/><rect x="20" y="-20" width="8" height="8" fill="#4a4860"/>'
-   +'<rect x="-9" y="4" width="18" height="22" fill="#1c1826"/><circle cx="0" cy="16" r="16" fill="url(#doorG)" class="pulse"/><rect x="-11" y="26" width="22" height="3" fill="#8d8aa0"/><rect x="-13" y="29" width="26" height="3" fill="#7d7a90"/></g>';
+   +'<rect x="-9" y="4" width="18" height="22" fill="#1c1826"/><circle cx="0" cy="16" r="16" fill="url(#doorG)" class="pulse"/><rect x="-11" y="26" width="22" height="3" fill="#8d8aa0"/><rect x="-13" y="29" width="26" height="3" fill="#7d7a90"/>'
+   +(CRYPT_EYES?'<g class="pulse" style="animation-duration:2.2s"><circle cx="-4.5" cy="13" r="3" fill="#ff2a1a" style="filter:drop-shadow(0 0 4px #f00)"/><circle cx="4.5" cy="13" r="3" fill="#ff2a1a" style="filter:drop-shadow(0 0 4px #f00)"/></g>':'')
+   +'</g>';
 }
 function angelS(x,y){
   return '<ellipse cx="'+(x+4)+'" cy="'+(y+14)+'" rx="12" ry="4" fill="#0000003a"/><rect x="'+(x-8)+'" y="'+(y+6)+'" width="16" height="9" fill="#8d8aa0" stroke="#2e2a3a" stroke-width="1.2"/>'
@@ -1179,6 +1240,26 @@ function townProps(yT,yB,seed){
   const yA=yT+50, yE=yB-90, kinds=['SALOON','SHERIFF','STORE','BANK','HOTEL','BLACKSMITH','STABLE','BARBER','UNDERTAKER','TELEGRAPH'];
   const decor=[lampPoster,flagS,cactusPair];
   let ci=0, k=0, di=0;
+  // pass 1 (replica RNG — consumes identically to the layout loop below): find the
+  // building slot nearest level 25 so that slot always becomes the SALOON
+  const anchorY=trailXY(24)[1];
+  let saloonSlot=0, saloonBd=1e12, slotCount=0;
+  {
+    const r2=prng(seed);
+    for(let q=0;q<26;q++){ r2(); r2(); r2(); }
+    for(let col=0;col<2;col++){
+      let cy2=yA, last2=-1;
+      while(true){
+        const h2=Math.round(88+r2()*28), w2=Math.round(108+r2()*24);
+        if(cy2+h2>yE+6) break;
+        let ci2; do{ ci2=Math.floor(r2()*cols.length); }while(ci2===last2);
+        last2=ci2; r2();
+        const dd=Math.abs((cy2+h2/2)-anchorY);
+        if(dd<saloonBd){ saloonBd=dd; saloonSlot=slotCount; }
+        slotCount++; cy2+=h2+14;
+      }
+    }
+  }
   for(const left of [true,false]){
     let cy=yA, last=-1;
     while(true){
@@ -1186,7 +1267,8 @@ function townProps(yT,yB,seed){
       if(cy+h>yE+6) break;
       do{ ci=Math.floor(r()*cols.length); }while(ci===last);
       last=ci;
-      const x=left?20+w/2:540-w/2, y=cy+h/2, kind=kinds[(k++)%kinds.length];
+      const x=left?20+w/2:540-w/2, y=cy+h/2; let kind=kinds[k%kinds.length]; if(k===saloonSlot) kind='SALOON'; k++;
+      if(kind==='SALOON') SALOON_SPOTS.push([Math.round(x),Math.round(y-h/2-30)]);
       s+=buildingT(Math.round(x),Math.round(y),w,h,left?'E':'W',kind,cols[ci],r()*5);
       if(cols[ci]==='#a73a2e') s+=waterTowerS(Math.round(x),Math.round(y));
       if(k%4===2&&di<decor.length) s+=decor[di++](left?210:350,Math.round(y));
@@ -1229,6 +1311,8 @@ function longhornHerd(yT,yB){
 }
 
 let GRAVE_PROPS=[], CORRAL_PROPS=[];
+let SALOON_SPOTS=[];
+let CRYPT_POS=null, CRYPT_EYES=false;
 function graveyardStones(yT,yB){
   const r=prng(6060); let s='', row=0;
   for(let y=yT+70;y<yB-60;y+=100,row++){
@@ -1256,6 +1340,7 @@ function regionProps(ground,yT,yB,seed){
   defs.forEach((pd,i)=>{
     const y=Math.round(yA+H*(i+0.5)+(r()-0.5)*H*0.3);
     const x=Math.round(pd.x0+r()*(pd.x1-pd.x0));
+    if(pd.f===gcryptS) CRYPT_POS=[x,y];
     GRAVE_PROPS.push([x,y,pd.f===gcryptS?64:(pd.f===openGraveS?52:(pd.f===barnYard||pd.f===wagonCamp?64:46))]);
     s+=pd.f(x,y);
   });
@@ -1332,9 +1417,11 @@ function mapDecor(ground,r,yT,yB,g){
 }
 function buildLevels(){
   const box=document.getElementById('lvlScroll'); box.innerHTML='';
+  SALOON_SPOTS=[];
   const sd=document.getElementById('s-diff'); if(sd) sd.value=difficulty;
   diffLabel();
   const unl=unlocked();
+  CRYPT_EYES=unl>96; CRYPT_POS=null;
   const Y=[]; for(let i=0;i<99;i++) Y.push(trailXY(i)[1]);
   let svg='<svg class="birdmap" viewBox="0 0 '+MAPW+' '+MAPH+'" xmlns="http://www.w3.org/2000/svg"><defs>'
     +'<radialGradient id="fireG"><stop offset="0" stop-color="#ff9a3a" stop-opacity=".55"/><stop offset="1" stop-color="#ff9a3a" stop-opacity="0"/></radialGradient><radialGradient id="lampG"><stop offset="0" stop-color="#ffd36a" stop-opacity=".6"/><stop offset="1" stop-color="#ffd36a" stop-opacity="0"/></radialGradient><radialGradient id="doorG"><stop offset="0" stop-color="#8aff9a" stop-opacity=".55"/><stop offset="1" stop-color="#8aff9a" stop-opacity="0"/></radialGradient><linearGradient id="gradTC" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c2a560"/><stop offset="1" stop-color="#d6a05c"/></linearGradient>'
@@ -1391,6 +1478,52 @@ function buildLevels(){
   }
   const dn=document.createElement('button'); dn.className='lvl v-opendesert'; dn.textContent='∞';
   dn.style.left='50%'; dn.style.top=(70/MAPH*100)+'%';
+  if(SALOON_SPOTS.length){
+    // bonus minigame logos painted over the buildings: target on the saloon roof near
+    // level 25, cow head across the street from level 55
+    const anchor=trailXY(24);
+    let saloonSpot=SALOON_SPOTS[0], bd=1e12;
+    for(const s of SALOON_SPOTS){ const dd=(s[0]-anchor[0])*(s[0]-anchor[0])+(s[1]-anchor[1])*(s[1]-anchor[1]); if(dd<bd){ bd=dd; saloonSpot=s; } }
+    const sn=document.createElement('button'); sn.className='lvl logo';
+    sn.innerHTML="<svg viewBox='0 0 60 60'><circle cx='30' cy='30' r='26' fill='#f6f1e6' stroke='#3b2414' stroke-width='3'/><circle cx='30' cy='30' r='18' fill='#c0392b'/><circle cx='30' cy='30' r='11' fill='#f6f1e6'/><circle cx='30' cy='30' r='5' fill='#c0392b'/></svg>";
+    sn.style.left=(saloonSpot[0]/MAPW*100)+'%'; sn.style.top=(saloonSpot[1]/MAPH*100)+'%';
+    if(unl>25){
+      sn.title='Saloon Shootout — bonus minigame';
+      sn.setAttribute('aria-label','Saloon Shootout bonus minigame');
+      sn.addEventListener('click',()=>{ window.location.href='Saloon Shootout.html'; });
+    } else {
+      sn.title='Saloon Shootout — clear level 25 to unlock';
+      sn.setAttribute('aria-label','Saloon Shootout locked — clear level 25 to unlock');
+      sn.disabled=true;
+    }
+    wrap.appendChild(sn);
+  }
+  {
+    // cattle-drive logo: cow head across the street from the level-55 node
+    const a55=trailXY(54);
+    const cn=document.createElement('button'); cn.className='lvl logo';
+    cn.innerHTML="<svg viewBox='0 0 60 60'><path d='M13 26 Q5 16 15 11' stroke='#e8e0cc' stroke-width='5' fill='none' stroke-linecap='round'/><path d='M47 26 Q55 16 45 11' stroke='#e8e0cc' stroke-width='5' fill='none' stroke-linecap='round'/><ellipse cx='12' cy='30' rx='5' ry='3.4' fill='#a8532c' stroke='#3b2414' stroke-width='2'/><ellipse cx='48' cy='30' rx='5' ry='3.4' fill='#a8532c' stroke='#3b2414' stroke-width='2'/><ellipse cx='30' cy='32' rx='14' ry='16' fill='#a8532c' stroke='#3b2414' stroke-width='3'/><ellipse cx='30' cy='24' rx='7' ry='5' fill='#c98a4a'/><circle cx='24' cy='31' r='2' fill='#1d120a'/><circle cx='36' cy='31' r='2' fill='#1d120a'/><ellipse cx='30' cy='42' rx='8' ry='6' fill='#f2b8b0' stroke='#3b2414' stroke-width='2'/><circle cx='27' cy='42' r='1.2' fill='#7a3a2a'/><circle cx='33' cy='42' r='1.2' fill='#7a3a2a'/></svg>";
+    cn.style.left=((a55[0]<280?470:90)/MAPW*100)+'%'; cn.style.top=(a55[1]/MAPH*100)+'%';
+    if(unl>55){
+      cn.title='Cattle Drive — bonus minigame';
+      cn.setAttribute('aria-label','Cattle Drive bonus minigame');
+      cn.addEventListener('click',()=>{ window.location.href='CattleDrive.html'; });
+    } else {
+      cn.title='Cattle Drive — clear level 55 to unlock';
+      cn.setAttribute('aria-label','Cattle Drive locked — clear level 55 to unlock');
+      cn.disabled=true;
+    }
+    wrap.appendChild(cn);
+  }
+  if(CRYPT_POS&&unl>96){
+    // the crypt's eyes are glowing — the door stands open
+    const kn=document.createElement('button'); kn.className='lvl logo';
+    kn.style.left=(CRYPT_POS[0]/MAPW*100)+'%'; kn.style.top=(CRYPT_POS[1]/MAPH*100)+'%';
+    kn.title='The Crypt — bonus minigame';
+    kn.setAttribute('aria-label','The Crypt bonus minigame');
+    kn.addEventListener('click',()=>{ window.location.href='The Crypt.html'; });
+    wrap.appendChild(kn);
+  }
   if(unl>=100){
     const dfoe=FOE_PRESETS[(Math.max(1,desertDepth)-1)%FOE_PRESETS.length]; const dfoeName=(dfoe&&dfoe.name)||'Outlaw';
     dn.title='Endless desert · depth '+desertDepth+' — '+dfoeName+' · best '+desertBest()+' · diff '+desertDifficulty(desertDepth);
@@ -1536,7 +1669,7 @@ function fire(){
   hotNow=false;
   outcome=null; outT0=0; aimPhase='idle'; doomMsg=null; rollRing(); aimUi('idle');
   smoke=[];
-  const foeLine=FOE_LINES[Math.floor(Math.random()*FOE_LINES.length)];
+  const foeLine=foeState.line||FOE_LINES[Math.floor(Math.random()*FOE_LINES.length)];
   const tgt=document.getElementById('targetF'), mfill=document.getElementById('mfillF');
   function frame(now){
     if(gen!==duelGen) return;   // bailed to menu/store mid-intro
@@ -1674,12 +1807,8 @@ function fire(){
         updateSmoke();
       }
       else {
-        smoke=[]; foeDown(false); firing=false;
-        if(levelMode){ levelMode=false;
-          if(isDesert){ isDesert=false; desertDepth++; difficulty=desertDifficulty(desertDepth); try{ localStorage.setItem('steadyDesert',desertDepth); localStorage.setItem('steadyDesertBest',Math.max(desertDepth,desertBest())); }catch(e){} document.getElementById('lvlMsg').textContent='Desert depth '+desertDepth+' — difficulty '+difficulty+'.'; }
-          else { saveBest(level); document.getElementById('lvlMsg').textContent=(level>=99?'Graveyard cleared — the endless desert awaits! ':'Level '+level+' cleared — next is difficulty '+levelDifficulty(Math.min(99,level+1))+'.'); }
-          renderIdle(); showScreen('levels'); }
-        else { renderIdle(); showScreen('menu'); }
+        smoke=[]; foeDown(false);
+        showSign(true, levelMode?(isDesert?'The endless desert gives way!':(level===33?'Scruggs beaten — his threads are yours!':'Level '+level+' cleared!')):'Outlaw down!');
         return;
       }
     }
@@ -1697,12 +1826,8 @@ function fire(){
         drawFigure('foeF',false,{dy:0,gun:fl?'fire':'draw',flash:fl?1:0,mirror:true},foeState);
         if(!foeFired){ foeFired=true; boom(); foeTracer(); showDuel(doomMsg||'THE OUTLAW WAS FASTER!'); const c=document.getElementById('front'); c.classList.add('hit'); c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake'); }
         if(lt>750){ document.getElementById('front').classList.remove('hit'); playerDown(true); }
-        if(lt>2300){ playerDown(false); renderIdle(); firing=false;
-          if(levelMode){ levelMode=false;
-            if(isDesert){ isDesert=false; difficulty=desertDifficulty(desertDepth); document.getElementById('lvlMsg').textContent='The desert takes you at depth '+desertDepth+' — difficulty '+difficulty+'. Retry.'; }
-            else { difficulty=levelDifficulty(level); document.getElementById('lvlMsg').textContent='Level '+level+' lost — difficulty '+difficulty+'. Retry.'; }
-            showScreen('levels'); }
-          else showScreen('menu');
+        if(lt>2300){ playerDown(false); renderIdle();
+          showSign(false, doomMsg||'The outlaw was faster!');
           return; }
       }
     }
@@ -1711,18 +1836,50 @@ function fire(){
   requestAnimationFrame(frame);
 }
 
+function showSign(win,sub){
+  document.getElementById('signTitle').textContent=win?'YOU WIN!':'YOU LOSE';
+  document.getElementById('signBoard').classList.toggle('lose',!win);
+  document.getElementById('signSub').textContent=sub||'';
+  const b=document.getElementById('btn-signMain');
+  b.textContent=win?'CONTINUE':'TRY AGAIN';
+  b.onclick=win?advanceAfterDuel:retryDuel;
+  const d=document.getElementById('signDrop');
+  d.classList.remove('drop'); void d.offsetWidth; d.classList.add('drop');
+  document.getElementById('signWrap').classList.remove('hidden');
+}
+function hideSign(){ document.getElementById('signWrap').classList.add('hidden'); }
+function advanceAfterDuel(){
+  hideSign(); foeDown(false); firing=false;
+  if(levelMode){ levelMode=false;
+    if(isDesert){ isDesert=false; desertDepth++; difficulty=desertDifficulty(desertDepth); try{ localStorage.setItem('steadyDesert',desertDepth); localStorage.setItem('steadyDesertBest',Math.max(desertDepth,desertBest())); }catch(e){} document.getElementById('lvlMsg').textContent='Desert depth '+desertDepth+' — difficulty '+difficulty+'.'; }
+    else { saveBest(level); document.getElementById('lvlMsg').textContent=(level>=99?'Graveyard cleared — the endless desert awaits! ':'Level '+level+' cleared — next is difficulty '+levelDifficulty(Math.min(99,level+1))+'.'); }
+    renderIdle(); showScreen('levels'); }
+  else { renderIdle(); showScreen('menu'); }
+}
+function retryDuel(){
+  hideSign(); clearFx(); firing=false; duelGen++;
+  foeDown(false); foeHit(false); playerDown(false);
+  if(levelMode){
+    if(isDesert) difficulty=desertDifficulty(desertDepth); else difficulty=levelDifficulty(level);
+    setLevelUi();
+    document.getElementById('lvlMsg').textContent=isDesert?('Desert depth '+desertDepth+' — difficulty '+difficulty+'. Retry.'):('Level '+level+' — difficulty '+difficulty+'. Retry.');
+  }
+  shuffleFoe(); renderIdle(); scheduleRound(800);
+}
+window.addEventListener('keydown',e=>{ if(e.code==='Enter'&&!document.getElementById('signWrap').classList.contains('hidden')&&!document.getElementById('screen-game').classList.contains('hidden')){ e.preventDefault(); document.getElementById('btn-signMain').click(); } });
+
 for(const k of Object.keys(state)){
   document.getElementById('s-'+k).addEventListener('change',e=>{ state[k]=e.target.value; saveCustom(); if(!firing) renderAll(); });
 }
 document.getElementById('random').addEventListener('click',()=>{
   const pick=o=>o[Math.floor(Math.random()*o.length)];
-  state.hatStyle=pick(['classic','outlaw','gambler','sombrero','bowler','tophat','straw','flatcap','cutter','none']);
+  state.hatStyle=pick(scruggsUnlocked()?['classic','outlaw','gambler','sombrero','bowler','tophat','straw','flatcap','cutter','scruggs','none']:['classic','outlaw','gambler','sombrero','bowler','tophat','straw','flatcap','cutter','none']);
   state.hatColor=pick(Object.keys(HAT_COLORS));
   state.face=pick(['clean','mustache','beard','scar','grizzled','mask','handlebar','eyepatch']);
-  state.shirt=pick(Object.keys(SHIRTS)); state.shirtStyle=pick(['plain','plaid','striped','yoke']);
+  state.shirt=pick(Object.keys(SHIRTS)); state.shirtStyle=pick(scruggsUnlocked()?['plain','plaid','striped','yoke','scruggs']:['plain','plaid','striped','yoke']);
   state.vestStyle=pick(['standard','open','fringe','none']); state.vestColor=pick(Object.keys(VESTS).filter(v=>v!=='none'));
   state.coatStyle=pick(['none','none','duster','overcoat','poncho','jacket','cape']); state.coatColor=pick(Object.keys(COAT_COLORS));
-  state.bandana=pick(Object.keys(BANDS)); state.bandanaStyle=pick(['classic','mask','headband','none']); state.pantsStyle=pick(['plain','chaps','striped']); state.pantsColor=pick(Object.keys(PANTS)); state.boots=pick(Object.keys(BOOTS)); state.bootsStyle=pick(['plain','tooled','spur']);
+  state.bandana=pick(Object.keys(BANDS)); state.bandanaStyle=pick(['classic','mask','headband','none']); state.pantsStyle=pick(scruggsUnlocked()?['plain','chaps','striped','scruggs']:['plain','chaps','striped']); state.pantsColor=pick(Object.keys(PANTS)); state.boots=pick(Object.keys(BOOTS)); state.bootsStyle=pick(['plain','tooled','spur']);
   for(const k of Object.keys(state)) document.getElementById('s-'+k).value=state[k];
   saveCustom(); if(!firing) renderAll();
 });
@@ -1751,9 +1908,10 @@ window.addEventListener('keydown',e=>{ if(e.code==='Space'){ if(document.getElem
 setBg('corral');
 loadCustom();
 for(const k of Object.keys(state)){ const el=document.getElementById('s-'+k); if(el) el.value=state[k]; }
+refreshScruggsOptions();
 document.getElementById('s-line').value=playerLine;
 renderAll();
-showScreen('menu');
+if(location.hash==='#levels') showScreen('levels'); else showScreen('menu');
 setTimeout(()=>{ if(!spinBroken) menuSpinLoop(); },60);   // safety net if the loop ever died
 </script>
 </body>

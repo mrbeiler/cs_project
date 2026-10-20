@@ -1,0 +1,23 @@
+{
+  "game": "Steady",
+  "slot": "cowboy-1",
+  "cowboy": {
+    "hatStyle": "classic",
+    "hatColor": "brown",
+    "face": "clean",
+    "shirtStyle": "plain",
+    "shirt": "cream",
+    "vestStyle": "standard",
+    "vestColor": "brown",
+    "coatStyle": "none",
+    "coatColor": "tan",
+    "bandana": "red",
+    "bandanaStyle": "classic",
+    "pantsStyle": "plain",
+    "pantsColor": "blue",
+    "bootsStyle": "plain",
+    "boots": "brown"
+  },
+  "taunt": "It's high noon somewhere.",
+  "map": "corral"
+}
