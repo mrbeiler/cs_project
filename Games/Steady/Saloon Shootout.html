@@ -242,7 +242,9 @@ else if(t==='go'){tone(500,.15,'square',.1)}}catch(e){}}
 
 /* ---------- game / ui ---------- */
 const cvM=$('#cvM'),cvG=$('#cvG'),gM=cvM.getContext('2d'),gG=cvG.getContext('2d'),stage=$('#stage');
-let best=0;try{best=+localStorage.getItem('saloon-best')||0}catch(e){}
+const _prof=(()=>{ try{ return localStorage.getItem('steady:current')||''; }catch(e){ return ''; } })();
+const SALOON_KEY=(_prof?'steady:'+encodeURIComponent(_prof.trim().toLowerCase())+':':'')+'saloon-best';
+let best=0;try{best=+localStorage.getItem(SALOON_KEY)||0}catch(e){}
 const demo=World(true);demo.snd=()=>{};
 const G={w:null,st:'menu',cd:0,last:0,lastNum:''};
 const el=id=>document.getElementById(id);
@@ -254,7 +256,7 @@ function geo(){const r=cvG.getBoundingClientRect(),sc=Math.min(r.width/W,r.heigh
 function mkPop(w){return(txt,x,y,bad)=>{const q=geo(),d=document.createElement('div');d.className='pop'+(bad?' bad':'');d.textContent=txt;d.style.left=(q.ox+x*q.sc-q.sl)+'px';d.style.top=(q.oy+(y-6)*q.sc-q.st)+'px';stage.appendChild(d);setTimeout(()=>d.remove(),1000)}}
 function startGame(){const w=World(false);w.snd=sfx;w.pop=mkPop(w);w.hurt=()=>{const h=el('hurt');h.classList.remove('go');void h.offsetWidth;h.classList.add('go');cvG.classList.remove('shake');void cvG.offsetWidth;cvG.classList.add('shake')};
 G.w=w;G.st='count';G.cd=2600;G.lastNum='';el('result').classList.add('hidden');show('game');ac()}
-function endGame(why){G.st='over';const w=G.w,acc=w.shots?Math.round(100*w.hits/w.shots):0,nb=w.score>best;if(nb){best=w.score;try{localStorage.setItem('saloon-best',best)}catch(e){}bestLine()}
+function endGame(why){G.st='over';const w=G.w,acc=w.shots?Math.round(100*w.hits/w.shots):0,nb=w.score>best;if(nb){best=w.score;try{localStorage.setItem(SALOON_KEY,best)}catch(e){}bestLine()}
 const rk=w.score<800?'Greenhorn':w.score<2000?'Deputy':w.score<3500?'Gunslinger':'Legend of the West';
 el('rTitle').textContent=why==='lives'?'SHOT DOWN!':"TIME'S UP!";el('rRank').textContent=rk+(nb&&w.score>0?' — new best!':'');
 el('rScore').textContent=w.score+' pts';el('rKills').textContent=w.kills;el('rAcc').textContent=acc+'%';el('rCombo').textContent='x'+(1+Math.min(4,Math.floor(w.bestCombo/4)))+' ('+w.bestCombo+')';el('rBest').textContent=best;

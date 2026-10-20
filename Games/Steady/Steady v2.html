@@ -20,6 +20,20 @@ h1{margin:0;font-size:clamp(.95rem,2.2vh + 1.5vw,1.5rem);font-weight:700;text-al
 .screen.hidden{display:none}
 /* ---- start menu ---- */
 .gametitle{font-size:clamp(1.6rem,5vh + 2vw,2.6rem);margin:6px 0 0}
+/* ---- login ---- */
+.loginbox{display:flex;flex-direction:column;align-items:center;gap:10px;width:min(420px,92%);margin:auto;padding:22px 20px;background:rgba(20,14,8,.55);border:2px solid #3b2414;border-radius:14px}
+.loginlbl{font-size:.85rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;opacity:.85;align-self:flex-start}
+#playerName{width:100%;font:inherit;font-size:1.1rem;font-weight:700;padding:10px 12px;border-radius:8px;border:2px solid #3b2414;background:#fff8e6;color:#3b2414;text-align:center}
+#playerName:focus{outline:none;border-color:#e8c24a;box-shadow:0 0 0 3px rgba(232,194,74,.35)}
+#btn-login{width:100%;background:#3a7a3a;color:#fff;box-shadow:0 4px 0 #234d23;font-weight:900;letter-spacing:.08em;font-size:1.05rem;padding:12px 20px}
+#btn-login:active{transform:translateY(3px);box-shadow:0 1px 0 #234d23}
+.loginprofiles{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;width:100%}
+.loginprofiles:empty{display:none}
+.loginprofiles button{font-size:.8rem;padding:5px 12px;border-radius:999px;background:#e8c24a;color:#3b2414;box-shadow:0 2px 0 #9a7420}
+.loginerr{margin:0;font-size:.8rem;font-weight:700;color:#ffb3a0}
+.loginerr.hidden{display:none}
+.loginbadge{margin:2px 0 0;font-size:.75rem;opacity:.85;display:flex;align-items:center;gap:8px}
+.loginbadge b{color:#e8c24a}
 .menustage{flex:1 1 auto;min-height:0;width:100%}
 .menubtns{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
 .menubtns button{font-size:clamp(1.1rem,3vh + 1vw,1.5rem);font-weight:900;letter-spacing:.06em;padding:12px 34px;min-width:170px}
@@ -71,10 +85,10 @@ figcaption{font-size:clamp(.7rem,1.8vh,.95rem);padding:2px 0 1px;line-height:1}
 .bubble .who{display:inline-block;font-size:.72em;font-weight:900;letter-spacing:.08em;color:#fff8e6;background:#7a0e0e;border-radius:4px;padding:1px 6px;margin-bottom:3px}
 .player-bubble .who{background:#2e5a2e}
 .bubble .txt{font-style:italic}
-.foe-bubble{top:12%;right:3%;max-width:30%;font-size:clamp(.6rem,1.5vh + .4vw,.78rem)}
-.foe-bubble::after{content:'';position:absolute;bottom:-12px;left:55%;border:6px solid transparent;border-top:9px solid #3b2414}
-.player-bubble{left:37%;top:28%;max-width:36%;font-size:clamp(.7rem,1.8vh + .5vw,.9rem)}
-.player-bubble::after{content:'';position:absolute;left:-12px;top:38%;border:6px solid transparent;border-right:9px solid #3b2414}
+.foe-bubble{right:14%;bottom:58%;max-width:34%;font-size:clamp(.6rem,1.5vh + .4vw,.78rem)}
+.foe-bubble::after{content:'';position:absolute;bottom:-12px;right:24%;border:6px solid transparent;border-top:9px solid #3b2414}
+.player-bubble{left:6%;bottom:74%;max-width:44%;font-size:clamp(.7rem,1.8vh + .5vw,.9rem)}
+.player-bubble::after{content:'';position:absolute;bottom:-12px;left:14%;border:6px solid transparent;border-top:9px solid #3b2414}
 .target.fade{opacity:0}
 .lineinput{display:flex;gap:8px;margin-bottom:8px}
 .lineinput input{flex:1;min-width:0;font:inherit;font-size:.85rem;padding:5px 8px;border-radius:6px;border:2px solid #3b2414;background:#fff8e6;color:#3b2414}
@@ -124,8 +138,16 @@ figcaption{font-size:clamp(.7rem,1.8vh,.95rem);padding:2px 0 1px;line-height:1}
 #btn-signMain{background:#3a7a3a;color:#fff;box-shadow:0 4px 0 #234d23;font-weight:900;letter-spacing:.08em;font-size:1rem;padding:10px 30px}
 #btn-signMain:active{transform:translateY(3px);box-shadow:0 1px 0 #234d23}
 .signboard.lose #btn-signMain{background:#e8c24a;color:#3b2414;box-shadow:0 4px 0 #9a7420}
-.lvl.next{background:#7a0e0e;color:#fff8e6;animation:hotpulse .5s infinite alternate}
+.lvl.next{background:#7a0e0e;color:#fff8e6;box-shadow:0 2px 0 #3b2414,0 0 12px 2px rgba(122,14,14,.6)}
 .lvl.cleared{background:#2e5a2e;color:#fff8e6}
+.lvl.litup{animation:popred .55s cubic-bezier(.34,1.4,.64,1) 1}
+@keyframes popred{
+  0%{transform:translate(-50%,-50%) scale(1);background:#7a0e0e;box-shadow:0 2px 0 #3b2414}
+  35%{transform:translate(-50%,-50%) scale(1.32);background:#a03225;box-shadow:0 0 12px 3px rgba(160,50,37,.6)}
+  60%{transform:translate(-50%,-50%) scale(.9);background:#a03225;box-shadow:0 0 6px 1px rgba(160,50,37,.5)}
+  80%{transform:translate(-50%,-50%) scale(1.05);background:#7a0e0e;box-shadow:0 2px 0 #3b2414}
+  100%{transform:translate(-50%,-50%) scale(1);background:#7a0e0e;box-shadow:0 2px 0 #3b2414}
+}
 .lvl:disabled{opacity:.35;filter:grayscale(.8);cursor:default}
 /* ---- corral map animations ---- */
 .birdmap .sway,.birdmap .tree{transform-box:fill-box;transform-origin:50% 100%;animation:sway 3.8s ease-in-out infinite alternate}
@@ -182,6 +204,11 @@ figcaption{font-size:clamp(.7rem,1.8vh,.95rem);padding:2px 0 1px;line-height:1}
 @keyframes roam{0%{transform:translate(0,0) scaleX(1)}40%{transform:translate(var(--dx),var(--dy)) scaleX(1)}47%{transform:translate(var(--dx),var(--dy)) scaleX(1)}47.01%{transform:translate(var(--dx),var(--dy)) scaleX(-1)}87%{transform:translate(0,0) scaleX(-1)}94%{transform:translate(0,0) scaleX(-1)}94.01%{transform:translate(0,0) scaleX(1)}100%{transform:translate(0,0) scaleX(1)}}
 .birdmap .shimmer{animation:shimmer 4s ease-in-out infinite alternate}
 @keyframes shimmer{from{transform:translateX(-7px);opacity:.12}to{transform:translateX(7px);opacity:.45}}
+.birdmap .cryptfog{transform-box:fill-box;transform-origin:50% 50%;animation:cryptfog 12s ease-in-out infinite}
+@keyframes cryptfog{0%,52%{opacity:0;transform:translateY(3px) scale(.9)}68%{opacity:.6;transform:translateY(0) scale(1.05)}82%{opacity:.5;transform:translateY(-2px) scale(1)}100%{opacity:0;transform:translateY(-4px) scale(1.1)}}
+.cryptredeyes{opacity:0}
+.cryptredeyes.flash{animation:cryptredeyes 1.5s ease-out forwards}
+@keyframes cryptredeyes{0%{opacity:0}10%{opacity:1}40%{opacity:1}100%{opacity:0}}
 @media (prefers-reduced-motion:reduce){.birdmap *{animation:none!important}}
 
 .stage.sights .reticle{position:absolute;z-index:9;left:0;top:0;width:26px;height:26px;margin:-13px 0 0 -13px;pointer-events:none;opacity:0;transition:opacity .15s}
@@ -266,9 +293,21 @@ kbd{border:1px solid currentColor;border-radius:4px;padding:0 5px;font-size:.85e
 </style>
 </head>
 <body>
-<div class="screen" id="screen-menu">
+<div class="screen" id="screen-login">
 <h1 class="gametitle">STEADY</h1>
-<p class="sub">A cowboy quick-draw duel — climb 99 levels through town, corral and graveyard, then face the endless desert. Difficulty climbs with each level — and with each depth in the endless desert.</p>
+<p class="sub">Sign in with your name — your progress is saved to it on this device.</p>
+<div class="loginbox">
+<label class="loginlbl" for="playerName">Your name</label>
+<input id="playerName" maxlength="24" autocomplete="off" placeholder="e.g. Dusty Morgan">
+<div class="loginprofiles" id="loginProfiles"></div>
+<p class="loginerr hidden" id="loginErr">Enter a name to ride out.</p>
+<button id="btn-login">ENTER THE TRAIL</button>
+</div>
+</div>
+<div class="screen hidden" id="screen-menu">
+<h1 class="gametitle">STEADY</h1>
+<p class="sub">A cowboy quick-draw duel — climb 60 levels through town, corral and graveyard, then face the endless desert. Difficulty climbs with each level — and with each depth in the endless desert.</p>
+<div class="loginbadge" id="loginBadge">Playing as <b id="badgeName">—</b> <button id="btn-switch" class="small">Switch</button></div>
 <div class="stage menustage bg-corral" id="stageMenu"><div class="ground single"></div><div class="duelist showcase"><canvas id="menuFront" width="24" height="40"></canvas></div></div>
 <div class="menubtns">
 <button id="btn-play">PLAY</button>
@@ -305,10 +344,10 @@ kbd{border:1px solid currentColor;border-radius:4px;padding:0 5px;font-size:.85e
 </div>
 <p class="secttl">Cowboy</p>
 <div class="controls">
-<label>Hat style<select id="s-hatStyle"><option value="classic">Classic</option><option value="outlaw">Outlaw</option><option value="gambler">Gambler</option><option value="sombrero">Sombrero</option><option value="bowler">Bowler</option><option value="tophat">Top Hat</option><option value="straw">Straw</option><option value="flatcap">Flat Cap</option><option value="cutter">Cutter</option><option value="scruggs" disabled>Scruggs (beat lvl 33)</option><option value="none">None (hair)</option></select></label>
+<label>Hat style<select id="s-hatStyle"><option value="classic">Classic</option><option value="outlaw">Outlaw</option><option value="gambler">Gambler</option><option value="sombrero">Sombrero</option><option value="bowler">Bowler</option><option value="tophat">Top Hat</option><option value="straw">Straw</option><option value="flatcap">Flat Cap</option><option value="cutter">Cutter</option><option value="scruggs" disabled>Scruggs (beat lvl 20)</option><option value="none">None (hair)</option></select></label>
 <label>Hat color<select id="s-hatColor"><option value="brown">Brown</option><option value="black">Black</option><option value="white">White</option><option value="tan">Tan</option><option value="grey">Grey</option><option value="red">Red</option></select></label>
 <label>Face<select id="s-face"><option value="clean">Clean</option><option value="mustache">Mustache</option><option value="beard">Full Beard</option><option value="scar">Scarred</option><option value="grizzled">Grizzled Gray</option><option value="mask">Bandit Mask</option><option value="handlebar">Handlebar</option><option value="eyepatch">Eyepatch</option></select></label>
-<label>Shirt style<select id="s-shirtStyle"><option value="plain">Plain</option><option value="plaid">Plaid</option><option value="striped">Striped</option><option value="yoke">Western Yoke</option><option value="scruggs" disabled>Scruggs (beat lvl 33)</option></select></label>
+<label>Shirt style<select id="s-shirtStyle"><option value="plain">Plain</option><option value="plaid">Plaid</option><option value="striped">Striped</option><option value="yoke">Western Yoke</option><option value="scruggs" disabled>Scruggs (beat lvl 20)</option></select></label>
 <label>Shirt color<select id="s-shirt"><option value="cream">Cream Shirt</option><option value="red">Red Shirt</option><option value="blue">Blue Shirt</option><option value="green">Green Shirt</option><option value="black">Black Shirt</option><option value="white">White Shirt</option><option value="purple">Purple Shirt</option><option value="orange">Orange Shirt</option><option value="teal">Teal Shirt</option><option value="maroon">Maroon Shirt</option><option value="brown">Brown Shirt</option></select></label>
 <label>Vest style<select id="s-vestStyle"><option value="standard">Standard</option><option value="open">Open</option><option value="fringe">Fringe</option><option value="none">No Vest</option></select></label>
 <label>Vest color<select id="s-vestColor"><option value="brown">Brown</option><option value="black">Black</option><option value="tan">Tan</option><option value="red">Red</option><option value="grey">Grey</option><option value="white">White</option></select></label>
@@ -316,7 +355,7 @@ kbd{border:1px solid currentColor;border-radius:4px;padding:0 5px;font-size:.85e
 <label>Coat color<select id="s-coatColor"><option value="tan">Tan</option><option value="brown">Brown</option><option value="black">Black</option><option value="grey">Grey</option><option value="red">Red</option><option value="navy">Navy</option><option value="white">White</option></select></label>
 <label>Bandana style<select id="s-bandanaStyle"><option value="classic">Neck Scarf</option><option value="mask">Face Mask</option><option value="headband">Headband</option><option value="none">None</option></select></label>
 <label>Bandana color<select id="s-bandana"><option value="red">Red</option><option value="blue">Blue</option><option value="black">Black</option><option value="green">Green</option><option value="gold">Gold</option><option value="white">White</option><option value="purple">Purple</option><option value="orange">Orange</option><option value="teal">Teal</option><option value="brown">Brown</option><option value="none">No Bandana</option></select></label>
-<label>Pants style<select id="s-pantsStyle"><option value="plain">Plain</option><option value="chaps">Chaps</option><option value="striped">Striped</option><option value="scruggs" disabled>Scruggs (beat lvl 33)</option></select></label>
+<label>Pants style<select id="s-pantsStyle"><option value="plain">Plain</option><option value="chaps">Chaps</option><option value="striped">Striped</option><option value="scruggs" disabled>Scruggs (beat lvl 20)</option></select></label>
 <label>Pants color<select id="s-pantsColor"><option value="blue">Classic Blue</option><option value="dark">Dark Denim</option><option value="brown">Brown</option><option value="black">Black</option><option value="grey">Grey</option><option value="olive">Olive</option><option value="white">White</option></select></label>
 <label>Boots style<select id="s-bootsStyle"><option value="plain">Plain</option><option value="tooled">Tooled</option><option value="spur">Spurred</option></select></label>
 <label>Boots color<select id="s-boots"><option value="brown">Brown Boots</option><option value="black">Black Boots</option><option value="oxblood">Oxblood Boots</option><option value="tan">Tan Boots</option><option value="grey">Grey Boots</option><option value="red">Red Boots</option><option value="white">White Boots</option><option value="navy">Navy Boots</option></select></label>
@@ -358,14 +397,14 @@ function drawScruggs(x,r,back,outfit){
   if(full||o.shirtStyle==='scruggs') drawScruggsPiece(x,r,back,'shirt');
   if(full||o.pantsStyle==='scruggs') drawScruggsPiece(x,r,back,'pants');
 }
-function scruggsUnlocked(){ return unlocked()>33; }
+function scruggsUnlocked(){ return unlocked()>20; }
 function refreshScruggsOptions(){
   const ok=scruggsUnlocked();
   for(const id of ['s-hatStyle','s-shirtStyle','s-pantsStyle']){
     const sel=document.getElementById(id); if(!sel) continue;
     const opt=sel.querySelector('option[value="scruggs"]'); if(!opt) continue;
     opt.disabled=!ok;
-    opt.textContent=ok?'Scruggs':'Scruggs (beat lvl 33)';
+    opt.textContent=ok?'Scruggs':'Scruggs (beat lvl 20)';
   }
 }
 function drawCustomClothes(x,r,back,outfit){
@@ -385,19 +424,39 @@ function drawCustomClothes(x,r,back,outfit){
     for(const [i,c] of l){ const px=i%24,py=(i/24)|0; if(c==='clear')x.clearRect(px,py,1,1); else r(px,py,1,1,remap(c)); }
   }
 }
-// ---- Scruggs custom clothes: worn by the level-33 boss, unlockable in the Store after beating him ----
+// ---- Scruggs custom clothes: worn by the level-20 boss, unlockable in the Store after beating him ----
 const SCRUGGS_CLOTHES={"hat":{"front":[[32,"#1d120a"],[33,"#1d120a"],[34,"#717171"],[35,"#717171"],[36,"#717171"],[37,"#717171"],[38,"#1d120a"],[39,"#1d120a"],[55,"#1d120a"],[56,"#b8b0a8"],[57,"#ffffff"],[58,"#ffffff"],[59,"#ffffff"],[60,"#ffffff"],[61,"#ffffff"],[62,"#ffffff"],[63,"#ffffff"],[64,"#1d120a"],[79,"#1d120a"],[80,"#b8b0a8"],[81,"#ffffff"],[82,"#ffffff"],[83,"#ffffff"],[84,"#ffffff"],[85,"#ffffff"],[86,"#ffffff"],[87,"#ffffff"],[88,"#1d120a"],[98,"#1d120a"],[103,"#1d120a"],[104,"#b8b0a8"],[105,"#ffffff"],[106,"#ffffff"],[107,"#ffffff"],[108,"#ffffff"],[109,"#ffffff"],[110,"#ffffff"],[111,"#ffffff"],[112,"#1d120a"],[117,"#1d120a"],[121,"#1d120a"],[122,"#ffffff"],[123,"#1d120a"],[124,"#1d120a"],[125,"#1d120a"],[126,"#1d120a"],[127,"#1d120a"],[128,"#b8b0a8"],[129,"#ffffff"],[130,"#ffffff"],[131,"#ffffff"],[132,"#ffffff"],[133,"#ffffff"],[134,"#ffffff"],[135,"#ffffff"],[136,"#1d120a"],[137,"#1d120a"],[138,"#1d120a"],[139,"#1d120a"],[140,"#1d120a"],[141,"#ffffff"],[142,"#1d120a"],[145,"#1d120a"],[146,"#ffffff"],[147,"#ffffff"],[148,"#ffffff"],[149,"#ffffff"],[150,"#ffffff"],[151,"#ffffff"],[152,"#ffffff"],[153,"#ffffff"],[154,"#ffffff"],[155,"#ffffff"],[156,"#ffffff"],[157,"#ffffff"],[158,"#ffffff"],[159,"#ffffff"],[160,"#ffffff"],[161,"#ffffff"],[162,"#ffffff"],[163,"#ffffff"],[164,"#ffffff"],[165,"#ffffff"],[166,"#1d120a"],[170,"#1d120a"],[171,"#1d120a"],[172,"#ffffff"],[173,"#ffffff"],[174,"#ffffff"],[175,"#ffffff"],[176,"#ffffff"],[177,"#ffffff"],[178,"#ffffff"],[179,"#ffffff"],[180,"#ffffff"],[181,"#ffffff"],[182,"#ffffff"],[183,"#ffffff"],[184,"#ffffff"],[185,"#ffffff"],[186,"#ffffff"],[187,"#ffffff"],[188,"#1d120a"],[189,"#1d120a"],[196,"#1d120a"],[197,"#1d120a"],[198,"#1d120a"],[199,"#1d120a"],[200,"#1d120a"],[201,"#1d120a"],[202,"#1d120a"],[203,"#1d120a"],[204,"#1d120a"],[205,"#1d120a"],[206,"#1d120a"],[207,"#1d120a"],[208,"#1d120a"],[209,"#1d120a"],[210,"#1d120a"],[211,"#1d120a"]],"back":[[32,"#1d120a"],[33,"#1d120a"],[34,"#717171"],[35,"#717171"],[36,"#717171"],[37,"#717171"],[38,"#1d120a"],[39,"#1d120a"],[55,"#1d120a"],[56,"#b8b0a8"],[57,"#ffffff"],[58,"#ffffff"],[59,"#ffffff"],[60,"#ffffff"],[61,"#ffffff"],[62,"#ffffff"],[63,"#ffffff"],[64,"#1d120a"],[79,"#1d120a"],[80,"#b8b0a8"],[81,"#ffffff"],[82,"#ffffff"],[83,"#ffffff"],[84,"#ffffff"],[85,"#ffffff"],[86,"#ffffff"],[87,"#ffffff"],[88,"#1d120a"],[98,"#1d120a"],[103,"#1d120a"],[104,"#b8b0a8"],[105,"#ffffff"],[106,"#ffffff"],[107,"#ffffff"],[108,"#ffffff"],[109,"#ffffff"],[110,"#ffffff"],[111,"#ffffff"],[112,"#1d120a"],[117,"#1d120a"],[121,"#1d120a"],[122,"#ffffff"],[123,"#1d120a"],[124,"#1d120a"],[125,"#1d120a"],[126,"#1d120a"],[127,"#1d120a"],[128,"#b8b0a8"],[129,"#ffffff"],[130,"#ffffff"],[131,"#ffffff"],[132,"#ffffff"],[133,"#ffffff"],[134,"#ffffff"],[135,"#ffffff"],[136,"#1d120a"],[137,"#1d120a"],[138,"#1d120a"],[139,"#1d120a"],[140,"#1d120a"],[141,"#ffffff"],[142,"#1d120a"],[145,"#1d120a"],[146,"#ffffff"],[147,"#ffffff"],[148,"#ffffff"],[149,"#ffffff"],[150,"#ffffff"],[151,"#ffffff"],[152,"#ffffff"],[153,"#ffffff"],[154,"#ffffff"],[155,"#ffffff"],[156,"#ffffff"],[157,"#ffffff"],[158,"#ffffff"],[159,"#ffffff"],[160,"#ffffff"],[161,"#ffffff"],[162,"#ffffff"],[163,"#ffffff"],[164,"#ffffff"],[165,"#ffffff"],[166,"#1d120a"],[170,"#1d120a"],[171,"#1d120a"],[172,"#ffffff"],[173,"#ffffff"],[174,"#ffffff"],[175,"#ffffff"],[176,"#ffffff"],[177,"#ffffff"],[178,"#ffffff"],[179,"#ffffff"],[180,"#ffffff"],[181,"#ffffff"],[182,"#ffffff"],[183,"#ffffff"],[184,"#ffffff"],[185,"#ffffff"],[186,"#ffffff"],[187,"#ffffff"],[188,"#1d120a"],[189,"#1d120a"],[196,"#1d120a"],[197,"#1d120a"],[198,"#1d120a"],[199,"#1d120a"],[200,"#1d120a"],[201,"#1d120a"],[202,"#1d120a"],[203,"#1d120a"],[204,"#1d120a"],[205,"#1d120a"],[206,"#1d120a"],[207,"#1d120a"],[208,"#1d120a"],[209,"#1d120a"],[210,"#1d120a"],[211,"#1d120a"]]},"shirt":{"front":[[366,"#1d120a"],[367,"#ffffff"],[368,"#1d120a"],[375,"#1d120a"],[376,"#ffffff"],[377,"#1d120a"],[390,"#1d120a"],[391,"#ffffff"],[392,"#ffffff"],[393,"#ffffff"],[398,"#ffffff"],[399,"#ffffff"],[400,"#ffffff"],[401,"#1d120a"],[413,"#c0c0c0"],[414,"#ffffff"],[415,"#ffffff"],[416,"#ffffff"],[417,"#ffffff"],[418,"#ffffff"],[419,"#1d120a"],[420,"#ffffff"],[421,"#ffffff"],[422,"#ffffff"],[423,"#ffffff"],[424,"#ffffff"],[425,"#ffffff"],[426,"#ffffff"],[437,"#c0c0c0"],[438,"#ffffff"],[439,"#ffffff"],[440,"#ffffff"],[441,"#ffffff"],[442,"#ffffff"],[443,"#1d120a"],[444,"#1d120a"],[445,"#ffffff"],[446,"#ffffff"],[447,"#ffffff"],[448,"#ffffff"],[449,"#ffffff"],[450,"#ffffff"],[461,"#c0c0c0"],[462,"#ffffff"],[463,"#ffffff"],[464,"#1d120a"],[465,"#1d120a"],[466,"#ffffff"],[467,"#1d120a"],[468,"#ffffff"],[469,"#ffffff"],[470,"#1d120a"],[471,"#1d120a"],[472,"#ffffff"],[473,"#ffffff"],[474,"#ffffff"],[485,"#c0c0c0"],[486,"#ffffff"],[487,"#ffffff"],[488,"#ffffff"],[489,"#ffffff"],[490,"#ffffff"],[491,"#1d120a"],[492,"#1d120a"],[493,"#ffffff"],[494,"#ffffff"],[495,"#ffffff"],[496,"#ffffff"],[497,"#ffffff"],[498,"#ffffff"],[509,"#c0c0c0"],[510,"#ffffff"],[511,"#ffffff"],[512,"#ffffff"],[513,"#ffffff"],[514,"#ffffff"],[515,"#1d120a"],[516,"#ffffff"],[517,"#ffffff"],[518,"#ffffff"],[519,"#ffffff"],[520,"#ffffff"],[521,"#ffffff"],[522,"#ffffff"],[533,"#c0c0c0"],[534,"#ffffff"],[535,"#ffffff"],[536,"#ffffff"],[537,"#ffffff"],[538,"#ffffff"],[539,"#1d120a"],[540,"#1d120a"],[541,"#ffffff"],[542,"#ffffff"],[543,"#ffffff"],[544,"#ffffff"],[545,"#ffffff"],[546,"#ffffff"],[557,"#1d120a"],[558,"#ffffff"],[559,"#ffffff"],[560,"#ffffff"],[561,"#ffffff"],[562,"#ffffff"],[563,"#1d120a"],[564,"#ffffff"],[565,"#ffffff"],[566,"#ffffff"],[567,"#ffffff"],[568,"#ffffff"],[569,"#ffffff"],[570,"#1d120a"],[581,"#c0c0c0"],[582,"#ffffff"],[583,"#ffffff"],[584,"#ffffff"],[585,"#ffffff"],[586,"#ffffff"],[587,"#1d120a"],[588,"#1d120a"],[589,"#ffffff"],[590,"#ffffff"],[591,"#ffffff"],[592,"#ffffff"],[593,"#ffffff"],[594,"#ffffff"],[605,"#c0c0c0"],[606,"#c0c0c0"],[607,"#c0c0c0"],[608,"#ffffff"],[609,"#ffffff"],[610,"#ffffff"],[611,"#1d120a"],[612,"#ffffff"],[613,"#ffffff"],[614,"#ffffff"],[615,"#ffffff"],[616,"#c0c0c0"],[617,"#c0c0c0"],[618,"#c0c0c0"],[632,"#ffffff"],[633,"#ffffff"],[634,"#ffffff"],[635,"#1d120a"],[636,"#ffffff"],[637,"#ffffff"],[638,"#ffffff"],[639,"#ffffff"],[659,"#1d120a"],[660,"#1d120a"],[661,"#ffffff"],[662,"#ffffff"],[663,"#ffffff"],[680,"#4a3220"]],"back":[[366,"#1d120a"],[367,"#ffffff"],[368,"#1d120a"],[375,"#1d120a"],[376,"#ffffff"],[377,"#1d120a"],[390,"#1d120a"],[391,"#ffffff"],[392,"#ffffff"],[393,"#ffffff"],[398,"#ffffff"],[399,"#ffffff"],[400,"#ffffff"],[401,"#1d120a"],[413,"#c0c0c0"],[414,"#ffffff"],[415,"#ffffff"],[416,"#ffffff"],[417,"#ffffff"],[418,"#ffffff"],[419,"#ffffff"],[420,"#ffffff"],[421,"#ffffff"],[422,"#ffffff"],[423,"#ffffff"],[424,"#ffffff"],[425,"#ffffff"],[426,"#ffffff"],[437,"#c0c0c0"],[438,"#ffffff"],[439,"#ffffff"],[440,"#ffffff"],[441,"#ffffff"],[442,"#ffffff"],[443,"#ffffff"],[444,"#ffffff"],[445,"#ffffff"],[446,"#ffffff"],[447,"#ffffff"],[448,"#ffffff"],[449,"#ffffff"],[450,"#ffffff"],[461,"#c0c0c0"],[462,"#ffffff"],[463,"#ffffff"],[464,"#ffffff"],[465,"#ffffff"],[466,"#ffffff"],[467,"#ffffff"],[468,"#ffffff"],[469,"#ffffff"],[470,"#ffffff"],[471,"#ffffff"],[472,"#ffffff"],[473,"#ffffff"],[474,"#ffffff"],[485,"#c0c0c0"],[486,"#ffffff"],[487,"#ffffff"],[488,"#ffffff"],[489,"#ffffff"],[490,"#ffffff"],[491,"#ffffff"],[492,"#ffffff"],[493,"#ffffff"],[494,"#ffffff"],[495,"#ffffff"],[496,"#ffffff"],[497,"#ffffff"],[498,"#ffffff"],[509,"#c0c0c0"],[510,"#ffffff"],[511,"#ffffff"],[512,"#ffffff"],[513,"#ffffff"],[514,"#ffffff"],[515,"#ffffff"],[516,"#ffffff"],[517,"#ffffff"],[518,"#ffffff"],[519,"#ffffff"],[520,"#ffffff"],[521,"#ffffff"],[522,"#ffffff"],[533,"#c0c0c0"],[534,"#ffffff"],[535,"#ffffff"],[536,"#ffffff"],[537,"#ffffff"],[538,"#ffffff"],[539,"#ffffff"],[540,"#ffffff"],[541,"#ffffff"],[542,"#ffffff"],[543,"#ffffff"],[544,"#ffffff"],[545,"#ffffff"],[546,"#ffffff"],[557,"#1d120a"],[558,"#ffffff"],[559,"#ffffff"],[560,"#ffffff"],[561,"#ffffff"],[562,"#ffffff"],[563,"#ffffff"],[564,"#ffffff"],[565,"#ffffff"],[566,"#ffffff"],[567,"#ffffff"],[568,"#ffffff"],[569,"#ffffff"],[570,"#1d120a"],[581,"#c0c0c0"],[582,"#ffffff"],[583,"#ffffff"],[584,"#ffffff"],[585,"#ffffff"],[586,"#ffffff"],[587,"#ffffff"],[588,"#ffffff"],[589,"#ffffff"],[590,"#ffffff"],[591,"#ffffff"],[592,"#ffffff"],[593,"#ffffff"],[594,"#ffffff"],[605,"#c0c0c0"],[606,"#c0c0c0"],[607,"#c0c0c0"],[608,"#ffffff"],[609,"#ffffff"],[610,"#ffffff"],[611,"#ffffff"],[612,"#ffffff"],[613,"#ffffff"],[614,"#ffffff"],[615,"#ffffff"],[616,"#c0c0c0"],[617,"#c0c0c0"],[618,"#c0c0c0"],[632,"#ffffff"],[633,"#ffffff"],[634,"#ffffff"],[635,"#ffffff"],[636,"#ffffff"],[637,"#ffffff"],[638,"#ffffff"],[639,"#ffffff"],[656,"#ffffff"],[657,"#ffffff"],[658,"#ffffff"],[659,"#ffffff"],[660,"#ffffff"],[680,"#4a3220"]]},"pants":{"front":[[656,"#ad9f84"],[657,"#f2deb8"],[658,"#f2deb8"],[659,"#f2deb8"],[660,"#f2deb8"],[661,"#f2deb8"],[662,"#f2deb8"],[663,"#f2deb8"],[680,"#3f2616"],[681,"#5a3a22"],[682,"#5a3a22"],[683,"#b3b3bb"],[684,"#5a3a22"],[685,"#5a3a22"],[686,"#5a3a22"],[687,"#5a3a22"],[704,"#ad9f84"],[705,"#f2deb8"],[706,"#f2deb8"],[707,"#c0c0c0"],[708,"#c0c0c0"],[709,"#f2deb8"],[710,"#f2deb8"],[711,"#5a3a22"],[728,"#ad9f84"],[729,"#f2deb8"],[730,"#f2deb8"],[733,"#f2deb8"],[734,"#f2deb8"],[735,"#f2deb8"],[751,"#1d120a"],[752,"#b5b5b5"],[753,"#ededed"],[754,"#ededed"],[757,"#ededed"],[758,"#ededed"],[759,"#ededed"],[760,"#1d120a"],[775,"#1d120a"],[776,"#b5b5b5"],[777,"#ededed"],[778,"#ededed"],[781,"#ededed"],[782,"#ededed"],[783,"#ededed"],[784,"#1d120a"],[799,"#1d120a"],[800,"#ad9f84"],[801,"#ededed"],[802,"#f2deb8"],[805,"#f2deb8"],[806,"#ededed"],[807,"#f2deb8"],[808,"#1d120a"],[822,"#1d120a"],[823,"#ad9f84"],[824,"#ad9f84"],[825,"#f2deb8"],[826,"#f2deb8"],[829,"#f2deb8"],[830,"#f2deb8"],[831,"#f2deb8"],[832,"#f2deb8"],[833,"#1d120a"],[846,"#1d120a"],[847,"#ad9f84"],[848,"#ad9f84"],[849,"#f2deb8"],[850,"#f2deb8"],[853,"#f2deb8"],[854,"#f2deb8"],[855,"#f2deb8"],[856,"#f2deb8"],[857,"#1d120a"]],"back":[[656,"#f2deb8"],[657,"#f2deb8"],[658,"#f2deb8"],[659,"#f2deb8"],[660,"#f2deb8"],[661,"#f2deb8"],[662,"#f2deb8"],[663,"#f2deb8"],[680,"#3f2616"],[681,"#5a3a22"],[682,"#5a3a22"],[683,"#4d321d"],[684,"#5a3a22"],[685,"#5a3a22"],[686,"#5a3a22"],[687,"#5a3a22"],[704,"#3f2616"],[705,"#f2deb8"],[706,"#f2deb8"],[707,"#f2deb8"],[708,"#f2deb8"],[709,"#f2deb8"],[710,"#f2deb8"],[711,"#f2deb8"],[728,"#ad9f84"],[729,"#f2deb8"],[730,"#f2deb8"],[733,"#f2deb8"],[734,"#f2deb8"],[735,"#f2deb8"],[751,"#1d120a"],[752,"#b5b5b5"],[753,"#ededed"],[754,"#ededed"],[757,"#ededed"],[758,"#ededed"],[759,"#ededed"],[760,"#1d120a"],[775,"#1d120a"],[776,"#ad9f84"],[777,"#f2deb8"],[778,"#f2deb8"],[781,"#f2deb8"],[782,"#f2deb8"],[783,"#f2deb8"],[784,"#1d120a"],[799,"#1d120a"],[800,"#ad9f84"],[801,"#f2deb8"],[802,"#f2deb8"],[805,"#f2deb8"],[806,"#f2deb8"],[807,"#f2deb8"],[808,"#1d120a"],[822,"#1d120a"],[823,"#ad9f84"],[824,"#ad9f84"],[825,"#f2deb8"],[826,"#f2deb8"],[829,"#f2deb8"],[830,"#f2deb8"],[831,"#f2deb8"],[832,"#f2deb8"],[833,"#1d120a"],[846,"#1d120a"],[847,"#ad9f84"],[848,"#ad9f84"],[849,"#f2deb8"],[850,"#f2deb8"],[853,"#f2deb8"],[854,"#f2deb8"],[855,"#f2deb8"],[856,"#f2deb8"],[857,"#1d120a"]]}};
 function shade(hex,f){ const n=parseInt(hex.slice(1),16); const r=Math.max(0,Math.min(255,Math.round(((n>>16)&255)*f))), g=Math.max(0,Math.min(255,Math.round(((n>>8)&255)*f))), b=Math.max(0,Math.min(255,Math.round((n&255)*f))); return '#'+((1<<24)+(r<<16)+(g<<8)+b).toString(16).slice(1); }
+/* ---------- profiles: each name keeps its own saved progress ---------- */
+let profile='';
+let PK='steady:';               // localStorage prefix, namespaced per player name
+const ROOT='steady';
+function lsGet(k){ try{ return localStorage.getItem(PK+k); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(PK+k,v); }catch(e){} }
+function lsDel(k){ try{ localStorage.removeItem(PK+k); }catch(e){} }
+function profileKey(name){ return 'steady:'+encodeURIComponent(name.trim().toLowerCase())+':'; }
+function listProfiles(){
+  const out=[];
+  try{
+    for(let i=0;i<localStorage.length;i++){
+      const key=localStorage.key(i); if(!key||key.indexOf('steady:')!==0) continue;
+      const m=key.match(/^steady:([^:]+):/); if(!m) continue;
+      let n=m[1]; try{ n=decodeURIComponent(n); }catch(e){}
+      if(n&&out.indexOf(n)<0) out.push(n);
+    }
+  }catch(e){}
+  return out;
+}
 const state={hatStyle:'classic',hatColor:'brown',face:'clean',shirtStyle:'plain',shirt:'cream',vestStyle:'standard',vestColor:'brown',coatStyle:'none',coatColor:'tan',bandana:'red',bandanaStyle:'classic',pantsStyle:'plain',pantsColor:'blue',bootsStyle:'plain',boots:'brown'};
 const foeState={hatStyle:'outlaw',hatColor:'black',face:'scar',shirtStyle:'plain',shirt:'black',vestStyle:'standard',vestColor:'black',coatStyle:'none',coatColor:'tan',bandana:'black',bandanaStyle:'classic',pantsStyle:'plain',pantsColor:'black',bootsStyle:'plain',boots:'black'};
 let smoke=[]; let firing=false;
 let playerLine="It's high noon somewhere.";
 function saveCustom(){
-  try{ localStorage.setItem('steadyCustom',JSON.stringify({state,playerLine,bg:currentBg})); }catch(e){}
+  lsSet('custom',JSON.stringify({state,playerLine,bg:currentBg}));
 }
 function loadCustom(){
   try{
-    const c=JSON.parse(localStorage.getItem('steadyCustom')||'null'); if(!c) return;
+    const c=JSON.parse(lsGet('custom')||'null'); if(!c) return;
     if(c.state) for(const k of Object.keys(state)) if(c.state[k]!==undefined) state[k]=c.state[k];
     if(!scruggsUnlocked()){
       if(state.hatStyle==='scruggs') state.hatStyle='classic';
@@ -408,7 +467,87 @@ function loadCustom(){
     if(c.bg) setBg(c.bg);
   }catch(e){}
 }
-const FOE_LINES=["Draw, tenderfoot!","This town ain't big enough for the both of us.","You gonna bark all day, little doggy?","I've buried better gunslingers than you.","Say your prayers, drifter.","Your boots are shakin', coward.","Last chance to walk away.","I'm the fastest hand west of the Pecos."];
+const TOWN_LINES=[
+ "Everybody's watching, so try not to fall ugly.",
+ "I own this street, and today's rent is your life.",
+ "The undertaker's already got his boots on.",
+ "You should've left town when the piano stopped.",
+ "Let's give these folks a story worth telling.",
+ "Your name's about to be written on a headstone.",
+ "The sheriff won't be breaking this one up.",
+ "I don't draw first. I just draw last.",
+ "Funny thing about Main Street: everyone ends up flat eventually.",
+ "You walked into town looking for trouble. Found me instead.",
+ "Hope you settled your tab at the saloon.",
+ "That crowd came for a show. Don't disappoint 'em.",
+ "I've sent tougher outlaws crawling through these streets.",
+ "When the dust clears, they'll remember my name.",
+ "Last call, stranger. Better make it count."
+];
+const CORRAL_LINES=[
+ "Should've stayed with the cattle, partner.",
+ "These fences won't keep you safe.",
+ "The horses know who's scared. They can smell it on you.",
+ "One more body for the buzzards over the barn.",
+ "This ain't your pasture, stranger.",
+ "I've settled bigger disputes over less.",
+ "Even the cattle know to keep clear of me.",
+ "Hope you can draw faster than a rattlesnake strikes.",
+ "You'll be fertilizing this here pasture.",
+ "Ain't no prize bull gonna save you now.",
+ "The corral's seen plenty of blood. Yours'll fit right in.",
+ "You picked the wrong ranch to ride onto.",
+ "Let's see if your nerve holds like a good fence post.",
+ "The only thing leaving this corral alive is me.",
+ "Best say goodbye to your horse. You won't be riding out."
+];
+const GRAVE_LINES=[
+ "The dead have been waiting for company.",
+ "I've been buried once. You won't get that chance.",
+ "Hear the whispers? They're placing bets on you.",
+ "Another name for the stones. Another soul for the dark.",
+ "I remember the last man who stood where you stand.",
+ "The ghosts say you're not worth haunting.",
+ "I died with my boots on. You'll die in the dirt.",
+ "The grave's dug. We're just settling who's getting in.",
+ "They told me I'd rest when I found someone faster. They lied.",
+ "I've drawn on men for less. I've killed ghosts for more.",
+ "Every spirit here lost a duel. Don't make their mistake.",
+ "You hear that bell? It's calling your name.",
+ "I used to fear dying. Then I met the dead.",
+ "The graveyard never forgets a gunslinger.",
+ "When I fall, I'll rise again. Can you say the same?"
+];
+const DESERT_LINES=[
+ "Out here, the vultures always eat.",
+ "A long walk for a short funeral.",
+ "The desert keeps what it takes.",
+ "No sheriff, no witnesses, no mercy.",
+ "Hope you brought water. You'll need it more than bullets.",
+ "The sand's about to turn red.",
+ "I've buried better men beneath these dunes.",
+ "There's nowhere to run but farther into trouble.",
+ "Hear that wind? It's your last warning.",
+ "The sun won't be the only thing setting today.",
+ "I've crossed a thousand miles to put you down.",
+ "Out here, even your shadow abandons you.",
+ "The trail ends here, stranger.",
+ "Ain't a soul for miles to hear you beg.",
+ "Let's see if you're quicker than the heat."
+];
+let lastFoeLine=null;
+function linesForDuel(){
+  // Scruggs (and any foe with a bespoke line) keeps their own words — handled by the caller
+  if(isDesert) return DESERT_LINES;
+  if(levelMode) return level<=20?TOWN_LINES:(level<=40?CORRAL_LINES:GRAVE_LINES);
+  return ({opendesert:DESERT_LINES,corral:CORRAL_LINES,graveyard:GRAVE_LINES})[currentBg]||TOWN_LINES;
+}
+function pickFoeLine(){
+  const pool=linesForDuel();
+  let l=pool[Math.floor(Math.random()*pool.length)];
+  if(pool.length>1){ let guard=0; while(l===lastFoeLine&&guard++<8) l=pool[Math.floor(Math.random()*pool.length)]; }
+  lastFoeLine=l; return l;
+}
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function showBubble(who,text){
   hideBubbles();
@@ -546,6 +685,7 @@ function bailDuel(){
   // walk away during the talking beats: kill the duel loop dead, reset the stage
   duelGen++; firing=false; duelLocked=false; levelMode=false; isDesert=false;
   outcome=null; aimPhase='idle'; doomMsg=null;
+  pendingAnim=null; scrollToLevel=null;
   lockDuelBtns(false); aimUi('idle');
   foeDown(false); foeHit(false);
   document.getElementById('foeF').style.transform='';
@@ -556,7 +696,7 @@ function showScreen(name){
     if(name==='game'||duelLocked) return;   // locked in once STEADY shows
     bailDuel();
   }
-  for(const s of ['menu','game','store','levels']) document.getElementById('screen-'+s).classList.toggle('hidden',s!==name);
+  for(const s of ['login','menu','game','store','levels']) document.getElementById('screen-'+s).classList.toggle('hidden',s!==name);
   clearFx();
   if(name==='game'){ shuffleFoe(); renderIdle(); scheduleRound(900); }
   else if(name==='levels'){ buildLevels(); }
@@ -785,9 +925,9 @@ let lastFoe=-1;
 const SCRUGGS={name:'Scruggs',custom:'scruggs',line:"Don't let my white duds fool ya...",hatStyle:'scruggs',hatColor:'grey',face:'clean',shirtStyle:'scruggs',shirt:'white',vestStyle:'none',vestColor:'brown',coatStyle:'none',coatColor:'tan',bandana:'none',bandanaStyle:'none',pantsStyle:'scruggs',pantsColor:'grey',bootsStyle:'plain',boots:'black'};
 function foeForLevel(lv){
   // town: bankers, gamblers, etc. — corral: iconic cowboys — graveyard: rematches
-  if(lv===33) return SCRUGGS;   // boss of the town: beat him to wear his threads
-  if(lv>=67) return FOE_PRESETS[(lv-67)%FOE_PRESETS.length];
-  if(lv>=34) return CORRAL_FOES[(lv-34)%CORRAL_FOES.length];
+  if(lv===20) return SCRUGGS;   // boss of the town: beat him to wear his threads
+  if(lv>=41) return FOE_PRESETS[(lv-41)%FOE_PRESETS.length];
+  if(lv>=21) return CORRAL_FOES[(lv-21)%CORRAL_FOES.length];
   return TOWN_FOES[(Math.max(1,lv)-1)%TOWN_FOES.length];
 }
 function shuffleFoe(){
@@ -862,27 +1002,39 @@ function hideTarget(){ const t=document.getElementById('targetF'); t.classList.r
 const stageEl=document.getElementById('stageF');
 const aim={x:0.5,y:0.5,active:false};
 let outcome=null, outT0=0, aimPhase='idle', doomMsg=null, hotNow=false;
+let missUsedThisRound=false;   // the outlaw only gets one lucky fumble per duel
+let linesSaidThisDuel=false;   // one-liners play once per duel — not again on a miss replay
 /* per-round ring odds: size, path, and pace re-rolled every duel */
 let ring={size:11,sx:0.45,sy:0.52,ex:0.82,ey:0.44,shrinkMs:1400,trackMs:2200,startW:30};
 let difficulty=50, promptTimeout=1600;
 let level=1, levelMode=false, isDesert=false, desertDepth=1;
-function levelDifficulty(lv){ return Math.max(1,Math.min(200,Math.round(lv))); }
+let pendingAnim=null, scrollToLevel=null;   // map-return animation / scroll focus for level clears
+let cryptScrollHandler=null;                // red-eyes-on-scroll listener for the crypt door
+const MAXLEVEL=60;                        // 60 levels spanning an (now steeper) 1-100 band
+function levelDifficulty(lv){
+  const t=(Math.max(1,Math.min(MAXLEVEL,lv))-1)/(MAXLEVEL-1);
+  // a touch harder overall: starts slightly higher and ramps a bit faster than a straight line
+  return Math.max(1,Math.min(100,Math.round(4+Math.pow(t,0.9)*96)));
+}
 function desertDifficulty(depth){ return Math.max(1,Math.min(200,99+Math.max(1,Math.round(depth)))); }
-try{ desertDepth=Math.max(1,+(localStorage.getItem('steadyDesert')||1)); }catch(e){}
+// the outlaw may fumble a shot and hand you another go — rarer the harder the fight
+function missChance(){ return Math.max(0.04,Math.min(0.4,0.40-difficulty*0.0034)); }
+try{ desertDepth=Math.max(1,+(lsGet('desert')||1)); }catch(e){}
 function unlocked(){
-  try{ return Math.max(1,Math.min(100,+(localStorage.getItem('steadyUnlock')||1))); }catch(e){ return 1; }
+  try{ return Math.max(1,Math.min(MAXLEVEL+1,+(lsGet('unlock')||1))); }catch(e){ return 1; }
 }
 function desertBest(){
-  try{ return Math.max(0,+(localStorage.getItem('steadyDesertBest')||0)); }catch(e){ return 0; }
+  try{ return Math.max(0,+(lsGet('desertBest')||0)); }catch(e){ return 0; }
 }
 function saveBest(lv){
   try{
-    const b=Math.max(lv,+(localStorage.getItem('steadyBest')||0)); localStorage.setItem('steadyBest',b);
-    if(lv<100) localStorage.setItem('steadyUnlock',Math.max(unlocked(),Math.min(100,lv+1)));
+    const b=Math.max(lv,+(lsGet('best')||0)); lsSet('best',b);
+    if(lv<MAXLEVEL+1) lsSet('unlock',Math.max(unlocked(),Math.min(MAXLEVEL+1,lv+1)));
   }catch(e){}
 }
 const REGIONS=['town','corral','graveyard'];
-function levelMap(lv){ return REGIONS[Math.min(2,Math.floor((lv-1)/33))]; }
+const REGIONSPAN=MAXLEVEL/3;             // 20 levels per region
+function levelMap(lv){ return REGIONS[Math.min(2,Math.floor((lv-1)/REGIONSPAN))]; }
 const MAPW=560, MAPH=3800;
 const MAPBASE={corral:'#c2a560',town:'#d6a05c',graveyard:'#465246',opendesert:'#e0aa5e'};
 const U01=0.342, U12=0.679, BLEND=0.045;
@@ -915,12 +1067,45 @@ function trailU(dist){
   return (i1-1+f)/(trailLUT.length-1);
 }
 function trailXY(i){
-  const u=trailU(Math.max(0,Math.min(1,i/98))*trailLen);
+  const u=trailU(Math.max(0,Math.min(1,i/(MAXLEVEL-1)))*trailLen);
   return [Math.round(trailShapeX(u)*10)/10, Math.round((MAPH-170-u*(MAPH-340))*10)/10];
 }
 function trailD(){
   let d='';
-  for(let s=0;s<=320;s++){ const p=trailXY(s/320*98); d+=(s?'L':'M')+p[0]+' '+p[1]; }
+  for(let s=0;s<=320;s++){ const p=trailParam(s/320*(MAXLEVEL-1)); d+=(s?'L':'M')+p[0]+' '+p[1]; }
+  return d;
+}
+// The trail is a single ordered line of STOPS: levels and minigames interleaved, each
+// stop one uniform interval from the next. Minigames follow the level that unlocks them.
+//   level 1..15, [shoot], level 16..35, [cattle], level 36..55, [crypt], level 56..60
+const MINI_STOPS=[{after:15,cls:'shoot',need:15,name:'Saloon Shootout',file:'Saloon Shootout.html'},
+                  {after:35,cls:'cattle',need:35,name:'Cattle Drive',file:'CattleDrive.html'},
+                  {after:55,cls:'crypt',need:55,name:'The Crypt',file:'The_Crypt new.html'}];
+// ordered stop list: index -> {kind:'level',lv} or {kind:'mini',i}
+const STOP_ORDER=(()=>{
+  const out=[]; let mi=0;
+  for(let lv=1;lv<=MAXLEVEL;lv++){
+    out.push({kind:'level',lv});
+    if(mi<MINI_STOPS.length&&MINI_STOPS[mi].after===lv){ out.push({kind:'mini',i:mi}); mi++; }
+  }
+  return out;
+})();
+const STOP_N=STOP_ORDER.length;               // total stops on the trail
+function stopParam(k){                         // ordered stop -> uniform position along the trail
+  return k*(MAXLEVEL-1)/(STOP_N-1);
+}
+function levelParam(lv){                        // 1-based level -> uniform position
+  const k=STOP_ORDER.findIndex(s=>s.kind==='level'&&s.lv===lv);
+  return stopParam(k<0?0:k);
+}
+function miniParam(i){ return stopParam(STOP_ORDER.findIndex(s=>s.kind==='mini'&&s.i===i)); }
+function trailParam(t){                         // t in [0,MAXLEVEL-1] -> [x,y] arc-length uniform
+  const u=trailU(Math.max(0,Math.min(1,t/(MAXLEVEL-1)))*trailLen);
+  return [Math.round(trailShapeX(u)*10)/10, Math.round((MAPH-170-u*(MAPH-340))*10)/10];
+}
+function segParamD(t0,t1){                       // svg path between two trail params
+  let d='';
+  for(let s=0;s<=40;s++){ const p=trailParam(t0+(t1-t0)*s/40); d+=(s?'L':'M')+p[0]+' '+p[1]; }
   return d;
 }
 function prng(seed){ return function(){ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; }; }
@@ -1150,8 +1335,10 @@ function gcryptS(x,y){
   return '<g transform="translate('+x+','+y+')"><rect x="-32" y="-18" width="76" height="52" fill="#0000003a"/><rect x="-36" y="-26" width="72" height="50" fill="#6f6d82" stroke="#2e2a3a" stroke-width="2.5"/>'
    +'<rect x="-36" y="-26" width="72" height="25" fill="#7f7d94"/><rect x="-36" y="-2" width="72" height="4" fill="#4a4860"/><path d="M-36 -14 H36 M-36 10 H36" stroke="#00000022"/>'
    +'<rect x="-28" y="-20" width="8" height="8" fill="#4a4860"/><rect x="20" y="-20" width="8" height="8" fill="#4a4860"/>'
-   +'<rect x="-9" y="4" width="18" height="22" fill="#1c1826"/><circle cx="0" cy="16" r="16" fill="url(#doorG)" class="pulse"/><rect x="-11" y="26" width="22" height="3" fill="#8d8aa0"/><rect x="-13" y="29" width="26" height="3" fill="#7d7a90"/>'
-   +(CRYPT_EYES?'<g class="pulse" style="animation-duration:2.2s"><ellipse cx="-4.5" cy="13" rx="2.8" ry="4" fill="#c6ff9e" style="filter:drop-shadow(0 0 3px #9dff6a)"/><ellipse cx="4.5" cy="13" rx="2.8" ry="4" fill="#c6ff9e" style="filter:drop-shadow(0 0 3px #9dff6a)"/><circle cx="-4.5" cy="13.5" r="1.1" fill="#1c3a12"/><circle cx="4.5" cy="13.5" r="1.1" fill="#1c3a12"/></g>':'')
+   +'<rect x="-9" y="4" width="18" height="22" fill="#1c1826"/><rect x="-11" y="26" width="22" height="3" fill="#8d8aa0"/><rect x="-13" y="29" width="26" height="3" fill="#7d7a90"/>'
+   +'<defs><clipPath id="cryptDoorClip"><rect x="-9" y="4" width="18" height="22"/></clipPath></defs>'
+   +'<g clip-path="url(#cryptDoorClip)"><g class="cryptfog"><circle cx="0" cy="16" r="16" fill="url(#doorG)"/></g></g>'
+   +'<g id="cryptRedEyes" class="cryptredeyes" transform="translate(0,14)"><ellipse cx="-3.4" cy="0" rx="1.9" ry="2.6" fill="#ff2a1a" style="filter:drop-shadow(0 0 4px #ff2a1a)"/><ellipse cx="3.4" cy="0" rx="1.9" ry="2.6" fill="#ff2a1a" style="filter:drop-shadow(0 0 4px #ff2a1a)"/></g>'
    +'</g>';
 }
 function angelS(x,y){
@@ -1256,7 +1443,7 @@ function townProps(yT,yB,seed){
   const decor=[lampPoster,flagS,cactusPair];
   let ci=0, k=0, di=0;
   // pass 1 (replica RNG — consumes identically to the layout loop below): find the
-  // building slot nearest level 25 so that slot always becomes the SALOON
+  // building slot nearest level 15 so that slot always becomes the SALOON
   const anchorY=trailXY(24)[1];
   let saloonSlot=0, saloonBd=1e12, slotCount=0;
   {
@@ -1356,9 +1543,9 @@ function regionProps(ground,yT,yB,seed){
     const y=Math.round(yA+H*(i+0.5)+(r()-0.5)*H*0.3);
     const x=Math.round(pd.x0+r()*(pd.x1-pd.x0));
     if(pd.f===gcryptS) CRYPT_POS=[x,y];
-    // v2: pin the crypt beside the trail near level 97 so the path goes right past its door
+    // v2: pin the crypt beside the trail near level 56 so the path goes right past its door
     let cy2=y, cx2=x;
-    if(pd.f===gcryptS){ const a97=trailXY(96); cx2=Math.round(Math.max(90,Math.min(470,(a97[0]<280?a97[0]+120:a97[0]-120)))); cy2=Math.round(Math.max(yA+50,Math.min(yB2-50,a97[1]))); CRYPT_POS=[cx2,cy2]; }
+    if(pd.f===gcryptS){ const a97=trailXY(55); cx2=Math.round(Math.max(90,Math.min(470,(a97[0]<280?a97[0]+120:a97[0]-120)))); cy2=Math.round(Math.max(yA+50,Math.min(yB2-50,a97[1]))); CRYPT_POS=[cx2,cy2]; }
     GRAVE_PROPS.push([cx2,cy2,pd.f===gcryptS?64:(pd.f===openGraveS?52:(pd.f===barnYard||pd.f===wagonCamp?64:46))]);
     s+=pd.f(cx2,cy2);
   });
@@ -1439,15 +1626,15 @@ function buildLevels(){
   const sd=document.getElementById('s-diff'); if(sd) sd.value=difficulty;
   diffLabel();
   const unl=unlocked();
-  CRYPT_EYES=unl>96; CRYPT_POS=null;
-  const Y=[]; for(let i=0;i<99;i++) Y.push(trailXY(i)[1]);
+  CRYPT_EYES=unl>54; CRYPT_POS=null;
+  const Y=[]; for(let i=0;i<MAXLEVEL;i++) Y.push(trailXY(i)[1]);
   let svg='<svg class="birdmap" viewBox="0 0 '+MAPW+' '+MAPH+'" xmlns="http://www.w3.org/2000/svg"><defs>'
-    +'<radialGradient id="fireG"><stop offset="0" stop-color="#ff9a3a" stop-opacity=".55"/><stop offset="1" stop-color="#ff9a3a" stop-opacity="0"/></radialGradient><radialGradient id="lampG"><stop offset="0" stop-color="#ffd36a" stop-opacity=".6"/><stop offset="1" stop-color="#ffd36a" stop-opacity="0"/></radialGradient><radialGradient id="doorG"><stop offset="0" stop-color="#8aff9a" stop-opacity=".55"/><stop offset="1" stop-color="#8aff9a" stop-opacity="0"/></radialGradient><linearGradient id="gradTC" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c2a560"/><stop offset="1" stop-color="#d6a05c"/></linearGradient>'
+    +'<radialGradient id="fireG"><stop offset="0" stop-color="#ff9a3a" stop-opacity=".55"/><stop offset="1" stop-color="#ff9a3a" stop-opacity="0"/></radialGradient><radialGradient id="lampG"><stop offset="0" stop-color="#ffd36a" stop-opacity=".6"/><stop offset="1" stop-color="#ffd36a" stop-opacity="0"/></radialGradient><radialGradient id="doorG"><stop offset="0" stop-color="#ffd97a" stop-opacity=".55"/><stop offset="1" stop-color="#e8b24a" stop-opacity="0"/></radialGradient><linearGradient id="gradTC" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c2a560"/><stop offset="1" stop-color="#d6a05c"/></linearGradient>'
     +'<linearGradient id="gradCG" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#465246"/><stop offset="1" stop-color="#c2a560"/></linearGradient>'
     +'<linearGradient id="gradGD" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#465246" stop-opacity="0"/><stop offset="1" stop-color="#465246"/></linearGradient></defs>';
   const labels=[], bounds=[];
   for(let g=0;g<3;g++){
-    const a=g*33+1, b=g*33+33, ground=REGIONS[g];
+    const a=g*REGIONSPAN+1, b=g*REGIONSPAN+REGIONSPAN, ground=REGIONS[g];
     const yT=g<2?(Y[b-1]+Y[b])/2:120, yB=g>0?(Y[a-2]+Y[a-1])/2:MAPH-20;
     bounds.push([yT,yB]);
     svg+='<rect x="0" y="'+yT.toFixed(1)+'" width="560" height="'+(yB-yT).toFixed(1)+'" fill="'+MAPBASE[ground]+'"/>';
@@ -1462,7 +1649,7 @@ function buildLevels(){
   svg+='<rect x="0" y="80" width="560" height="44" fill="url(#gradGD)"/>';
   for(let g=0;g<3;g++){ svg+=REGIONS[g]==='town'?townProps(bounds[g][0],bounds[g][1],g*1000+7):regionProps(REGIONS[g],bounds[g][0],bounds[g][1],g*1000+7); }
   svg+=corralGround(bounds[1][0],bounds[1][1])+graveyardGround(bounds[2][0],bounds[2][1])+graveyardStones(bounds[2][0],bounds[2][1]);
-  const p99=trailXY(98), gxTop=p99[0]+(280-p99[0])*(p99[1]-126)/(p99[1]-78);
+  const p99=trailXY(MAXLEVEL-1), gxTop=p99[0]+(280-p99[0])*(p99[1]-126)/(p99[1]-78);
   svg+='<path d="M'+p99[0]+' '+p99[1]+'L280 78" fill="none" stroke="#6e4a26" stroke-width="15" stroke-linejoin="round" stroke-linecap="round"/>';
   svg+='<path d="M'+p99[0]+' '+p99[1]+'L280 78" fill="none" stroke="#e3b96e" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>';
   svg+='<path d="M'+p99[0]+' '+p99[1]+'L280 78" fill="none" stroke="#fff8e6" stroke-width="2" stroke-dasharray="9 9"/>';
@@ -1471,19 +1658,30 @@ function buildLevels(){
   svg+=desertProps();
   labels.push(mapLabel(280,36,'OPEN DESERT · ENDLESS · DEPTH '+desertDepth,20));
   const d=trailD();
-  svg+='<path d="'+d+'" fill="none" stroke="#6e4a26" stroke-width="15" stroke-linejoin="round" stroke-linecap="round"/>';
-  svg+='<path d="'+d+'" fill="none" stroke="#e3b96e" stroke-width="10" stroke-linejoin="round" stroke-linecap="round"/>';
-  svg+='<path d="'+d+'" fill="none" stroke="#fff8e6" stroke-width="2" stroke-dasharray="9 9"/>';
+  // travelled trail: one semi-transparent solid brown ribbon. untravelled stretch keeps the
+  // dusty tan centre with white dashes. The old base trail is drawn only where untravelled.
+  const doneEnd=(pendingAnim&&pendingAnim.from)?levelParam(pendingAnim.from):levelParam(Math.min(MAXLEVEL,unl));
+  const doneD=(doneEnd>0)?segParamD(0,doneEnd):'';
+  const restD=(doneEnd>0)?segParamD(doneEnd,MAXLEVEL-1):d;
+  svg+='<path d="'+restD+'" fill="none" stroke="#6e4a26" stroke-width="15" stroke-opacity=".55" stroke-linejoin="round" stroke-linecap="round"/>';
+  svg+='<path d="'+restD+'" fill="none" stroke="#e3b96e" stroke-width="10" stroke-opacity=".55" stroke-linejoin="round" stroke-linecap="round"/>';
+  if(doneD) svg+='<path d="'+doneD+'" fill="none" stroke="#7a4a22" stroke-width="13" stroke-opacity=".55" stroke-linejoin="round" stroke-linecap="round"/>';
+  const animFrom=(pendingAnim&&pendingAnim.from)?pendingAnim.from:0;
+  if(animFrom){
+    const segD=segParamD(levelParam(animFrom),levelParam(Math.min(MAXLEVEL,animFrom+1)));
+    svg+='<path id="animPath" d="'+segD+'" fill="none" stroke="#7a4a22" stroke-width="13" stroke-opacity=".55" stroke-linecap="round" stroke-linejoin="round"/>';
+  }
   svg+=corralSky(bounds[1][0],bounds[1][1])+longhornHerd(bounds[1][0],bounds[1][1])+graveyardSky(bounds[2][0],bounds[2][1])+townSky(bounds[0][0],bounds[0][1]);
   const p0=trailXY(0);
   svg+='<text x="'+p0[0]+'" y="'+(p0[1]+42)+'" text-anchor="middle" font-size="16" font-weight="900" letter-spacing="3" font-family="Georgia,serif" fill="#fff8e6" stroke="#00000077" stroke-width="3" paint-order="stroke">START</text>';
   for(const lb of labels) svg+=lb;
   svg+='</svg>';
   const wrap=document.createElement('div'); wrap.className='mapwrap'; wrap.innerHTML=svg; box.appendChild(wrap);
-  let nextNode=null;
-  for(let l=1;l<=99;l++){
-    const p=trailXY(l-1), ground=REGIONS[Math.min(2,Math.floor((l-1)/33))];
+  let nextNode=null; const nodeEls={};
+  for(let l=1;l<=MAXLEVEL;l++){
+    const p=trailParam(levelParam(l)), ground=REGIONS[Math.min(2,Math.floor((l-1)/REGIONSPAN))];
     const n=document.createElement('button'); n.className='lvl v-'+ground; n.textContent=l;
+    nodeEls[l]=n;
     const foe=foeForLevel(l); const foeName=(foe&&foe.name)||'Outlaw';
     n.title='Level '+l+' — '+foeName+' · diff '+levelDifficulty(l);
     n.setAttribute('aria-label','Level '+l+' — '+foeName);
@@ -1496,34 +1694,21 @@ function buildLevels(){
   }
   const dn=document.createElement('button'); dn.className='lvl v-opendesert'; dn.textContent='∞';
   dn.style.left='50%'; dn.style.top=(70/MAPH*100)+'%';
-  // v2: minigames as circles sitting right on the trail — target past 25, cow past 55, eyes past 96
+  // v2: minigames as circles sitting right on the trail — target past 15, cow past 35, eyes past 55
   const TARGET_SVG="<svg viewBox='0 0 60 60'><circle cx='30' cy='30' r='24' fill='#f6f1e6' stroke='#3b2414' stroke-width='3'/><circle cx='30' cy='30' r='16' fill='#c0392b'/><circle cx='30' cy='30' r='10' fill='#f6f1e6'/><circle cx='30' cy='30' r='4.5' fill='#c0392b'/></svg>";
   const COW_SVG="<svg viewBox='0 0 60 60'><path d='M13 26 Q5 16 15 11' stroke='#e8e0cc' stroke-width='5' fill='none' stroke-linecap='round'/><path d='M47 26 Q55 16 45 11' stroke='#e8e0cc' stroke-width='5' fill='none' stroke-linecap='round'/><ellipse cx='12' cy='30' rx='5' ry='3.4' fill='#a8532c' stroke='#3b2414' stroke-width='2'/><ellipse cx='48' cy='30' rx='5' ry='3.4' fill='#a8532c' stroke='#3b2414' stroke-width='2'/><ellipse cx='30' cy='32' rx='14' ry='16' fill='#a8532c' stroke='#3b2414' stroke-width='3'/><ellipse cx='30' cy='24' rx='7' ry='5' fill='#c98a4a'/><circle cx='24' cy='31' r='2' fill='#1d120a'/><circle cx='36' cy='31' r='2' fill='#1d120a'/><ellipse cx='30' cy='42' rx='8' ry='6' fill='#f2b8b0' stroke='#3b2414' stroke-width='2'/><circle cx='27' cy='42' r='1.2' fill='#7a3a2a'/><circle cx='33' cy='42' r='1.2' fill='#7a3a2a'/></svg>";
-  const EYES_SVG="<svg viewBox='0 0 60 60'><circle cx='30' cy='30' r='24' fill='#241f30'/><ellipse cx='22' cy='28' rx='5' ry='7' fill='#c6ff9e'/><ellipse cx='38' cy='28' rx='5' ry='7' fill='#c6ff9e'/><circle cx='22' cy='29' r='2' fill='#1c3a12'/><circle cx='38' cy='29' r='2' fill='#1c3a12'/></svg>";
+  const EYES_SVG="<svg viewBox='0 0 60 60'><circle cx='30' cy='30' r='24' fill='#241f30'/><ellipse cx='22' cy='28' rx='5' ry='7' fill='#8a2a22'/><ellipse cx='38' cy='28' rx='5' ry='7' fill='#8a2a22'/><circle cx='22' cy='29' r='2' fill='#ff4a3a'/><circle cx='38' cy='29' r='2' fill='#ff4a3a'/></svg>";
   const LOCK_SVG="<svg class='lockmark' viewBox='0 0 22 22'><path d='M7 10 V6.5 Q7 2.5 11 2.5 Q15 2.5 15 6.5 V10' stroke='#3b2414' stroke-width='2.5' fill='none'/><rect x='4' y='9' width='14' height='11' rx='2' fill='#3b2414' stroke='#f3e4c2' stroke-width='1.5'/><circle cx='11' cy='14' r='1.6' fill='#f3e4c2'/></svg>";
   const minis=[
-    {at:24.5,cls:'shoot',need:25,name:'Saloon Shootout',file:'Saloon Shootout.html',svg:TARGET_SVG,desc:'Outlaws pop up in the saloon — plug the bandits, spare the folk.'},
-    {at:54.5,cls:'cattle',need:55,name:'Cattle Drive',file:'CattleDrive.html',svg:COW_SVG,desc:'Weave the herd and rope the runaway calf.'},
-    {at:96.5,cls:'crypt',need:96,name:'The Crypt',file:'The_Crypt new.html',svg:EYES_SVG,desc:'Survive the dark. Something hunts back.'}
+    {at:15.5,cls:'shoot',need:15,name:'Saloon Shootout',file:'Saloon Shootout.html',svg:TARGET_SVG,desc:'Outlaws pop up in the saloon — plug the bandits, spare the folk.'},
+    {at:35.5,cls:'cattle',need:35,name:'Cattle Drive',file:'CattleDrive.html',svg:COW_SVG,desc:'Weave the herd and rope the runaway calf.'},
+    {at:55.5,cls:'crypt',need:55,name:'The Crypt',file:'The_Crypt new.html',svg:EYES_SVG,desc:'Survive the dark. Something hunts back.'}
   ];
-  for(const m of minis){
-    // sit beside the trail, never on top of a level node: offset perpendicular,
-    // picking whichever side has fewer nodes nearby
-    const base=trailXY(m.at), pa=trailXY(m.at-0.6), pb=trailXY(m.at+0.6);
-    let dx=pb[0]-pa[0], dy=pb[1]-pa[1];
-    const dl=Math.hypot(dx,dy)||1; dx/=dl; dy/=dl;
-    const clear=(x,y)=>{ let n=0, dm=1e9;
-      for(let l=1;l<=99;l++){ const q=trailXY(l-1), d=Math.hypot(q[0]-x,q[1]-y); if(d<54)n++; if(d<dm)dm=d; }
-      const qd=[280,70], dd=Math.hypot(qd[0]-x,qd[1]-y); if(dd<54)n++; if(dd<dm)dm=dd;
-      return [n,dm];
-    };
-    let px=base[0], py=base[1], bn=1e9, bd=-1;
-    for(const s of [1,-1]){
-      let cx=base[0]+(-dy)*62*s, cy=base[1]+dx*62*s;
-      cx=Math.max(44,Math.min(516,cx)); cy=Math.max(44,Math.min(MAPH-44,cy));
-      const [n,dm]=clear(cx,cy);
-      if(n<bn||(n===bn&&dm>bd)){ bn=n; bd=dm; px=cx; py=cy; }
-    }
+  for(let i=0;i<minis.length;i++){
+    const m=minis[i];
+    // every stop (levels + minigames) sits one uniform interval apart along the trail
+    const base=trailParam(miniParam(i));
+    const px=Math.max(44,Math.min(516,base[0])), py=Math.max(44,Math.min(MAPH-44,base[1]));
     const b=document.createElement('button'); b.className='lvl mini '+m.cls;
     b.innerHTML=m.svg+LOCK_SVG;
     b.style.left=(px/MAPW*100)+'%'; b.style.top=(py/MAPH*100)+'%';
@@ -1533,7 +1718,7 @@ function buildLevels(){
   }
 
 
-  if(unl>=100){
+  if(unl>=MAXLEVEL+1){
     const dfoe=FOE_PRESETS[(Math.max(1,desertDepth)-1)%FOE_PRESETS.length]; const dfoeName=(dfoe&&dfoe.name)||'Outlaw';
     dn.title='Endless desert · depth '+desertDepth+' — '+dfoeName+' · best '+desertBest()+' · diff '+desertDifficulty(desertDepth);
     dn.setAttribute('aria-label','Endless desert depth '+desertDepth+' — '+dfoeName);
@@ -1541,7 +1726,7 @@ function buildLevels(){
     dn.addEventListener('click',e=>{ e.stopPropagation(); showNodePop(dn,{title:'ENDLESS DESERT',sub:dfoeName+' · depth '+desertDepth,meta:'OPEN DESERT · DIFF '+desertDifficulty(desertDepth)+(desertBest()>0?' · BEST '+desertBest():''),go:()=>startDesert()}); });
     nextNode=dn;
   } else {
-    dn.title='Clear level 99 to enter the endless desert';
+    dn.title='Clear level '+MAXLEVEL+' to enter the endless desert';
     dn.disabled=true;
   }
   wrap.appendChild(dn);
@@ -1564,9 +1749,59 @@ function buildLevels(){
     else { pp.style.left='auto'; pp.style.right=(ww-nx+34)+'px'; }
   }
   function hideNodePop(){ const pp=document.getElementById('nodePop'); if(pp) pp.classList.add('hidden'); }
-  if(nextNode){
+  // focus/scroll: first clear animates up the trail to the next level; repeat wins just
+  // bring you back to the trail around the level you were playing
+  if(pendingAnim&&pendingAnim.from){
+    const fromL=pendingAnim.from, toL=Math.min(MAXLEVEL,fromL+1);
+    const ap=wrap.querySelector('#animPath');
+    if(ap){
+      let len=0;
+      try{ len=ap.getTotalLength(); }catch(e){ len=0; }
+      if(len>0){
+        // fill the freshly-walked stretch of trail in solid brown, from the cleared node upward
+        ap.style.strokeDasharray=len+'px'; ap.style.strokeDashoffset=len+'px';
+        void ap.getBoundingClientRect();
+        ap.style.transition='stroke-dashoffset .8s ease-in-out';
+        requestAnimationFrame(()=>{ ap.style.strokeDashoffset='0px'; });
+      } else {
+        ap.style.strokeDasharray='none'; ap.style.strokeDashoffset='0';
+      }
+    }
+    const toEl=nodeEls[toL];
+    if(toEl){
+      // trail fills in first (0.8s); only then does the next level grow, slam down and lock red
+      setTimeout(()=>{
+        toEl.classList.add('litup');
+        setTimeout(()=>toEl.classList.remove('litup'),600);
+      },800);
+    }
+    // keep view on the next node while the path fills in
+    try{
+      const focus=toEl||nextNode;
+      box.scrollTop=wrap.offsetTop+focus.offsetTop-box.clientHeight/2;
+    }catch(e){}
+    pendingAnim=null;
+  } else if(scrollToLevel&&nodeEls[scrollToLevel]){
+    // repeat win: park the view just above the level that was just played
+    try{ const el=nodeEls[scrollToLevel]; box.scrollTop=wrap.offsetTop+el.offsetTop-box.clientHeight*0.72; }catch(e){}
+    scrollToLevel=null;
+  } else if(nextNode){
     try{ box.scrollTop=wrap.offsetTop+nextNode.offsetTop-box.clientHeight/2; }catch(e){}
   }
+  // red eyes flash on the crypt door each time the graveyard scrolls into view
+  if(cryptScrollHandler) box.removeEventListener('scroll',cryptScrollHandler);
+  const cryptEyesEl=wrap.querySelector('#cryptRedEyes');
+  if(cryptEyesEl){
+    const scale=wrap.clientWidth/MAPW, gTop=wrap.offsetTop+bounds[2][0]*scale, gBot=wrap.offsetTop+bounds[2][1]*scale;
+    let wasIn=false;
+    cryptScrollHandler=function(){
+      const vT=box.scrollTop, vB=box.scrollTop+box.clientHeight;
+      const inView=(gBot>vT)&&(gTop<vB);
+      if(inView&&!wasIn){ cryptEyesEl.classList.remove('flash'); void cryptEyesEl.getBoundingClientRect(); cryptEyesEl.classList.add('flash'); }
+      wasIn=inView;
+    };
+    box.addEventListener('scroll',cryptScrollHandler,{passive:true});
+  } else { cryptScrollHandler=null; }
 }
 function startLevel(l){
   level=l; levelMode=true; isDesert=false; difficulty=levelDifficulty(l); setLevelUi();
@@ -1639,6 +1874,12 @@ function foeCenter(){
   return {x:(f.left+f.width/2-s.left)/s.width, y:(f.top+f.height*0.3-s.top)/s.height};
 }
 function startDoom(msg,now){
+  // the outlaw might fumble: a lucky miss hands you another go at the same duel
+  if(!missUsedThisRound&&Math.random()<missChance()){
+    missUsedThisRound=true;
+    aimPhase='done'; outcome='miss'; outT0=now; doomMsg=msg||null; hideTarget(); aimUi('done');
+    return;
+  }
   // hand over to the staged outlaw revenge in the frame loop
   aimPhase='done'; outcome='lose'; outT0=now; doomMsg=msg||null; hideTarget(); aimUi('done');
 }
@@ -1692,12 +1933,15 @@ function fire(){
   foeDown(false); foeHit(false); playerDown(false); hideTarget();
   document.getElementById('front').classList.remove('hit');
   document.getElementById('foeF').style.transform='';
-  const start=performance.now(); let boomed=false, turned=false, lastPuff=0, foeSaid=false, youSaid=false, steadySaid=false;
+  // if the one-liners already played this duel (e.g. replaying after the outlaw missed),
+  // skip straight past the 3400ms intro so they don't repeat
+  const start=performance.now()-(linesSaidThisDuel?3400:0); let boomed=false, turned=false, lastPuff=0, foeSaid=linesSaidThisDuel, youSaid=linesSaidThisDuel, steadySaid=false;
   let aimSaid=false, aimT0=0, trackT0=0, promptT0=0, outsideSince=0, drewTxt=false, foeFired=false, winWas=false, winT0=0, winDur=1;
   hotNow=false;
   outcome=null; outT0=0; aimPhase='idle'; doomMsg=null; rollRing(); aimUi('idle');
+  missUsedThisRound=false;
   smoke=[];
-  const foeLine=foeState.line||FOE_LINES[Math.floor(Math.random()*FOE_LINES.length)];
+  const foeLine=foeState.line||pickFoeLine();
   const tgt=document.getElementById('targetF'), mfill=document.getElementById('mfillF');
   function frame(now){
     if(gen!==duelGen) return;   // bailed to menu/store mid-intro
@@ -1718,7 +1962,7 @@ function fire(){
       // count: STILL FACING FORWARD
       resetSpin();
       drawCowboy('front',false,{dy:0,gun:'holster',flash:0});
-      if(!steadySaid){ steadySaid=true; hideBubbles(); showDuel('STEADY…'); duelLocked=true; lockDuelBtns(true); }
+      if(!steadySaid){ steadySaid=true; linesSaidThisDuel=true; hideBubbles(); showDuel('STEADY…'); duelLocked=true; lockDuelBtns(true); }
     }
     else if(t<4650){
       // "TURN": spins front -> back, ends facing AWAY
@@ -1835,10 +2079,26 @@ function fire(){
         updateSmoke();
       }
       else {
-        smoke=[]; foeDown(false);
-        showSign(true, levelMode?(isDesert?'The endless desert gives way!':(level===33?'Scruggs beaten — his threads are yours!':'Level '+level+' cleared!')):'Outlaw down!');
+        smoke=[];   // he stays down after the win — don't reset his pose here
+        showSign(true, levelMode?(isDesert?'The endless desert gives way!':(level===20?'Scruggs beaten — his threads are yours!':'Level '+level+' cleared!')):'Outlaw down!');
         return;
       }
+    }
+    else if(outcome==='miss'){
+      // THE OUTLAW FUMBLES: he fires but the shot goes wide — round restarts, you get another go
+      const mt=now-outT0;
+      resetSpin();
+      drawCowboy('front',false,{dy:0,gun:'holster',flash:0});
+      if(mt<350){
+        drawFigure('foeF',false,{dy:0,gun:'draw',flash:0,mirror:true},foeState);
+        if(!drewTxt){ drewTxt=true; showDuel('HE DRAWS!'); }
+      }
+      else {
+        const fl=mt<520;
+        drawFigure('foeF',false,{dy:0,gun:fl?'fire':'draw',flash:fl?1:0,mirror:true},foeState);
+        if(!foeFired){ foeFired=true; boom(); foeTracer(); showDuel('HE MISSED!'); }
+      }
+      if(mt>1500){ firing=false; clearFx(); duelGen++; foeDown(false); foeHit(false); playerDown(false); renderIdle(); scheduleRound(1100); return; }
     }
     else {
       // LOSE, staged: outlaw draws facing forward, then fires back
@@ -1865,11 +2125,12 @@ function fire(){
 }
 
 function showSign(win,sub){
+  linesSaidThisDuel=false;   // duel is over — next duel gets its one-liners back
   document.getElementById('signTitle').textContent=win?'YOU WIN!':'YOU LOSE';
   document.getElementById('signBoard').classList.toggle('lose',!win);
   document.getElementById('signSub').textContent=sub||'';
   const b=document.getElementById('btn-signMain');
-  b.textContent=win?'CONTINUE':'TRY AGAIN';
+  b.textContent=win?(isDesert?'NEXT DUEL':'CONTINUE'):'TRY AGAIN';
   b.onclick=win?advanceAfterDuel:retryDuel;
   const d=document.getElementById('signDrop');
   d.classList.remove('drop'); void d.offsetWidth; d.classList.add('drop');
@@ -1878,19 +2139,33 @@ function showSign(win,sub){
 function hideSign(){ document.getElementById('signWrap').classList.add('hidden'); }
 function advanceAfterDuel(){
   hideSign(); foeDown(false); firing=false;
-  if(levelMode){ levelMode=false;
-    if(isDesert){ isDesert=false; desertDepth++; difficulty=desertDifficulty(desertDepth); try{ localStorage.setItem('steadyDesert',desertDepth); localStorage.setItem('steadyDesertBest',Math.max(desertDepth,desertBest())); }catch(e){} document.getElementById('lvlMsg').textContent='Desert depth '+desertDepth+' — difficulty '+difficulty+'.'; }
-    else { saveBest(level); document.getElementById('lvlMsg').textContent=(level>=99?'Graveyard cleared — the endless desert awaits! ':'Level '+level+' cleared — next is difficulty '+levelDifficulty(Math.min(99,level+1))+'.'); }
-    renderIdle(); showScreen('levels'); }
-  else { renderIdle(); showScreen('menu'); }
+  if(levelMode){
+    if(isDesert){
+      // endless desert: CONTINUE keeps you fighting — straight into the deeper next duel
+      desertDepth+=5; difficulty=desertDifficulty(desertDepth); lsSet('desert',desertDepth); lsSet('desertBest',Math.max(desertDepth,desertBest()));
+      document.getElementById('lvlMsg').textContent='Desert depth '+desertDepth+' — difficulty '+difficulty+' (+5).';
+      clearFx(); duelGen++; foeDown(false); foeHit(false); playerDown(false);
+      setLevelUi(); shuffleFoe(); renderIdle(); scheduleRound(900);
+      return;
+    }
+    levelMode=false;
+    const wasNext=(level+1>unlocked());   // first time clearing this level?
+    saveBest(level);
+    document.getElementById('lvlMsg').textContent=(level>=MAXLEVEL?'Graveyard cleared — the endless desert awaits! ':'Level '+level+' cleared — next is difficulty '+levelDifficulty(Math.min(MAXLEVEL,level+1))+'.');
+    pendingAnim=wasNext?{from:level}:null;
+    scrollToLevel=wasNext?null:level;
+    renderIdle(); showScreen('levels'); return;
+  }
+  renderIdle(); showScreen('menu');
 }
 function retryDuel(){
   hideSign(); clearFx(); firing=false; duelGen++;
   foeDown(false); foeHit(false); playerDown(false);
   if(levelMode){
-    if(isDesert) difficulty=desertDifficulty(desertDepth); else difficulty=levelDifficulty(level);
+    if(isDesert){ desertDepth=Math.max(1,desertDepth-3); difficulty=desertDifficulty(desertDepth); lsSet('desert',desertDepth); }
+    else difficulty=levelDifficulty(level);
     setLevelUi();
-    document.getElementById('lvlMsg').textContent=isDesert?('Desert depth '+desertDepth+' — difficulty '+difficulty+'. Retry.'):('Level '+level+' — difficulty '+difficulty+'. Retry.');
+    document.getElementById('lvlMsg').textContent=isDesert?('Desert depth '+desertDepth+' — difficulty '+difficulty+' (-3). Retry.'):('Level '+level+' — difficulty '+difficulty+'. Retry.');
   }
   shuffleFoe(); renderIdle(); scheduleRound(800);
 }
@@ -1933,13 +2208,58 @@ _sd.addEventListener('input',e=>{ const v=Math.round(+e.target.value); if(!isNaN
 _sd.addEventListener('change',e=>{ let v=Math.round(+e.target.value); if(isNaN(v)) v=difficulty; difficulty=Math.max(1,Math.min(200,v)); e.target.value=difficulty; diffLabel(); });
 } }
 window.addEventListener('keydown',e=>{ if(e.code==='Space'){ if(document.getElementById('screen-game').classList.contains('hidden')) return; e.preventDefault(); if(firing){ if(aimPhase==='fireprompt'){ playerFire(); } else if(aimPhase==='shrink'||aimPhase==='track'){ earlyFire(); } } else { fire(); } } });
+
+/* ---------- login / profile flow ---------- */
+function currentProfileName(){ try{ return localStorage.getItem('steady:current')||''; }catch(e){ return ''; } }
+function populateLoginProfiles(){
+  const box=document.getElementById('loginProfiles'); if(!box) return;
+  box.innerHTML='';
+  for(const n of listProfiles()){
+    const b=document.createElement('button'); b.type='button'; b.textContent=n;
+    b.addEventListener('click',()=>{ document.getElementById('playerName').value=n; const e=document.getElementById('loginErr'); if(e) e.classList.add('hidden'); });
+    box.appendChild(b);
+  }
+}
+function reloadProfileState(){
+  // pull this profile's saved progress & outfits into the live game variables
+  try{ desertDepth=Math.max(1,+(lsGet('desert')||1)); }catch(e){}
+  loadCustom();
+  for(const k of Object.keys(state)){ const el=document.getElementById('s-'+k); if(el) el.value=state[k]; }
+  refreshScruggsOptions();
+  const le=document.getElementById('s-line'); if(le) le.value=playerLine;
+  renderAll();
+}
+function enterProfile(name){
+  profile=name.trim();
+  PK=profileKey(profile);
+  try{ localStorage.setItem('steady:current',profile); }catch(e){}
+  const bn=document.getElementById('badgeName'); if(bn) bn.textContent=profile;
+  reloadProfileState();
+  if(location.hash==='#levels') showScreen('levels'); else showScreen('menu');
+}
+function showLogin(){
+  populateLoginProfiles();
+  const inp=document.getElementById('playerName');
+  if(inp){ inp.value=currentProfileName(); }
+  const e=document.getElementById('loginErr'); if(e) e.classList.add('hidden');
+  showScreen('login');
+  setTimeout(()=>{ const i=document.getElementById('playerName'); if(i) i.focus(); },80);
+}
+document.getElementById('btn-login').addEventListener('click',()=>{
+  const name=(document.getElementById('playerName').value||'').trim();
+  if(!name){ const e=document.getElementById('loginErr'); if(e) e.classList.remove('hidden'); return; }
+  enterProfile(name);
+});
+document.getElementById('playerName').addEventListener('keydown',e=>{ if(e.code==='Enter'){ e.preventDefault(); document.getElementById('btn-login').click(); } });
+document.getElementById('playerName').addEventListener('input',()=>{ const e=document.getElementById('loginErr'); if(e) e.classList.add('hidden'); });
+document.getElementById('btn-switch').addEventListener('click',showLogin);
+
 setBg('corral');
-loadCustom();
-for(const k of Object.keys(state)){ const el=document.getElementById('s-'+k); if(el) el.value=state[k]; }
 refreshScruggsOptions();
-document.getElementById('s-line').value=playerLine;
 renderAll();
-if(location.hash==='#levels') showScreen('levels'); else showScreen('menu');
+const _startName=currentProfileName();
+if(_startName){ enterProfile(_startName); }
+else { showLogin(); }
 setTimeout(()=>{ if(!spinBroken) menuSpinLoop(); },60);   // safety net if the loop ever died
 </script>
 </body>

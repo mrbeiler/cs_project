@@ -202,7 +202,9 @@ function drawSteadyFigure(x,back,pose,outfit){
 const STEADY={hatStyle:'classic',hatColor:'brown',face:'clean',shirtStyle:'plain',shirt:'cream',vestStyle:'standard',vestColor:'brown',coatStyle:'none',coatColor:'tan',bandana:'red',bandanaStyle:'classic',pantsStyle:'plain',pantsColor:'blue',bootsStyle:'plain',boots:'brown'};
 function loadSteadySkin(){
   try{
-    const c=JSON.parse(localStorage.getItem('steadyCustom')||'null'), s=c&&c.state;
+    const _cur=localStorage.getItem('steady:current')||'';
+    const _key='steady:'+encodeURIComponent(_cur.trim().toLowerCase())+':custom';
+    const c=JSON.parse((_cur?localStorage.getItem(_key):null)||localStorage.getItem('steadyCustom')||'null'), s=c&&c.state;
     if(s){
       const HATS=['classic','outlaw','gambler','sombrero','bowler','tophat','straw','flatcap','none'];
       const FACES=['clean','mustache','beard','scar','grizzled','mask','handlebar','eyepatch'];
@@ -254,6 +256,18 @@ const lantCv=document.createElement('canvas'); lantCv.width=6; lantCv.height=9;
   const r=(a,b,w,h,c)=>{if(c==null)return; x.fillStyle=c; x.fillRect(a,b,w,h);};
   for(const [i,v] of CRYPT_MAN.pants.front){ const px=i%24, py=(i/24)|0; if(px<18||py<21||py>29) continue; cryptPx(x,r,px-18,py-21,v); }
 })();
+const manBackCv=document.createElement('canvas'); manBackCv.width=24; manBackCv.height=40;
+(function(){
+  const x=manBackCv.getContext('2d');
+  const r=(a,b,w,h,c)=>{if(c==null)return; x.fillStyle=c; x.fillRect(a,b,w,h);};
+  for(const [i,v] of CRYPT_MAN.shirt.back){ const px=i%24, py=(i/24)|0; cryptPx(x,r,px,py,v); }
+})();
+const lantBackCv=document.createElement('canvas'); lantBackCv.width=6; lantBackCv.height=9;
+(function(){
+  const x=lantBackCv.getContext('2d');
+  const r=(a,b,w,h,c)=>{if(c==null)return; x.fillStyle=c; x.fillRect(a,b,w,h);};
+  for(const [i,v] of CRYPT_MAN.pants.back){ const px=i%24, py=(i/24)|0; if(px>=6||py<21||py>29) continue; cryptPx(x,r,px,py-21,v); }
+})();
 const D4=[[1,0],[-1,0],[0,1],[0,-1]],STEPS=['*thud*','*drip...*','*scrape*','*click-clack*','*hhhsss*','*thud... thud*'];
 const CHAMBERS=[[2,2,9,6],[15,10,25,15],[29,18,38,24]];
 const PILLARS=[[3,2],[8,5],[17,14],[23,11],[31,23],[36,19]];
@@ -292,7 +306,8 @@ function refresh(){
 }
 function reset(){
  genMaze();seen=Array.from({length:GH},()=>Array(GW).fill(false));doorOpen=false;noises=[];dKey='';L=null;
-  P={x:1.5*T,y:1.5*T,fx:1,up:false,hidden:null,moving:false,wt:0,tx:1,ty:1,lit:true,lampK:1,crackOn:null};
+  if(G)G.scrF=null;
+  P={x:1.5*T,y:1.5*T,fx:1,up:false,hidden:null,moving:false,wt:0,tx:1,ty:1,lit:true,lampK:1,flk:1,fkBurst:0,crackOn:null};
   const f=[];for(let y=1;y<GH-1;y++)for(let x=1;x<GW-1;x++)if(!grid[y][x]&&Math.abs(x-1)+Math.abs(y-1)>5)f.push([x,y]);
   f.sort(()=>Math.random()-.5);coffins=[];
   const seeds=[[5,4],[7,3],[20,12],[17,13],[23,10],[34,21],[31,19],[36,23]];
@@ -322,11 +337,13 @@ function spawnLurker(){
    He keeps a heading and turns it gradually (never snapping tile to tile), follows a path by
    steering at the farthest waypoint he can see, slows a little in tight turns, pauses to look
    around, and when startled he screams, then walks over just a touch faster than his stroll. */
-const MAN_R=10,WALK_SPEED=52,SEEK_SPEED=108,CHASE_SPEED=142,STRIDE=.085,SIGHT_LIGHT=420,SIGHT_BODY=150,FOV=1.15;
+const MAN_R=10,WALK_SPEED=52,SEEK_SPEED=108,CHASE_SPEED=142,STRIDE=.085,SIGHT_LIGHT=420,SIGHT_BODY=320,SIGHT_DARK=120,FOV=1.4;
 // true when nothing solid lies between two points (walls block sight)
 // a lantern can hang inside a wall tile when its carrier is pressed against one: pull the light origin back to open floor
 function safeLamp(bx,by,lx,ly){for(let k=0;k<=6;k++){const t=k/6,x=lx+(bx-lx)*t,y=ly+(by-ly)*t;if(manFree(x,y,2)&&los(bx,by,x,y))return{x,y}}return{x:bx,y:by}}
 // can the player see a moving thing standing here? (clear line to it or just beside it)
+// he sees you if ANY clear line runs from his eyes to your body (centre or either shoulder/head/feet)
+function seesBody(){const x=L.x,y=L.y-18;return los(x,y,P.x,P.y)||los(L.x,L.y,P.x,P.y)||los(L.x,L.y,P.x+8,P.y)||los(L.x,L.y,P.x-8,P.y)||los(L.x,L.y,P.x,P.y-12)}
 function canSee(x,y){return los(P.x,P.y,x,y)||los(P.x,P.y,x+8,y)||los(P.x,P.y,x-8,y)||los(P.x,P.y,x,y+8)||los(P.x,P.y,x,y-8)}
 function toggleLamp(){if(!G||G.state!=='play'||G.snuff)return;P.lit=!P.lit;snd(P.lit?420:260,.06,'square',.05,P.lit?300:150)}
 function los(x0,y0,x1,y1){const d=Math.hypot(x1-x0,y1-y0);if(d<1)return true;return castRay(x0,y0,(x1-x0)/d,(y1-y0)/d,d,0)>=d}
@@ -335,6 +352,7 @@ function scream(){
   if(!L)return;
   addNoise(L.x,L.y,pick(SCREAMS),{size:24,life:2.6,shake:2,say:1});snd(75,.8,'sawtooth',.22,40);
   G.shakeT=1.1; // the scream is the ONLY thing that ever shakes the screen
+  G.scrF=0;P.fkBurst=0; // your lantern stutters and dies for a moment
 }
 function manFree(x,y,r){for(const a of[-r,r])for(const b of[-r,r])if(solid(Math.floor((x+a)/T),Math.floor((y+b)/T)))return false;return true}
 function manMove(dx,dy){if(manFree(L.x+dx,L.y,MAN_R))L.x+=dx;if(manFree(L.x,L.y+dy,MAN_R))L.y+=dy}
@@ -405,9 +423,9 @@ function updateLurker(dt){
   if(G.state==='play'){
     const front=Math.abs(angDiff(Math.atan2(pdy,pdx),L.hd))<FOV||pd<50;
     const pl0=plamp(),lp=safeLamp(P.x,P.y,pl0.x,pl0.y),ld=Math.hypot(lp.x-L.x,lp.y-L.y);
-    const flame=P.lit&&!G.snuff&&ld<SIGHT_LIGHT&&los(L.x,L.y,lp.x,lp.y); // a lit lantern shows even from inside a coffin
-    const bodyR=P.hidden?0:(P.lit?SIGHT_BODY:80); // in the dark he only makes you out when close
-    const body=pd<bodyR&&los(L.x,L.y,P.x,P.y);
+    const flame=P.lit&&!G.snuff&&P.flk!==0&&ld<SIGHT_LIGHT&&los(L.x,L.y,lp.x,lp.y); // a lit lantern shows even from inside a coffin
+    const bodyR=P.hidden?0:(P.lit?SIGHT_BODY:SIGHT_DARK); // in the dark he only makes you out when close
+    const body=pd<bodyR&&seesBody();
     if(front&&(flame||body))sees=true;
     if(G.snuff&&pd<140&&los(L.x,L.y,P.x,P.y))sees=true; // he is on you
   }
@@ -415,6 +433,22 @@ function updateLurker(dt){
   if(!G.snuff&&sees&&pd<64&&G.state==='play'&&los(L.x,L.y,P.x,P.y)){G.snuff=true;snd(150,.45,'sine',.14,50);}
   else if(G.snuff&&(pd>150||(!sees&&L.lostT>1)))G.snuff=false;
   P.lampK+=((P.lit&&!G.snuff?1:0)-P.lampK)*Math.min(1,dt*(G.snuff?9:14));if(P.lampK<.01)P.lampK=0;else if(P.lampK>.99)P.lampK=1;
+  { // lantern flicker (multiplier on your lamp's brightness)
+    let k=1;
+    if(typeof G.scrF==='number'){
+      G.scrF+=dt;const t=G.scrF;
+      if(t<.5)k=Math.random()<.55?.1+Math.random()*.45:1;          // stutter
+      else if(t<1.15)k=(t>.85&&t<.9)?.3:0;                          // goes out
+      else if(t<1.7)k=Math.random()<.45?0:.3+Math.random()*.6;      // sputters back
+      else G.scrF=null;
+    }else if(G.state==='play'&&P.lit&&!G.snuff&&pd>75&&pd<300){
+      const near=1-(pd-75)/225;                                     // 0 far .. 1 close
+      P.fkBurst=(P.fkBurst||0)-dt;
+      if(P.fkBurst<=-(.5+Math.random()*1.8)*(1.7-near)){P.fkBurst=.1+Math.random()*.18}
+      if(P.fkBurst>0)k=.35+Math.random()*.4*(1-near*.4);
+    }else P.fkBurst=0;
+    P.flk=k;
+  }
   L.lampK+=((G.snuff?0:1)-L.lampK)*Math.min(1,dt*9);if(L.lampK<.01)L.lampK=0;else if(L.lampK>.99)L.lampK=1;
   if(sees){
     const fresh=L.lostT>1.5;L.lostT=0;L.hunt=7;
@@ -663,20 +697,23 @@ function cowboy(){
  ctx.save();ctx.translate(Math.round(P.x),Math.round(P.y));ctx.fillStyle='rgba(0,0,0,.4)';ctx.beginPath();ctx.ellipse(0,0,10-Math.abs(sw),4,0,0,7);ctx.fill();
  ctx.scale(P.fx,1);ctx.rotate(sw*.05);ctx.scale(1,1+br);ctx.imageSmoothingEnabled=false;ctx.drawImage(fr,-15,-50,30,50);ctx.restore();
  const l=plamp(),fl=.8+.2*Math.sin(time*13);ctx.strokeStyle='#2a2018';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(P.x+P.fx*7,P.y-16);ctx.lineTo(l.x,l.y-4);ctx.stroke();
- R('#2a2018',l.x-3.5,l.y-4,7,1.5);R('#2a2018',l.x-3.5,l.y+4,7,1.5);if(P.lampK>.15){R(`rgb(255,${190+fl*40|0},110)`,l.x-2.5,l.y-2.5,5,6.5);R('#fff3c4',l.x-1,l.y-1,2,3)}else R('#4a3426',l.x-2.5,l.y-2.5,5,6.5)}
+ R('#2a2018',l.x-3.5,l.y-4,7,1.5);R('#2a2018',l.x-3.5,l.y+4,7,1.5);if(P.lampK*(P.flk==null?1:P.flk)>.15){R(`rgb(255,${190+fl*40|0},110)`,l.x-2.5,l.y-2.5,5,6.5);R('#fff3c4',l.x-1,l.y-1,2,3)}else R('#4a3426',l.x-2.5,l.y-2.5,5,6.5)}
 function lurker(){
  const sp=L.sp||0,m=Math.min(1,sp/50),ph=L.ph||0,q=Math.sin(ph),
   bob=Math.abs(Math.cos(ph))*1.5*m+Math.sin(time*2)*.4*(1-m),lean=Math.cos(L.hd||0)*m*.06;
  ctx.save();ctx.globalAlpha=L.alpha*L.vis;ctx.translate(L.x,L.y);
  ctx.fillStyle='rgba(0,0,0,.5)';ctx.beginPath();ctx.ellipse(0,0,9-Math.abs(q)*m,3,0,0,7);ctx.fill();ctx.imageSmoothingEnabled=false;
+ // heading up the screen -> he shows his back (with hysteresis so he doesn't flip-flop)
+ {const up=Math.sin(L.hd||0);if(L.back){if(up>-.15)L.back=false}else if(up<-.35)L.back=true}
+ const B=!!L.back,mc=B?manBackCv:manCv,lx0=B?-10.625:10.625;
  ctx.rotate(q*.035*m+lean);
- ctx.drawImage(manCv,0,0,24,28,-15,-50-bob,30,35);
- ctx.drawImage(manCv,0,28,12,12,-15,-15-Math.max(0,q)*3.5*m,15,15);ctx.drawImage(manCv,12,28,12,12,0,-15-Math.max(0,-q)*3.5*m,15,15);
+ ctx.drawImage(mc,0,0,24,28,-15,-50-bob,30,35);
+ ctx.drawImage(mc,0,28,12,12,-15,-15-Math.max(0,q)*3.5*m,15,15);ctx.drawImage(mc,12,28,12,12,0,-15-Math.max(0,-q)*3.5*m,15,15);
  const sw=Math.sin(time*2.4)*.38*(1-m*.6)+q*.14*m-(L.av||0)*.07;
- ctx.save();ctx.translate(10.625,-23.75-bob);ctx.rotate(sw);ctx.drawImage(lantCv,-3.75,0,7.5,11.25);ctx.restore();
+ ctx.save();ctx.translate(lx0,-23.75-bob);ctx.rotate(sw);ctx.drawImage(B?lantBackCv:lantCv,-3.75,0,7.5,11.25);ctx.restore();
  ctx.restore();
- {const a=q*.035*m+lean,ca=Math.cos(a),sa=Math.sin(a),ey=-29.4-bob;L.eyes=[L.x-1.9*ca-ey*sa,L.y-1.9*sa+ey*ca,L.x+1.9*ca-ey*sa,L.y+1.9*sa+ey*ca]}
- L.lx=L.x+10.625-Math.sin(sw)*6;L.ly=L.y-23.75-bob+Math.cos(sw)*6}
+ {const a=q*.035*m+lean,ca=Math.cos(a),sa=Math.sin(a),ey=-29.4-bob;L.eyes=B?null:[L.x-1.9*ca-ey*sa,L.y-1.9*sa+ey*ca,L.x+1.9*ca-ey*sa,L.y+1.9*sa+ey*ca]} // no glowing eyes when his back is turned
+ L.lx=L.x+lx0-Math.sin(sw)*6;L.ly=L.y-23.75-bob+Math.cos(sw)*6}
 function parts(){const dt=Math.min(.05,time-(parts.t||time));parts.t=time;
  if(PA.length<110&&Math.random()<.6)PA.push({t:'d',x:OX+Math.random()*VW,y:OY+Math.random()*VH,vx:(Math.random()-.5)*5,vy:-1-Math.random()*4,l:4,m:4});
  for(const c of coffins)if(c.x>OX-30&&c.x<OX+VW+30&&c.y>OY-30&&c.y<OY+VH+30&&Math.random()<.04)PA.push({t:'e',x:c.x+14.5+(Math.random()-.5)*3,y:c.y-9,vx:(Math.random()-.5)*8,vy:-14-Math.random()*8,l:1.4,m:1.4});
@@ -788,7 +825,7 @@ function render(){
   if(L)lurker(); // always runs so his lantern position stays current; alpha hides him when unseen
   if(!P.hidden)cowboy();bats.forEach(b=>{if(canSee(b.x,b.y))bat(b)});parts();ctx.restore();
  const fl=1+Math.sin(time*13)*.04+Math.sin(time*7.3)*.03+(Math.random()-.5)*.03;
-  const pl=plamp(),sl=safeLamp(P.x,P.y,pl.x,pl.y),LX=sl.x,LY=sl.y;let R0=(P.hidden?52:125)*fl*(P.lampK<1?P.lampK*(.6+Math.random()*.4):1);
+  const pl=plamp(),sl=safeLamp(P.x,P.y,pl.x,pl.y),LX=sl.x,LY=sl.y;const pk=P.lampK*(P.flk==null?1:P.flk);let R0=(P.hidden?52:125)*fl*(pk<1?pk*(.6+Math.random()*.4):1);
   if(G.state==='dead'){const k=Math.max(0,1-G.deadT/0.8);R0*=k*(G.deadT<0.5?(0.7+0.3*Math.sin(G.deadT*47)):1);}
  darkness(R0,LX,LY);
   if(G.state!=='dead'){ctx.save();ctx.globalCompositeOperation='lighter';
